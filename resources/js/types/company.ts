@@ -1,3 +1,10 @@
+export interface User {
+    id: number;
+    name: string;
+    email: string;
+    role?: string;
+}
+
 export interface Company {
     id: number;
     name: string;
@@ -5,6 +12,7 @@ export interface Company {
     logo_url: string | null;
     created_at: string;
     updated_at: string;
+    users?: User[];
 }
 
 export interface CreateCompanyDTO {

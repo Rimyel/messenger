@@ -1,4 +1,4 @@
-import React, { useState, ChangeEvent, FormEvent } from "react";
+import React, { useState, FormEvent } from "react";
 import {
     Card,
     CardContent,
@@ -12,22 +12,18 @@ import { Textarea } from "@/Components/ui/textarea";
 import { Button } from "@/Components/ui/button";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { CompanyApi } from "@/services/api";
-import { useForm } from "@inertiajs/react";
+import { toast } from "sonner";
 
-const CreateCompanyForm: React.FC = () => {
-    const { data, setData, errors, post, reset, processing } = useForm({
-        name: "",
-        description: "",
-        photo: "",
-    });
+interface CreateCompanyFormProps {
+    onSuccess?: () => void;
+}
 
+const CreateCompanyForm: React.FC<CreateCompanyFormProps> = ({ onSuccess }) => {
     const [companyName, setCompanyName] = useState("");
     const [description, setDescription] = useState("");
     const [image, setImage] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>("");
-
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
 
     const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -43,29 +39,42 @@ const CreateCompanyForm: React.FC = () => {
 
     const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
         e.preventDefault();
+        if (!companyName.trim() || !description.trim()) {
+            toast.error("Заполните все обязательные поля");
+            return;
+        }
+
         setLoading(true);
-        setError(null);
 
         try {
-            post(route("company.upload"));
-            // const formData = new FormData();
-            // formData.append('name', companyName);
-            // formData.append('description', description);
-            // if (image) {
-            //     formData.append('logo', image);
-            // }
+            const formData = new FormData();
+            formData.append('name', companyName);
+            formData.append('description', description);
+            if (image) {
+                formData.append('logo', image);
+            }
 
-            // await CompanyApi.create(formData);
-            // Очищаем форму после успешного создания
+            await CompanyApi.create(formData);
+            toast.success("Компания успешно создана");
+            
+            // Очищаем форму
             setCompanyName("");
             setDescription("");
             setImage(null);
             setImagePreview("");
-            // Можно добавить уведомление об успешном создании
-            console.log("Компания успешно создана");
-        } catch (err) {
-            setError("Произошла ошибка при создании компании");
-            console.error("Ошибка:", err);
+
+            // Уведомляем родителя об успешном создании
+            onSuccess?.();
+
+            // Перезагружаем страницу для обновления состояния
+            window.location.reload();
+        } catch (error: any) {
+            if (error.response?.status === 422) {
+                toast.error(error.response.data.message || "Проверьте правильность заполнения полей");
+            } else {
+                toast.error("Произошла ошибка при создании компании");
+                console.error("Ошибка:", error);
+            }
         } finally {
             setLoading(false);
         }
@@ -86,36 +95,28 @@ const CreateCompanyForm: React.FC = () => {
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <div className="space-y-2">
                             <Label htmlFor="companyName">
-                                Название компании
+                                Название компании *
                             </Label>
                             <Input
                                 id="companyName"
                                 placeholder="Введите название компании"
-                                // value={companyName}
-                                // onChange={(e: ChangeEvent<HTMLInputElement>) =>
-                                //     setCompanyName(e.target.value)
-                                // }
-                                onChange={(e) =>
-                                    setData("name", e.target.value)
-                                }
+                                value={companyName}
+                                onChange={(e) => setCompanyName(e.target.value)}
+                                required
                             />
                         </div>
 
                         <div className="space-y-2">
                             <Label htmlFor="description">
-                                Описание компании
+                                Описание компании *
                             </Label>
                             <Textarea
                                 id="description"
                                 placeholder="Введите описание компании"
-                                // value={description}
-                                // onChange={(
-                                //     e: ChangeEvent<HTMLTextAreaElement>
-                                // ) => setDescription(e.target.value)}
-                                // rows={4}
-                                onChange={(e) =>
-                                    setData("description", e.target.value)
-                                }
+                                value={description}
+                                onChange={(e) => setDescription(e.target.value)}
+                                rows={4}
+                                required
                             />
                         </div>
 
@@ -154,11 +155,6 @@ const CreateCompanyForm: React.FC = () => {
                             </div>
                         </div>
 
-                        {error && (
-                            <div className="text-red-500 text-sm mb-4">
-                                {error}
-                            </div>
-                        )}
                         <Button
                             type="submit"
                             className="w-full"

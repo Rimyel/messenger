@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
+import { Card, CardContent } from "@/Components/ui/card";
 import { Search, Plus, Loader2, UserPlus } from "lucide-react";
 import {
     Company,
@@ -9,8 +9,8 @@ import {
     PaginatedCompanies,
 } from "@/types/company";
 import { toast } from "sonner";
-
 import { CompanyApi } from "@/services/api";
+
 interface SearchCompanyProps {
     onCreateClick: () => void;
 }
@@ -19,19 +19,49 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
     const [searchQuery, setSearchQuery] = useState("");
     const [companies, setCompanies] = useState<PaginatedCompanies | null>(null);
     const [loading, setLoading] = useState(false);
-    const [joiningCompanyId, setJoiningCompanyId] = useState<number | null>(
-        null
-    );
+    const [joiningCompanyId, setJoiningCompanyId] = useState<number | null>(null);
 
     const searchCompanies = async (params: CompanySearchParams) => {
         try {
             setLoading(true);
-            const data = await CompanyApi.search(params);
-            setCompanies(data);
+            // Отправляем запрос только если есть поисковый запрос
+            if (params.query?.trim()) {
+                const data = await CompanyApi.search(params);
+                setCompanies(data);
+            } else {
+                // Если поискового запроса нет, очищаем список компаний
+                setCompanies({
+                    data: [],
+                    total: 0,
+                    per_page: params.per_page || 5,
+                    current_page: 1,
+                    last_page: 1
+                });
+            }
         } catch (error) {
             console.error("Ошибка при поиске компаний:", error);
+            toast.error("Не удалось загрузить список компаний");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleJoinCompany = async (company: Company) => {
+        try {
+            setJoiningCompanyId(company.id);
+            await CompanyApi.join(company.id);
+            toast.success("Вы успешно присоединились к компании");
+            // Перезагружаем страницу для обновления состояния
+            window.location.reload();
+        } catch (error: any) {
+            if (error.response?.status === 422) {
+                toast.error(error.response.data.message);
+            } else {
+                toast.error("Не удалось присоединиться к компании");
+                console.error("Ошибка при присоединении к компании:", error);
+            }
+        } finally {
+            setJoiningCompanyId(null);
         }
     };
 
@@ -45,12 +75,12 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
 
     return (
         <div className="flex flex-col space-y-4 p-6">
-            <form className="flex justify-between items-center">
+            <div className="flex justify-between items-center">
                 <div className="relative flex-1 max-w-md">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                     <Input
                         type="text"
-                        placeholder="Поиск компании..."
+                        placeholder="Введите название компании для поиска..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         className="pl-10"
@@ -60,14 +90,14 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
                     <Plus className="h-4 w-4 mr-2" />
                     Создать компанию
                 </Button>
-            </form>
+            </div>
 
             <div className="grid gap-4 mt-4">
                 {loading ? (
                     <div className="text-center py-4">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto" />
                         <p className="mt-2 text-sm text-gray-500">
-                            Загрузка компаний...
+                            Поиск компаний...
                         </p>
                     </div>
                 ) : companies?.data.length ? (
@@ -104,29 +134,7 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
                                     variant="outline"
                                     className="ml-4"
                                     disabled={joiningCompanyId === company.id}
-                                    onClick={async () => {
-                                        try {
-                                            setJoiningCompanyId(company.id);
-                                            const data = await CompanyApi.join(
-                                                company.id
-                                            );
-                                            await searchCompanies({
-                                                query: searchQuery,
-                                                page: 1,
-                                                per_page: 10,
-                                            });
-                                        } catch (error: any) {
-                                            if (error.response.status === 422) {
-                                                toast(
-                                                    error.response.data.message
-                                                );
-                                            } else {
-                                                toast("Неизвестная ошибка");
-                                            }
-                                        } finally {
-                                            setJoiningCompanyId(null);
-                                        }
-                                    }}
+                                    onClick={() => handleJoinCompany(company)}
                                 >
                                     {joiningCompanyId === company.id ? (
                                         <>
@@ -145,8 +153,8 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
                     ))
                 ) : (
                     <div className="text-center text-gray-500">
-                        {searchQuery
-                            ? "Компании не найдены"
+                        {searchQuery.trim()
+                            ? "Компании не найдены. Попробуйте изменить запрос."
                             : "Введите название компании для поиска"}
                     </div>
                 )}

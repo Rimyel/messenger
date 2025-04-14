@@ -1,8 +1,6 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 
-const { token } = useAuthStore.getState();
-
 // Создаем экземпляр axios с базовой конфигурацией
 const api = axios.create({
     baseURL: "/api", // Laravel API будет доступен по этому базовому URL
@@ -10,10 +8,17 @@ const api = axios.create({
         "Content-Type": "application/json",
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest", // Важно для Laravel для определения AJAX запросов
-        Authorization: `Bearer ${token}`,
-    
     },
     withCredentials: true, // Важно для работы с Laravel Sanctum
+});
+
+// Добавляем перехватчик запросов для установки актуального токена
+api.interceptors.request.use((config) => {
+    const { token } = useAuthStore.getState();
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
 });
 
 // Перехватчик для обработки ошибок
@@ -77,6 +82,12 @@ export const CompanyApi = {
         const response = await api.post(`/companies/${id}/join`);
         return response.data;
     },
+
+    // Выход из компании
+    leave: async (id: number) => {
+        const response = await api.post(`/companies/${id}/leave`);
+        return response.data;
+    }
 };
 
 export default api;

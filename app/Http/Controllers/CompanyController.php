@@ -11,17 +11,40 @@ class CompanyController extends Controller
 {
     public function index(Request $request)
     {
-        $query = Company::query();
-
-        if ($request->has('query')) {
+        $user = auth()->user();
+        
+        // Если есть поисковый запрос - ищем по всем компаниям
+        if ($request->has('query') && !empty($request->get('query'))) {
             $searchQuery = $request->get('query');
-            $query->where('name', 'like', "%{$searchQuery}%")
-                ->orWhere('description', 'like', "%{$searchQuery}%");
+            return Company::where(function($q) use ($searchQuery) {
+                $q->where('companies.id', 'like', "%{$searchQuery}%")
+                  ->orWhere('companies.name', 'like', "%{$searchQuery}%");
+            })->latest()->paginate($request->get('per_page', 5));
         }
 
-        $perPage = $request->get('per_page', 5);
+        // Если нет поискового запроса - возвращаем только компанию пользователя (если она есть)
+        $userCompany = $user->companies()->first();
+        
+        if ($userCompany) {
+            // Если у пользователя есть компания, возвращаем только её
+            return response()->json([
+                'data' => [$userCompany],
+                'total' => 1,
+                'per_page' => 1,
+                'current_page' => 1,
+                'last_page' => 1
+            ]);
+        }
 
-        return $query->latest()->paginate($perPage);
+        // Если у пользователя нет компании и нет поискового запроса,
+        // возвращаем пустой результат
+        return response()->json([
+            'data' => [],
+            'total' => 0,
+            'per_page' => $request->get('per_page', 5),
+            'current_page' => 1,
+            'last_page' => 1
+        ]);
     }
 
     public function store(Request $request)
@@ -34,6 +57,11 @@ class CompanyController extends Controller
 
         if ($validator->fails()) {
             return response()->json(['errors' => $validator->errors()], 422);
+        }
+
+        // Проверяем, не состоит ли пользователь уже в компании
+        if (auth()->user()->companies()->exists()) {
+            return response()->json(['message' => 'Вы уже состоите в компании'], 422);
         }
 
         $data = $validator->validated();
@@ -113,19 +141,39 @@ class CompanyController extends Controller
         return response()->json(null, 204);
     }
 
-    /**
-     * Join a company as a member.
-     */
     public function join(Company $company)
     {
-        // Проверяем, не является ли пользователь уже участником компании
-        if ($company->users()->where('user_id', auth()->id())->exists()) {
-            return response()->json(['message' => 'Вы уже являетесь участником этой компании'], 422);
+        $user = auth()->user();
+        
+        // Проверяем, является ли пользователь уже участником какой-либо компании
+        if ($user->companies()->exists()) {
+            return response()->json(['message' => 'Вы уже являетесь участником другой компании'], 422);
         }
 
         // Добавляем пользователя как участника
-        $company->users()->attach(auth()->id(), ['role' => 'member']);
+        $company->users()->attach($user->id, ['role' => 'member']);
 
         return response()->json(['message' => 'Вы успешно присоединились к компании']);
+    }
+
+    public function leave(Company $company)
+    {
+        $user = auth()->user();
+        
+        // Проверяем, является ли пользователь участником компании
+        if (!$company->users()->where('user_id', $user->id)->exists()) {
+            return response()->json(['message' => 'Вы не являетесь участником этой компании'], 422);
+        }
+
+        // Проверяем, не является ли пользователь единственным владельцем
+        if ($company->users()->where('role', 'owner')->count() === 1 &&
+            $company->users()->where('user_id', $user->id)->where('role', 'owner')->exists()) {
+            return response()->json(['message' => 'Вы не можете покинуть компанию, так как вы единственный владелец'], 422);
+        }
+
+        // Удаляем пользователя из компании
+        $company->users()->detach($user->id);
+
+        return response()->json(['message' => 'Вы успешно покинули компанию']);
     }
 }
