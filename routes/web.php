@@ -29,9 +29,17 @@ Route::get('/', function () {
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', function () {
         return Inertia::render('Dashboard', [
-            'userId' => auth()->id()
+            'userId' => auth()->id(),
+            'mustVerifyEmail' => auth()->user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail,
+            'status' => session('status'),
         ]);
     })->name('dashboard');
+
+    // Profile routes
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+    Route::post('/email/verification-notification', [ProfileController::class, 'sendVerificationNotification'])
+        ->name('verification.send');
 
     // Company routes
     Route::prefix('api')->group(function () {

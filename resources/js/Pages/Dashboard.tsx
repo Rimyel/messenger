@@ -21,6 +21,7 @@ import {
 import CreateCompanyForm from "@/Components/Company/CreateCompanyForm";
 import SearchCompany from "@/Components/Company/SearchCompany";
 import CompanyDetails from "@/Components/Company/CompanyDetails";
+import ProfileContent from "@/Components/Profile/ProfileContent";
 import { Button } from "@/Components/ui/button";
 import { CommandPalette } from "@/Components/CommandPalette";
 import {
@@ -48,6 +49,7 @@ import type { Company } from "@/types/company";
 interface Props {
     userId?: number;
     apiToken?: string;
+    status?: string;
 }
 
 const Dashboard: React.FC = () => {
@@ -57,22 +59,20 @@ const Dashboard: React.FC = () => {
     const [isCreatingCompany, setIsCreatingCompany] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { apiToken, userId } = usePage().props as Props;
+    const { apiToken, userId, status } = usePage().props as Props;
 
     // Обработка изменения токена
     useEffect(() => {
         if (apiToken) {
             setToken(apiToken);
-            // При изменении токена сбрасываем состояние компании
             setCurrentCompany(null);
-            // И проверяем компанию заново
             checkUserCompany();
         }
     }, [apiToken]);
 
     // Проверка компании пользователя
     const checkUserCompany = async () => {
-        if (!token) return; // Не делаем запрос без токена
+        if (!token) return;
 
         try {
             setIsLoading(true);
@@ -144,6 +144,8 @@ const Dashboard: React.FC = () => {
                         onCreateClick={() => setIsCreatingCompany(true)}
                     />
                 );
+            case "profile":
+                return <ProfileContent status={status} />;
             default:
                 return <h1>Dashboard Page</h1>;
         }
@@ -166,7 +168,6 @@ const Dashboard: React.FC = () => {
     return (
         <SidebarProvider>
             <div className="flex h-screen w-full">
-                {/* Боковая панель */}
                 <Sidebar collapsible="icon">
                     <SidebarHeader className="flex items-center justify-between">
                         <h2 className="px-4 text-lg font-semibold group-data-[collapsible=icon]:hidden">
@@ -291,6 +292,7 @@ const Dashboard: React.FC = () => {
                                 <Button
                                     variant="ghost"
                                     className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
+                                    onClick={() => setCurrentContent("profile")}
                                 >
                                     <UserCircle className="h-4 w-4" />
                                     <span className="group-data-[collapsible=icon]:hidden">
@@ -325,7 +327,6 @@ const Dashboard: React.FC = () => {
                 </Sidebar>
 
                 <div className="flex-1 flex flex-col w-full">
-                    {/* Верхняя панель навигации */}
                     <Menubar className="border-b rounded-none px-4">
                         <div className="flex items-center gap-2">
                             <Button
