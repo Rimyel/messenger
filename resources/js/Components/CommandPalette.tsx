@@ -29,7 +29,7 @@ import {
   CommandShortcut,
 } from "@/Components/ui/command"
 
-export function CommandPalette() {
+const CommandPalette: React.FC = () => {
   const [open, setOpen] = React.useState(false)
 
   React.useEffect(() => {
@@ -131,3 +131,5 @@ export function CommandPalette() {
     </CommandDialog>
   )
 }
+
+export default CommandPalette;
