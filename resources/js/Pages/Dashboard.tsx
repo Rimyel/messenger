@@ -43,6 +43,8 @@ import { usePage, router } from "@inertiajs/react";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Toaster } from "@/Components/ui/sonner";
 import { toast } from "sonner";
+import { AuthService } from "@/services/auth";
+
 import { CompanyApi } from "@/services/api";
 import type { Company } from "@/types/company";
 
@@ -63,6 +65,15 @@ const Dashboard: React.FC = () => {
 
     // Обработка изменения токена
     useEffect(() => {
+        // Проверяем статус токена при загрузке компонента
+        const currentToken = AuthService.getCurrentToken();
+        console.log('Current authentication status:', {
+            isAuthenticated: AuthService.isAuthenticated(),
+            token: currentToken,
+            tokenLength: currentToken?.length
+        });
+
+        // Устанавливаем токен из props если он есть
         if (apiToken) {
             setToken(apiToken);
             setCurrentCompany(null);

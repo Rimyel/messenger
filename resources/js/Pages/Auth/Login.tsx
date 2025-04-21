@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 import { motion } from "framer-motion";
 import GuestLayout from '@/Layouts/GuestLayout';
+import { AuthService } from '@/services/auth';
 
 export default function Login({
     status,
@@ -10,16 +11,50 @@ export default function Login({
     status?: string;
     canResetPassword: boolean;
 }) {
-    const { data, setData, post, processing, errors, reset } = useForm({
+    const { data, setData, post, processing, errors, reset } = useForm<{
+        email: string;
+        password: string;
+        remember: boolean;
+    }>({
         email: '',
         password: '',
-        remember: false as boolean,
+        remember: false,
     });
 
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
+        // Используем стандартную веб-авторизацию через Inertia
         post(route('login'), {
+            onSuccess: async () => {
+                try {
+                    // После успешной веб-авторизации получаем API токен
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: data.email,
+                            password: data.password,
+                        }),
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.token) {
+                        // Сохраняем токен в хранилище
+                        AuthService.login({
+                            email: data.email,
+                            password: data.password,
+                        });
+                        console.log('Successfully logged in, token:', result.token);
+                    }
+                } catch (error) {
+                    console.error('API auth error:', error);
+                }
+            },
             onFinish: () => reset('password'),
         });
     };
