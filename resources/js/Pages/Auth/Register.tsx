@@ -2,6 +2,7 @@ import { Head, Link, useForm } from '@inertiajs/react';
 import { FormEventHandler } from 'react';
 import { motion } from "framer-motion";
 import GuestLayout from '@/Layouts/GuestLayout';
+import { AuthService } from '@/services/auth';
 
 export default function Register() {
     const { data, setData, post, processing, errors, reset } = useForm({
@@ -15,6 +16,35 @@ export default function Register() {
         e.preventDefault();
 
         post(route('register'), {
+            onSuccess: async () => {
+                try {
+                    // После успешной регистрации получаем API токен
+                    const response = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            email: data.email,
+                            password: data.password,
+                        }),
+                    });
+
+                    const result = await response.json();
+                    
+                    if (result.token) {
+                        // Сохраняем токен в хранилище
+                        await AuthService.login({
+                            email: data.email,
+                            password: data.password,
+                        });
+                        console.log('Successfully registered and logged in, token:', result.token);
+                    }
+                } catch (error) {
+                    console.error('API auth error after registration:', error);
+                }
+            },
             onFinish: () => reset('password', 'password_confirmation'),
         });
     };
