@@ -74,8 +74,15 @@ class ChatService {
     // Get messages for a specific conversation
     async getMessages(conversationId: number): Promise<ChatMessage[]> {
         try {
+            const { token } = useAuthStore.getState();
             const response = await fetch(
-                `/api/conversations/${conversationId}/messages`
+                `/api/conversations/${conversationId}/messages`,
+                {
+                    headers: {
+                        "Content-Type": "application/json",
+                        Authorization: token ? `Bearer ${token}` : "",
+                    },
+                }
             );
             if (!response.ok) {
                 throw new Error("Failed to fetch messages");

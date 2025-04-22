@@ -1,3 +1,4 @@
+import { FC } from "react";
 import React, { useState, useEffect } from "react";
 import { chatService } from "@/services/chat";
 import ChatSidebar from "./ChatSidebar";
@@ -6,38 +7,38 @@ import ChatInput from "./ChatInput";
 import type { ChatMessage, ChatConversation } from "@/types/chat";
 
 // Temporary mock data - will be replaced with real data
-const mockConversations: ChatConversation[] = [
-    {
-        id: 1,
-        participantId: 2,
-        participantName: "John Doe",
-        unreadCount: 3,
-        updatedAt: new Date().toISOString(),
-        lastMessage: {
-            id: 1,
-            content: "Привет, как дела?",
-            senderId: 2,
-            receiverId: 1,
-            createdAt: new Date().toISOString(),
-            read: false,
-        },
-    },
-    {
-        id: 2,
-        participantId: 2,
-        participantName: "John Doe",
-        unreadCount: 3,
-        updatedAt: new Date().toISOString(),
-        lastMessage: {
-            id: 1,
-            content: "Привет, как дела12312312?",
-            senderId: 2,
-            receiverId: 1,
-            createdAt: new Date().toISOString(),
-            read: false,
-        },
-    },
-];
+// const mockConversations: ChatConversation[] = [
+//     {
+//         id: 1,
+//         participantId: 2,
+//         participantName: "John Doe",
+//         unreadCount: 3,
+//         updatedAt: new Date().toISOString(),
+//         lastMessage: {
+//             id: 1,
+//             content: "Привет, как дела?",
+//             senderId: 2,
+//             receiverId: 1,
+//             createdAt: new Date().toISOString(),
+//             read: false,
+//         },
+//     },
+//     {
+//         id: 2,
+//         participantId: 2,
+//         participantName: "John Doe",
+//         unreadCount: 3,
+//         updatedAt: new Date().toISOString(),
+//         lastMessage: {
+//             id: 1,
+//             content: "Привет, как дела12312312?",
+//             senderId: 2,
+//             receiverId: 1,
+//             createdAt: new Date().toISOString(),
+//             read: false,
+//         },
+//     },
+// ];
 
 const mockMessages: ChatMessage[] = [
     {
@@ -45,20 +46,25 @@ const mockMessages: ChatMessage[] = [
         content: "Привет, как дела?",
         senderId: 2,
         receiverId: 1,
-        createdAt: new Date().toISOString(),
+        created_at: new Date().toISOString(),
         read: false,
     },
 ];
 
-export const Chat: React.FC = () => {
+interface Props {
+    chats?: ChatConversation[];
+}
+
+const Chat: FC<Props> = ({ chats }) => {
     const [selectedConversation, setSelectedConversation] = useState<
         ChatConversation | undefined
     >();
-    const currentUserId = 1; // Will be replaced with actual user ID
+    const currentUserId = 1;
 
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [conversations, setConversations] =
-        useState<ChatConversation[]>(mockConversations);
+    const [conversations, setConversations] = useState<ChatConversation[]>(
+        chats ?? []
+    );
 
     useEffect(() => {
         loadConversations();

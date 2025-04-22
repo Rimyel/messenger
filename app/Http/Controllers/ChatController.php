@@ -61,6 +61,16 @@ class ChatController extends Controller
                 $conversation->messages()
                     ->orderBy('created_at', 'asc')
                     ->get()
+                    ->map(function ($msg) {
+                        return [
+                            'id' => $msg->id,
+                            'content' => $msg->content,
+                            'senderId' => $msg->sender_id,
+                            'receiverId' => $msg->receiver_id,
+                            'read' => $msg->read,
+                            'created_at' => $msg->created_at->toISOString(),
+                        ];
+                    })
             );
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch messages'], 500);
@@ -75,7 +85,6 @@ class ChatController extends Controller
                 'content' => 'required|string',
             ]);
             $user = Auth::user();
-            dd($request->conversationId);
             $conversation = Conversation::find($request->conversationId);
 
             // Verify user is part of the conversation

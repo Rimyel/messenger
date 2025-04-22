@@ -13,6 +13,10 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
     currentUserId,
     conversation,
 }) => {
+    const normalizeDate = (isoString: string) => {
+        // Обрезаем до 3 знаков миллисекунд (или полностью)
+        return isoString.replace(/\.\d{3,6}Z$/, "Z");
+    };
     return (
         <div className="flex-1 flex flex-col">
             {/* Chat header */}
@@ -34,7 +38,9 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                     )}
                 </div>
                 <div>
-                    <h3 className="font-medium">{conversation.participantName}</h3>
+                    <h3 className="font-medium">
+                        {conversation.participantName}
+                    </h3>
                     <span className="text-sm text-muted-foreground">
                         онлайн
                     </span>
@@ -49,7 +55,10 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                     return (
                         <div
                             key={message.id}
-                            className={cn("flex", isOwn ? "justify-end" : "justify-start")}
+                            className={cn(
+                                "flex",
+                                isOwn ? "justify-end" : "justify-start"
+                            )}
                         >
                             <div
                                 className={cn(
@@ -68,13 +77,15 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                                             : "text-muted-foreground"
                                     )}
                                 >
-                                    {new Date(message.createdAt).toLocaleTimeString(
-                                        [],
-                                        {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        }
-                                    )}
+                                    {new Date(
+                                        normalizeDate(message.created_at)
+                                    ).toLocaleString("ru-RU", {
+                                        day: "2-digit",
+                                        month: "2-digit",
+                                        year: "numeric",
+                                        hour: "2-digit",
+                                        minute: "2-digit",
+                                    })}
                                 </div>
                             </div>
                         </div>

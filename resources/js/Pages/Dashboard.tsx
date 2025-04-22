@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { AuthService } from "@/services/auth";
 import { CompanyApi } from "@/services/api";
 import type { Company } from "@/types/company";
+import { ChatConversation } from "@/types/chat";
 
 // Lazy load components
 const Sidebar = lazy(() => import("@/Components/Layout/Sidebar"));
@@ -18,6 +19,7 @@ interface Props {
     userId?: number;
     apiToken?: string;
     status?: string;
+    chats?: ChatConversation[];
 }
 
 const LoadingSpinner = () => (
@@ -33,7 +35,7 @@ const Dashboard: React.FC = () => {
     const [isCreatingCompany, setIsCreatingCompany] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
 
-    const { apiToken, userId, status } = usePage().props as Props;
+    const { apiToken, userId, status, chats } = usePage().props as Props;
 
     useEffect(() => {
         const currentToken = AuthService.getCurrentToken();
@@ -145,6 +147,7 @@ const Dashboard: React.FC = () => {
                             setIsCreatingCompany={setIsCreatingCompany}
                             isLoading={isLoading}
                             status={status}
+                            chats={chats}
                         />
                     </Suspense>
                     <Toaster />

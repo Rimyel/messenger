@@ -3,7 +3,7 @@ export interface ChatMessage {
     content: string;
     senderId: number;
     receiverId: number;
-    createdAt: string;
+    created_at: string;
     read: boolean;
 }
 
@@ -14,5 +14,5 @@ export interface ChatConversation {
     participantAvatar?: string;
     lastMessage?: ChatMessage;
     unreadCount: number;
-    updatedAt: string;
+    created_at: string;
 }
