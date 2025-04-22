@@ -8,6 +8,7 @@ const CreateCompanyForm = lazy(() => import("@/Components/Company/CreateCompanyF
 const SearchCompany = lazy(() => import("@/Components/Company/SearchCompany"));
 const CompanyDetails = lazy(() => import("@/Components/Company/CompanyDetails"));
 const ProfileContent = lazy(() => import("@/Components/Profile/ProfileContent"));
+const Chat = lazy(() => import("@/Components/Chat/Chat"));
 
 interface MainContentProps {
     currentContent: string;
@@ -77,6 +78,12 @@ export const MainContent: React.FC<MainContentProps> = ({
                 return (
                     <Suspense fallback={<LoadingSpinner />}>
                         <ProfileContent status={status} />
+                    </Suspense>
+                );
+            case "chat":
+                return (
+                    <Suspense fallback={<LoadingSpinner />}>
+                        <Chat />
                     </Suspense>
                 );
             default:

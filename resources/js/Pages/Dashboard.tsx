@@ -37,11 +37,11 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         const currentToken = AuthService.getCurrentToken();
-        console.log('Current authentication status:', {
-            isAuthenticated: AuthService.isAuthenticated(),
-            token: currentToken,
-            tokenLength: currentToken?.length
-        });
+        // console.log('Current authentication status:', {
+        //     isAuthenticated: AuthService.isAuthenticated(),
+        //     token: currentToken,
+        //     tokenLength: currentToken?.length
+        // });
 
         if (apiToken) {
             setToken(apiToken);
@@ -94,16 +94,20 @@ const Dashboard: React.FC = () => {
     };
 
     const handleLogout = () => {
-        if (window.confirm('Вы действительно хотите выйти?')) {
-            router.post('/logout', {}, {
-                onSuccess: () => {
-                    clearToken();
-                    toast.success('Вы успешно вышли из системы');
-                },
-                onError: () => {
-                    toast.error('Произошла ошибка при выходе из системы');
+        if (window.confirm("Вы действительно хотите выйти?")) {
+            router.post(
+                "/logout",
+                {},
+                {
+                    onSuccess: () => {
+                        clearToken();
+                        toast.success("Вы успешно вышли из системы");
+                    },
+                    onError: () => {
+                        toast.error("Произошла ошибка при выходе из системы");
+                    },
                 }
-            });
+            );
         }
     };
 

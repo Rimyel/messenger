@@ -3,36 +3,40 @@ import { useAuthStore } from "@/stores/useAuthStore";
 
 // Создаем экземпляр axios с базовой конфигурацией
 const api = axios.create({
-    baseURL: "/api", // Laravel API будет доступен по этому базовому URL
+    baseURL: "/api",
     headers: {
         "Content-Type": "application/json",
         Accept: "application/json",
-        "X-Requested-With": "XMLHttpRequest", // Важно для Laravel для определения AJAX запросов
+        "X-Requested-With": "XMLHttpRequest",
     },
-    withCredentials: true, // Важно для работы с Laravel Sanctum
+    withCredentials: true,
 });
 
-// Добавляем перехватчик запросов для установки актуального токена
-api.interceptors.request.use((config) => {
-    const { token } = useAuthStore.getState();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+// Добавляем перехватчик запросов для установки актуального токена перед каждым запросом
+// axios.interceptors.request.use(
+//     function (config) {
+//         const { token } = useAuthStore.getState();
+//         console.log(123);
+
+//         return config;
+//     },
+//     function (error) {
+//         // Do something with request error
+//         return Promise.reject(error);
+//     }
+// );
 
 // Перехватчик для обработки ошибок
 api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.response?.status === 401) {
-            // Здесь можно добавить логику для перенаправления на страницу входа
+            // Если ошибка авторизации, можно добавить логику для перенаправления
             window.location.href = "/login";
         }
         return Promise.reject(error);
     }
 );
-
 export const CompanyApi = {
     // Получение списка компаний с поиском и пагинацией
     search: async (params: {
@@ -87,7 +91,7 @@ export const CompanyApi = {
     leave: async (id: number) => {
         const response = await api.post(`/companies/${id}/leave`);
         return response.data;
-    }
+    },
 };
 
 export default api;

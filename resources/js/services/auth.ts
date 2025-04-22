@@ -1,5 +1,5 @@
-import api from './api';
-import { useAuthStore } from '@/stores/useAuthStore';
+import api from "./api";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 interface LoginCredentials {
     email: string;
@@ -16,15 +16,18 @@ export const AuthService = {
     // Аутентификация пользователя
     async login(credentials: LoginCredentials) {
         try {
-            const response = await api.post<AuthResponse>('/auth/login', credentials);
+            const response = await api.post<AuthResponse>(
+                "/auth/login",
+                credentials
+            );
             const { token, user } = response.data;
-            
+
             // Сохраняем токен в хранилище
             useAuthStore.getState().setToken(token);
-            
+
             return { user, token };
         } catch (error) {
-            console.error('Login error:', error);
+            console.error("Login error:", error);
             throw error;
         }
     },
@@ -32,11 +35,11 @@ export const AuthService = {
     // Выход пользователя
     async logout() {
         try {
-            await api.post('/auth/logout');
+            await api.post("/auth/logout");
             // Очищаем токен из хранилища
             useAuthStore.getState().clearToken();
         } catch (error) {
-            console.error('Logout error:', error);
+            console.error("Logout error:", error);
             throw error;
         }
     },
@@ -44,10 +47,10 @@ export const AuthService = {
     // Получение информации о текущем пользователе
     async getCurrentUser() {
         try {
-            const response = await api.get('/auth/me');
+            const response = await api.get("/auth/me");
             return response.data.user;
         } catch (error) {
-            console.error('Get current user error:', error);
+            console.error("Get current user error:", error);
             throw error;
         }
     },
@@ -60,5 +63,5 @@ export const AuthService = {
     // Получить текущий токен
     getCurrentToken(): string | null {
         return useAuthStore.getState().token;
-    }
+    },
 };
