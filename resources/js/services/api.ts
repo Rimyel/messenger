@@ -12,19 +12,19 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// Добавляем перехватчик запросов для установки актуального токена перед каждым запросом
-// axios.interceptors.request.use(
-//     function (config) {
-//         const { token } = useAuthStore.getState();
-//         console.log(123);
-
-//         return config;
-//     },
-//     function (error) {
-//         // Do something with request error
-//         return Promise.reject(error);
-//     }
-// );
+// Перехватчик запроса для добавления токена в заголовки
+api.interceptors.request.use(
+    function (config) {
+        const { token } = useAuthStore.getState();
+        if (token) {
+            config.headers["Authorization"] = `Bearer ${token}`;
+        }
+        return config;
+    },
+    function (error) {
+        return Promise.reject(error);
+    }
+);
 
 // Перехватчик для обработки ошибок
 api.interceptors.response.use(

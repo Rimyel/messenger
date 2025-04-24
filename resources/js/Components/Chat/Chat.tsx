@@ -6,51 +6,6 @@ import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
 import type { ChatMessage, ChatConversation } from "@/types/chat";
 
-// Temporary mock data - will be replaced with real data
-// const mockConversations: ChatConversation[] = [
-//     {
-//         id: 1,
-//         participantId: 2,
-//         participantName: "John Doe",
-//         unreadCount: 3,
-//         updatedAt: new Date().toISOString(),
-//         lastMessage: {
-//             id: 1,
-//             content: "Привет, как дела?",
-//             senderId: 2,
-//             receiverId: 1,
-//             createdAt: new Date().toISOString(),
-//             read: false,
-//         },
-//     },
-//     {
-//         id: 2,
-//         participantId: 2,
-//         participantName: "John Doe",
-//         unreadCount: 3,
-//         updatedAt: new Date().toISOString(),
-//         lastMessage: {
-//             id: 1,
-//             content: "Привет, как дела12312312?",
-//             senderId: 2,
-//             receiverId: 1,
-//             createdAt: new Date().toISOString(),
-//             read: false,
-//         },
-//     },
-// ];
-
-const mockMessages: ChatMessage[] = [
-    {
-        id: 1,
-        content: "Привет, как дела?",
-        senderId: 2,
-        receiverId: 1,
-        created_at: new Date().toISOString(),
-        read: false,
-    },
-];
-
 interface Props {
     chats?: ChatConversation[];
 }
