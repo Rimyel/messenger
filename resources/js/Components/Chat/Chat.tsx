@@ -1,62 +1,66 @@
-import { FC } from "react";
-import React, { useState, useEffect } from "react";
+import { FC, useState, useEffect } from "react";
 import { chatService } from "@/services/chat";
 import ChatSidebar from "./ChatSidebar";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
-import type { ChatMessage, ChatConversation } from "@/types/chat";
+import type { ChatMessage, Chat, ChatParticipant } from "@/types/chat";
+import { useAuthStore } from "@/stores/useAuthStore";
+import { AuthService } from "@/services/auth";
+import { router } from "@inertiajs/core";
 
 interface Props {
-    chats?: ChatConversation[];
+    initialChats?: Chat[];
 }
 
-const Chat: FC<Props> = ({ chats }) => {
-    const [selectedConversation, setSelectedConversation] = useState<
-        ChatConversation | undefined
-    >();
-    const currentUserId = 1;
-
+const ChatComponent: FC<Props> = ({ initialChats }) => {
+    const [selectedChat, setSelectedChat] = useState<Chat | undefined>();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
-    const [conversations, setConversations] = useState<ChatConversation[]>(
-        chats ?? []
-    );
+    const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
+    const { user, token } = useAuthStore((state) => state);
 
+ 
     useEffect(() => {
-        loadConversations();
+        if (!AuthService.isAuthenticated()) {
+            router.visit("/login");
+            return;
+        }
     }, []);
 
     useEffect(() => {
-        if (selectedConversation) {
-            loadMessages(selectedConversation.id);
+        if (user) {
+            loadChats();
+        }
+    }, [user]);
+
+    useEffect(() => {
+        if (selectedChat) {
+            loadMessages(selectedChat.id);
             try {
-                chatService.subscribeToChat(
-                    selectedConversation.id,
-                    handleNewMessage
-                );
+                chatService.subscribeToChat(selectedChat.id, handleNewMessage);
             } catch (error) {
                 console.error("Error subscribing to chat:", error);
             }
         }
 
         return () => {
-            if (selectedConversation) {
-                chatService.unsubscribeFromChat(selectedConversation.id);
+            if (selectedChat) {
+                chatService.unsubscribeFromChat(selectedChat.id);
             }
         };
-    }, [selectedConversation]);
+    }, [selectedChat]);
 
-    const loadConversations = async () => {
+    const loadChats = async () => {
         try {
-            const data = await chatService.getConversations();
-            setConversations(data);
+            const data = await chatService.getChats();
+            setChats(data);
         } catch (error) {
-            console.error("Error loading conversations:", error);
+            console.error("Error loading chats:", error);
         }
     };
 
-    const loadMessages = async (conversationId: number) => {
+    const loadMessages = async (chatId: number) => {
         try {
-            const data = await chatService.getMessages(conversationId);
+            const data = await chatService.getMessages(chatId);
             setMessages(data);
         } catch (error) {
             console.error("Error loading messages:", error);
@@ -64,38 +68,79 @@ const Chat: FC<Props> = ({ chats }) => {
     };
 
     const handleNewMessage = (message: ChatMessage) => {
-        setMessages((prev) => [...prev, message]);
+        console.log("Received new message:", message);
+        setMessages(prev => [...prev, message]);
+
+        // обновляем последнее сообщение
+        setChats(prevChats =>
+            prevChats.map(chat =>
+                chat.id === selectedChat?.id
+                    ? { ...chat, lastMessage: message }
+                    : chat
+            )
+        );
     };
 
     const handleSendMessage = async (content: string) => {
-        if (!selectedConversation) return;
+        if (!selectedChat) return;
 
         try {
-            const response = await chatService.sendMessage(
-                selectedConversation.id,
-                content
-            );
-            // console.log(response);
+            const message = await chatService.sendMessage(selectedChat.id, content);
+
+            console.log("Message sent:", message);
         } catch (error) {
             console.error("Error sending message:", error);
-            // Optionally show an error toast or notification to the user
-            // toast.error("Failed to send message. Please try again.");
         }
+    };
+
+    const handleCreatePrivateChat = async (userId: number) => {
+        try {
+            const newChat = await chatService.createPrivateChat({ userId });
+            setChats(prev => [...prev, newChat]);
+            setSelectedChat(newChat);
+        } catch (error) {
+            console.error("Error creating private chat:", error);
+        }
+    };
+
+    const handleCreateGroupChat = async (
+        name: string,
+        participantIds: number[]
+    ) => {
+        try {
+            const newChat = await chatService.createGroupChat({
+                name,
+                participantIds,
+            });
+            setChats(prev => [...prev, newChat]);
+            setSelectedChat(newChat);
+        } catch (error) {
+            console.error("Error creating group chat:", error);
+        }
+    };
+
+    const currentUser: ChatParticipant = {
+        id: user?.id || 0,
+        name: user?.name || '',
+        avatar: user?.avatar || '',
     };
 
     return (
         <div className="flex h-full">
             <ChatSidebar
-                conversations={conversations}
-                selectedConversation={selectedConversation}
-                onSelectConversation={setSelectedConversation}
+                chats={chats}
+                selectedChat={selectedChat}
+                onSelectChat={setSelectedChat}
+                onCreatePrivateChat={handleCreatePrivateChat}
+                onCreateGroupChat={handleCreateGroupChat}
+                currentUser={currentUser}
             />
-            {selectedConversation ? (
+            {selectedChat ? (
                 <div className="flex-1 flex flex-col">
                     <ChatMessages
                         messages={messages}
-                        currentUserId={currentUserId}
-                        conversation={selectedConversation}
+                        currentUser={currentUser}
+                        chat={selectedChat}
                     />
                     <ChatInput onSendMessage={handleSendMessage} />
                 </div>
@@ -108,4 +153,4 @@ const Chat: FC<Props> = ({ chats }) => {
     );
 };
 
-export default Chat;
+export default ChatComponent;

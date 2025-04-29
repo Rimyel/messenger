@@ -1,95 +1,89 @@
-import Pusher from "pusher-js";
-import type { ChatMessage, ChatConversation } from "@/types/chat";
+import type { ChatMessage, Chat, CreateGroupChatData, CreatePrivateChatData } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
+import api from "./api";
 
 class ChatService {
-    private pusher: Pusher;
     private channel: any;
 
-    constructor() {
-        // Initialize Pusher with your credentials
-        this.pusher = new Pusher("fbec33f8ff40825149ad", {
-            cluster: "eu",
-            forceTLS: true,
-            authEndpoint: "/api/broadcasting/auth",
-        });
-    }
+    subscribeToChat(chatId: number, onMessageReceived: (message: ChatMessage) => void) {
+        try {
+            if (this.channel) {
+                this.unsubscribeFromChat(chatId);
+            }
 
-    // Subscribe to a specific chat channel
-    subscribeToChat(
-        conversationId: number,
-        onMessageReceived: (message: ChatMessage) => void
-    ) {
-        this.channel = this.pusher.subscribe(`private-chat.${conversationId}`);
-        this.channel.bind("message.sent", onMessageReceived);
-    }
-
-    // Unsubscribe from current chat channel
-    unsubscribeFromChat(conversationId: number) {
-        if (this.channel) {
-            this.channel.unbind("message.sent");
-            this.pusher.unsubscribe(`private-chat.${conversationId}`);
+            this.channel = window.Echo.private(`chat.${chatId}`);
+            
+            this.channel.listen('.MessageSent', (event: any) => {
+                console.log('Received message in service:', event);
+                if (event.message) {
+                    onMessageReceived(event.message);
+                }
+            });
+        } catch (error) {
+            console.error('Error subscribing to chat:', error);
+            throw error;
         }
     }
 
-    // Send a message
-    async sendMessage(conversationId: number, content: string): Promise<void> {
+    unsubscribeFromChat(chatId: number) {
         try {
-            const { token } = useAuthStore.getState();
-            const response = await fetch("/api/messages", {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                    Authorization: token ? `Bearer ${token}` : "",
-                },
-                body: JSON.stringify({
-                    conversationId,
-                    content,
-                }),
-            });
-
-            if (!response.ok) {
-                throw new Error("Failed to send message");
+            if (this.channel) {
+                this.channel.stopListening('.MessageSent');
             }
+            if (window.Echo) {
+                window.Echo.leave(`chat.${chatId}`);
+            }
+        } catch (error) {
+            console.error('Error unsubscribing from chat:', error);
+        }
+    }
+
+    async sendMessage(chatId: number, content: string): Promise<ChatMessage> {
+        try {
+            const response = await api.post(`/chats/${chatId}/messages`, { content });
+            return response.data;
         } catch (error) {
             console.error("Error sending message:", error);
             throw error;
         }
     }
 
-    // Get conversation list
-    async getConversations(): Promise<ChatConversation[]> {
+    async getChats(): Promise<Chat[]> {
         try {
-            const response = await fetch("/api/conversations");
-            if (!response.ok) {
-                throw new Error("Failed to fetch conversations");
-            }
-            return await response.json();
+            const response = await api.get("/chats");
+            return response.data;
         } catch (error) {
-            console.error("Error fetching conversations:", error);
+            console.error("Error fetching chats:", error);
             throw error;
         }
     }
 
-    // Get messages for a specific conversation
-    async getMessages(conversationId: number): Promise<ChatMessage[]> {
+    async getMessages(chatId: number): Promise<ChatMessage[]> {
         try {
-            const { token } = useAuthStore.getState();
-            const response = await fetch(
-                `/api/conversations/${conversationId}/messages`,
-                {
-                    headers: {
-                        "Content-Type": "application/json",
-                        Authorization: token ? `Bearer ${token}` : "",
-                    },
-                }
-            );
-            if (!response.ok) {
-                throw new Error("Failed to fetch messages");
-            }
-            return await response.json();
+            const response = await api.get(`/chats/${chatId}/messages`);
+            return response.data;
         } catch (error) {
             console.error("Error fetching messages:", error);
+            throw error;
+        }
+    }
+
+    async createPrivateChat(data: CreatePrivateChatData): Promise<Chat> {
+        try {
+            const response = await api.post("/chats/private", data);
+            return response.data;
+        } catch (error) {
+            console.error("Error creating private chat:", error);
+            throw error;
+        }
+    }
+
+    async createGroupChat(data: CreateGroupChatData): Promise<Chat> {
+        try {
+            const response = await api.post("/chats/group", data);
+            return response.data;
+        } catch (error) {
+            console.error("Error creating group chat:", error);
             throw error;
         }
     }

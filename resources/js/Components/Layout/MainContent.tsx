@@ -2,7 +2,7 @@ import React, { Suspense, lazy } from "react";
 import type { Company } from "@/types/company";
 import { Button } from "@/Components/ui/button";
 import { ArrowLeft } from "lucide-react";
-import { ChatConversation } from "@/types/chat";
+import type { Chat as ChatType } from "@/types/chat";
 
 // Lazy load components
 const CreateCompanyForm = lazy(
@@ -15,7 +15,7 @@ const CompanyDetails = lazy(
 const ProfileContent = lazy(
     () => import("@/Components/Profile/ProfileContent")
 );
-const Chat = lazy(() => import("@/Components/Chat/Chat"));
+const ChatComponent = lazy(() => import("@/Components/Chat/Chat"));
 
 interface MainContentProps {
     currentContent: string;
@@ -24,7 +24,7 @@ interface MainContentProps {
     setIsCreatingCompany: (value: boolean) => void;
     isLoading: boolean;
     status?: string;
-    chats?: ChatConversation[];
+    chats?: ChatType[];
 }
 
 const LoadingSpinner = () => (
@@ -92,7 +92,7 @@ export const MainContent: React.FC<MainContentProps> = ({
             case "chat":
                 return (
                     <Suspense fallback={<LoadingSpinner />}>
-                        <Chat chats={chats} />
+                        <ChatComponent initialChats={chats} />
                     </Suspense>
                 );
             default:

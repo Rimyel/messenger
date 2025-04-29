@@ -2,18 +2,29 @@ import React, { useState } from "react";
 import { Textarea } from "@/Components/ui/textarea";
 import { Button } from "@/Components/ui/button";
 import { Send } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
-    onSendMessage: (content: string) => void;
+    onSendMessage: (content: string) => Promise<void>;
+    disabled?: boolean;
 }
 
-export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
+export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled }) => {
     const [message, setMessage] = useState("");
+    const [isSending, setIsSending] = useState(false);
 
-    const handleSend = () => {
-        if (message.trim()) {
-            onSendMessage(message);
-            setMessage("");
+    const handleSend = async () => {
+        if (message.trim() && !isSending) {
+            setIsSending(true);
+            try {
+                await onSendMessage(message);
+                setMessage("");
+            } catch (error) {
+                console.error("Failed to send message:", error);
+          
+            } finally {
+                setIsSending(false);
+            }
         }
     };
 
@@ -32,13 +43,14 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage }) => {
                 onKeyDown={handleKeyDown}
                 placeholder="Введите сообщение..."
                 className="min-h-[80px] resize-none"
+                disabled={disabled || isSending}
             />
             <Button
                 onClick={handleSend}
                 className="h-10 w-10 rounded-full p-0"
-                disabled={!message.trim()}
+                disabled={!message.trim() || disabled || isSending}
             >
-                <Send className="h-4 w-4" />
+                <Send className={cn("h-4 w-4", isSending && "animate-pulse")} />
             </Button>
         </div>
     );

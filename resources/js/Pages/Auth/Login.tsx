@@ -1,8 +1,8 @@
-import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { Head, Link, useForm } from "@inertiajs/react";
+import { FormEventHandler } from "react";
 import { motion } from "framer-motion";
-import GuestLayout from '@/Layouts/GuestLayout';
-import { AuthService } from '@/services/auth';
+import GuestLayout from "@/Layouts/GuestLayout";
+import { AuthService } from "@/services/auth";
 
 export default function Login({
     status,
@@ -16,8 +16,8 @@ export default function Login({
         password: string;
         remember: boolean;
     }>({
-        email: '',
-        password: '',
+        email: "",
+        password: "",
         remember: false,
     });
 
@@ -25,15 +25,15 @@ export default function Login({
         e.preventDefault();
 
         // Используем стандартную веб-авторизацию через Inertia
-        post(route('login'), {
+        post(route("login"), {
             onSuccess: async () => {
                 try {
                     // После успешной веб-авторизации получаем API токен
-                    const response = await fetch('/api/auth/login', {
-                        method: 'POST',
+                    const response = await fetch("/api/auth/login", {
+                        method: "POST",
                         headers: {
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json',
+                            "Content-Type": "application/json",
+                            Accept: "application/json",
                         },
                         body: JSON.stringify({
                             email: data.email,
@@ -42,20 +42,20 @@ export default function Login({
                     });
 
                     const result = await response.json();
-                    
+
                     if (result.token) {
                         // Сохраняем токен в хранилище
                         AuthService.login({
                             email: data.email,
                             password: data.password,
                         });
-                        console.log('Successfully logged in, token:', result.token);
+                        // console.log('Successfully logged in, token:', result.token);
                     }
                 } catch (error) {
-                    console.error('API auth error:', error);
+                    console.error("API auth error:", error);
                 }
             },
-            onFinish: () => reset('password'),
+            onFinish: () => reset("password"),
         });
     };
 
@@ -76,7 +76,10 @@ export default function Login({
             >
                 <form onSubmit={submit} className="space-y-6 text-white">
                     <div>
-                        <label htmlFor="email" className="block text-sm font-medium text-white">
+                        <label
+                            htmlFor="email"
+                            className="block text-sm font-medium text-white"
+                        >
                             Email
                         </label>
                         <input
@@ -87,15 +90,20 @@ export default function Login({
                             className="mt-1 block w-full rounded-md bg-white/10 border border-white/20 px-3 py-2 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
                             autoComplete="username"
                             autoFocus
-                            onChange={(e) => setData('email', e.target.value)}
+                            onChange={(e) => setData("email", e.target.value)}
                         />
                         {errors.email && (
-                            <p className="mt-2 text-sm text-red-400">{errors.email}</p>
+                            <p className="mt-2 text-sm text-red-400">
+                                {errors.email}
+                            </p>
                         )}
                     </div>
 
                     <div>
-                        <label htmlFor="password" className="block text-sm font-medium text-white">
+                        <label
+                            htmlFor="password"
+                            className="block text-sm font-medium text-white"
+                        >
                             Пароль
                         </label>
                         <input
@@ -105,10 +113,14 @@ export default function Login({
                             value={data.password}
                             className="mt-1 block w-full rounded-md bg-white/10 border border-white/20 px-3 py-2 text-white placeholder:text-gray-400 focus:border-blue-500 focus:ring-blue-500"
                             autoComplete="current-password"
-                            onChange={(e) => setData('password', e.target.value)}
+                            onChange={(e) =>
+                                setData("password", e.target.value)
+                            }
                         />
                         {errors.password && (
-                            <p className="mt-2 text-sm text-red-400">{errors.password}</p>
+                            <p className="mt-2 text-sm text-red-400">
+                                {errors.password}
+                            </p>
                         )}
                     </div>
 
@@ -118,7 +130,9 @@ export default function Login({
                                 type="checkbox"
                                 name="remember"
                                 checked={data.remember}
-                                onChange={(e) => setData('remember', e.target.checked)}
+                                onChange={(e) =>
+                                    setData("remember", e.target.checked)
+                                }
                                 className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500"
                             />
                             <span className="ml-2 text-sm text-white">
@@ -128,7 +142,7 @@ export default function Login({
 
                         {canResetPassword && (
                             <Link
-                                href={route('password.request')}
+                                href={route("password.request")}
                                 className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                             >
                                 Забыли пароль?
@@ -138,14 +152,14 @@ export default function Login({
 
                     <div className="flex items-center justify-end gap-4">
                         <Link
-                            href={route('register')}
+                            href={route("register")}
                             className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
                         >
                             Нет аккаунта?
                         </Link>
 
-                        <button 
-                            type="submit" 
+                        <button
+                            type="submit"
                             disabled={processing}
                             className="inline-flex justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
                         >

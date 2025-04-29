@@ -1,7 +1,7 @@
 <?php
 
 use Illuminate\Support\Facades\Broadcast;
-use App\Models\Conversation;
+use App\Models\Chat;
 
 /*
 |--------------------------------------------------------------------------
@@ -14,14 +14,13 @@ use App\Models\Conversation;
 |
 */
 
-Broadcast::channel('private-chat.{conversationId}', function ($user, $conversationId) {
-    $conversation = Conversation::find($conversationId);
+Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
+    $chat = Chat::find($chatId);
     
-    if (!$conversation) {
+    if (!$chat) {
         return false;
     }
 
-    // Check if the authenticated user is part of the conversation
-    return $conversation->participant1_id === $user->id || 
-           $conversation->participant2_id === $user->id;
+    // Check if the authenticated user is a participant in the chat
+    return $chat->participants()->where('user_id', $user->id)->exists();
 });

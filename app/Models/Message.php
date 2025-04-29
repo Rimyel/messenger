@@ -3,37 +3,30 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Message extends Model
 {
-    use HasUuids;
-
+    public $timestamps = false;
+    
     protected $fillable = [
-        'conversation_id',
+        'chat_id',
         'sender_id',
-        'receiver_id',
         'content',
-        'read',
+        'sent_at',
     ];
 
     protected $casts = [
-        'read' => 'boolean',
+        'sent_at' => 'datetime',
     ];
 
-    public function conversation(): BelongsTo
+    public function chat(): BelongsTo
     {
-        return $this->belongsTo(Conversation::class);
+        return $this->belongsTo(Chat::class);
     }
 
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
-    }
-
-    public function receiver(): BelongsTo
-    {
-        return $this->belongsTo(User::class, 'receiver_id');
     }
 }

@@ -23,7 +23,7 @@ class CompanyController extends Controller
         }
 
         // Если нет поискового запроса - возвращаем только компанию пользователя (если она есть)
-        $userCompany = $user->companies()->first();
+        $userCompany = $user->company;
         
         if ($userCompany) {
             // Если у пользователя есть компания, возвращаем только её
@@ -60,7 +60,7 @@ class CompanyController extends Controller
         }
 
         // Проверяем, не состоит ли пользователь уже в компании
-        if (auth()->user()->companies()->exists()) {
+        if (auth()->user()->company_id !== null) {
             return response()->json(['message' => 'Вы уже состоите в компании'], 422);
         }
 
@@ -74,26 +74,27 @@ class CompanyController extends Controller
 
         $company = Company::create($data);
 
-        // Привязываем текущего пользователя к компании как владельца
-        $company->users()->attach(auth()->id(), ['role' => 'owner']);
+        // Устанавливаем company_id для владельца компании
+        $user = auth()->user();
+        $user->update(['company_id' => $company->id]);
 
         return response()->json($company, 201);
     }
 
     public function show(Company $company)
     {
-        // Проверяем, имеет ли пользователь доступ к компании
-        if (!$company->users()->where('user_id', auth()->id())->exists()) {
+        // Проверяем, принадлежит ли пользователь к этой компании
+        if (auth()->user()->company_id !== $company->id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json($company->load('users'));
+        return response()->json($company);
     }
 
     public function update(Request $request, Company $company)
     {
-        // Проверяем, является ли пользователь владельцем компании
-        if (!$company->users()->where('user_id', auth()->id())->where('role', 'owner')->exists()) {
+        // Проверяем, является ли пользователь первым участником (создателем) компании
+        if ($company->id !== auth()->user()->company_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -126,8 +127,8 @@ class CompanyController extends Controller
 
     public function destroy(Company $company)
     {
-        // Проверяем, является ли пользователь владельцем компании
-        if (!$company->users()->where('user_id', auth()->id())->where('role', 'owner')->exists()) {
+        // Проверяем, является ли пользователь первым участником (создателем) компании
+        if ($company->id !== auth()->user()->company_id) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -145,13 +146,13 @@ class CompanyController extends Controller
     {
         $user = auth()->user();
         
-        // Проверяем, является ли пользователь уже участником какой-либо компании
-        if ($user->companies()->exists()) {
+        // Проверяем, есть ли у пользователя уже компания
+        if ($user->company_id !== null) {
             return response()->json(['message' => 'Вы уже являетесь участником другой компании'], 422);
         }
 
-        // Добавляем пользователя как участника
-        $company->users()->attach($user->id, ['role' => 'member']);
+        // Присоединяем пользователя к компании
+        $user->update(['company_id' => $company->id]);
 
         return response()->json(['message' => 'Вы успешно присоединились к компании']);
     }
@@ -160,19 +161,18 @@ class CompanyController extends Controller
     {
         $user = auth()->user();
         
-        // Проверяем, является ли пользователь участником компании
-        if (!$company->users()->where('user_id', $user->id)->exists()) {
+        // Проверяем, принадлежит ли пользователь к этой компании
+        if ($user->company_id !== $company->id) {
             return response()->json(['message' => 'Вы не являетесь участником этой компании'], 422);
         }
 
-        // Проверяем, не является ли пользователь единственным владельцем
-        if ($company->users()->where('role', 'owner')->count() === 1 &&
-            $company->users()->where('user_id', $user->id)->where('role', 'owner')->exists()) {
+        // Проверяем, не является ли пользователь создателем компании
+        if ($company->users()->orderBy('created_at')->first()->id === $user->id) {
             return response()->json(['message' => 'Вы не можете покинуть компанию, так как вы единственный владелец'], 422);
         }
 
-        // Удаляем пользователя из компании
-        $company->users()->detach($user->id);
+        // Отсоединяем пользователя от компании
+        $user->update(['company_id' => null]);
 
         return response()->json(['message' => 'Вы успешно покинули компанию']);
     }

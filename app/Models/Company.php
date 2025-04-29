@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
 {
@@ -21,10 +21,8 @@ class Company extends Model
         'updated_at' => 'datetime',
     ];
 
-    public function users(): BelongsToMany
+    public function users(): HasMany
     {
-        return $this->belongsToMany(User::class, 'company_users')
-            ->withPivot('role')
-            ->withTimestamps();
+        return $this->hasMany(User::class);
     }
 }

@@ -4,7 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Inertia\Inertia;
-use App\Models\Conversation;
+use App\Models\Chat;
 use App\Models\Message;
 use Illuminate\Support\Facades\Auth;
 
@@ -14,51 +14,43 @@ class MainController extends Controller
     {
         $userId = Auth::id();
 
-        $conversations = Conversation::where('participant1_id', $userId)
-            ->orWhere('participant2_id', $userId)
-            ->with([
-                'participant1:id,name',
-                'participant2:id,name',
-                'messages' => function ($query) {
-                    $query->latest()->limit(1); // последнее сообщение
-                }
-            ])
+        $chats = Chat::whereHas('participants', function ($query) use ($userId) {
+            $query->where('user_id', $userId);
+        })
+            ->with(['lastMessage', 'participants'])
             ->get()
-            ->map(function ($conversation) use ($userId) {
-                $other = $conversation->participant1_id === $userId
-                    ? $conversation->participant2
-                    : $conversation->participant1;
-
-                $lastMessage = $conversation->messages->first();
-
-                $unreadCount = Message::where('conversation_id', $conversation->id)
-                    ->where('receiver_id', $userId)
-                    ->where('read', false)
-                    ->count();
-
-                return [
-                    'id' => $conversation->id,
-                    'participantId' => $other->id,
-                    'participantName' => $other->name,
-                    'participantAvatar' => null,
-                    'lastMessage' => $lastMessage ? [
-                        'id' => $lastMessage->id,
-                        'content' => $lastMessage->content,
-                        'senderId' => $lastMessage->sender_id,
-                        'receiverId' => $lastMessage->receiver_id,
-                        'created_at' => $lastMessage->created_at->toISOString(),
-                        'read' => $lastMessage->read,
+            ->map(function ($chat) use ($userId) {
+                $data = [
+                    'id' => $chat->id,
+                    'type' => $chat->type,
+                    'name' => $chat->name,
+                    'lastMessage' => $chat->lastMessage ? [
+                        'id' => $chat->lastMessage->id,
+                        'content' => $chat->lastMessage->content,
+                        'sender' => [
+                            'id' => $chat->lastMessage->sender->id,
+                            'name' => $chat->lastMessage->sender->name,
+                            'avatar' => $chat->lastMessage->sender->avatar,
+                        ],
+                        'sent_at' => $chat->lastMessage->sent_at->toISOString(),
                     ] : null,
-                    'unreadCount' => $unreadCount,
-                    'updated_at' => $conversation->updated_at->toISOString(),
+                    'updatedAt' => $chat->updated_at->toISOString(),
                 ];
+
+                if ($chat->type === 'private') {
+                    $otherParticipant = $chat->participants->where('id', '!=', $userId)->first();
+                    $data['name'] = $otherParticipant->name;
+                    $data['participantAvatar'] = $otherParticipant->avatar;
+                }
+
+                return $data;
             });
 
         return Inertia::render('Dashboard', [
             'userId' => $userId,
-            'mustVerifyEmail' => Auth::user() instanceof \Illuminate\Contracts\Auth\MustVerifyEmail,
+
             'status' => session('status'),
-            'chats' => $conversations,
+            'chats' => $chats,
         ]);
     }
 }

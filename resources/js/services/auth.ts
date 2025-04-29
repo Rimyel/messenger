@@ -23,7 +23,10 @@ export const AuthService = {
             const { token, user } = response.data;
 
             // Сохраняем токен в хранилище
+            console.log(token);
+
             useAuthStore.getState().setToken(token);
+            useAuthStore.getState().setUser(user);
 
             return { user, token };
         } catch (error) {
@@ -37,7 +40,7 @@ export const AuthService = {
         try {
             await api.post("/auth/logout");
             // Очищаем токен из хранилища
-            useAuthStore.getState().clearToken();
+            // useAuthStore.getState().clearToken();
         } catch (error) {
             console.error("Logout error:", error);
             throw error;

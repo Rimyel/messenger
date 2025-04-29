@@ -29,8 +29,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/companies/{company}', action: [CompanyController::class, 'destroy']);
     Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
 
-    // Маршруты для чата
-    Route::get('/conversations', [ChatController::class, 'conversations']);
-    Route::get('/conversations/{conversationId}/messages', [ChatController::class, 'messages']);
-    Route::post('/messages', [ChatController::class, 'sendMessage']);
+    // Маршруты для чатов
+    Route::get('/chats', [ChatController::class, 'index']);
+    Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
+    Route::post('/chats/private', [ChatController::class, 'createPrivateChat']);
+    Route::post('/chats/group', [ChatController::class, 'createGroupChat']);
+    Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
 });
