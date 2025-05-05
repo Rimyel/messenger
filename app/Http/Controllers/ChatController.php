@@ -9,7 +9,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
-
+use Illuminate\Support\Facades\Log;
 class ChatController extends Controller
 {
     public function index(): JsonResponse
@@ -137,7 +137,6 @@ class ChatController extends Controller
             ]);
 
             $user = Auth::user();
-            // $chat = Chat::findOrFail($request->chatId);
 
             // Verify user is part of the chat
             if (!$chat->participants()->where('user_id', $user->id)->exists()) {
@@ -151,11 +150,20 @@ class ChatController extends Controller
                 'sent_at' => now(),
             ]);
 
+            Log::info("Отправляем событие MessageSent для чата:", [
+                'chat_id' => $chat->id,
+                'message_id' => $message->id,
+                'sender_id' => $user->id
+            ]);
+
             // Broadcast the message
-            broadcast(new MessageSent($message));
+            $event = new MessageSent($message);
+            broadcast($event);
+            Log::info("Событие MessageSent отправлено", ['event' => get_class($event)]);
 
             return response()->json($message->load('sender:id,name,avatar'));
         } catch (\Exception $e) {
+            Log::error("Ошибка при отправке сообщения:", ['error' => $e->getMessage()]);
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

@@ -8,6 +8,7 @@ import { useAuthStore } from "@/stores/useAuthStore";
 import { AuthService } from "@/services/auth";
 import { router } from "@inertiajs/core";
 
+// initialChats — начальные данные о чатах, переданные из Laravel (через Inertia). Если данные есть, они используются для инициализации состояния.
 interface Props {
     initialChats?: Chat[];
 }
@@ -18,7 +19,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
     const { user, token } = useAuthStore((state) => state);
 
- 
+ // Проверяем, есть ли токен пользователя. Если нет, перенаправляем на страницу входа.
     useEffect(() => {
         if (!AuthService.isAuthenticated()) {
             router.visit("/login");
@@ -68,10 +69,15 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     };
 
     const handleNewMessage = (message: ChatMessage) => {
-        console.log("Received new message:", message);
-        setMessages(prev => [...prev, message]);
+        console.log("handleNewMessage вызван с сообщением:", message);
+        
+        setMessages(prev => {
+            console.log("Текущие сообщения:", prev);
+            console.log("Добавляем новое сообщение:", message);
+            return [...prev, message];
+        });
 
-        // обновляем последнее сообщение
+        // обновляем последнее сообщение в списке чатов
         setChats(prevChats =>
             prevChats.map(chat =>
                 chat.id === selectedChat?.id
@@ -85,9 +91,11 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         if (!selectedChat) return;
 
         try {
+            console.log("Отправка сообщения в чат:", selectedChat.id);
             const message = await chatService.sendMessage(selectedChat.id, content);
-
-            console.log("Message sent:", message);
+            
+            console.log("Сообщение успешно отправлено:", message);
+// Нет, мне нужно дождаться события 
         } catch (error) {
             console.error("Error sending message:", error);
         }

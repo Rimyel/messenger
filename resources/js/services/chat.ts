@@ -11,10 +11,18 @@ class ChatService {
                 this.unsubscribeFromChat(chatId);
             }
 
+            console.log(`Попытка подписки на канал: chat.${chatId}`);
             this.channel = window.Echo.private(`chat.${chatId}`);
+
+            // Добавляем слушатели состояния канала
+            this.channel.subscribed(() => {
+                console.log(`Успешно подписались на канал chat.${chatId}`);
+            }).error((error: any) => {
+                console.error(`Ошибка подписки на канал chat.${chatId}:`, error);
+            });
             
-            this.channel.listen('.MessageSent', (event: any) => {
-                console.log('Received message in service:', event);
+            this.channel.listen('MessageSent', (event: any) => {
+                console.log('Получено событие MessageSent:', event);
                 if (event.message) {
                     onMessageReceived(event.message);
                 }
@@ -28,7 +36,7 @@ class ChatService {
     unsubscribeFromChat(chatId: number) {
         try {
             if (this.channel) {
-                this.channel.stopListening('.MessageSent');
+                this.channel.stopListening('MessageSent');
             }
             if (window.Echo) {
                 window.Echo.leave(`chat.${chatId}`);

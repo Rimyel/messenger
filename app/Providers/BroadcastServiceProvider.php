@@ -14,6 +14,22 @@ class BroadcastServiceProvider extends ServiceProvider
     {
         Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);
 
-        require base_path('routes/channels.php');
+        Broadcast::channel('chat.{chatId}', function ($user, $chatId) {
+            $chat = \App\Models\Chat::find($chatId);
+            
+            if (!$chat) {
+                \Illuminate\Support\Facades\Log::error("Chat not found", ['chat_id' => $chatId]);
+                return false;
+            }
+
+            $authorized = $chat->participants()->where('user_id', $user->id)->exists();
+            \Illuminate\Support\Facades\Log::info("Channel authorization", [
+                'user_id' => $user->id,
+                'chat_id' => $chatId,
+                'authorized' => $authorized
+            ]);
+            
+            return $authorized;
+        });
     }
 }

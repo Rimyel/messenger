@@ -26,13 +26,13 @@ if (token) {
 
 // Initialize Pusher
 window.Pusher = Pusher;
-
+// соединение исправно
 // Initialize Echo
 try {
     window.Echo = new Echo({
         broadcaster: "pusher",
         key: "fbec33f8ff40825149ad",
-        cluster: "app2",
+        cluster: "eu",
         wsHost: undefined,
         wsPort: undefined,
         wssPort: undefined,

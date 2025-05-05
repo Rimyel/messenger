@@ -4,6 +4,7 @@ use App\Http\Controllers\{ProfileController, MainController};
 use App\Http\Controllers\CompanyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Broadcast;
 use Inertia\Inertia;
 
 /*
@@ -46,5 +47,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('/companies/{company}/leave', [CompanyController::class, 'leave']);
     });
 });
+
+Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);
 
 require __DIR__ . '/auth.php';

@@ -10,6 +10,7 @@ use Illuminate\Broadcasting\PrivateChannel;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Log;
 
 class MessageSent implements ShouldBroadcast
 {
@@ -20,12 +21,19 @@ class MessageSent implements ShouldBroadcast
     public function __construct(Message $message)
     {
         $this->message = $message->load('sender:id,name,avatar');
+        Log::info('Создано событие MessageSent', [
+            'chat_id' => $message->chat_id,
+            'message_id' => $message->id,
+            'sender_id' => $message->sender_id
+        ]);
     }
 
     public function broadcastOn(): array
     {
+        $channel = 'chat.' . $this->message->chat_id;
+        Log::info('Broadcasting MessageSent на канал', ['channel' => $channel]);
         return [
-            new PrivateChannel('chat.' . $this->message->chat_id),
+            new PrivateChannel($channel),
         ];
     }
 

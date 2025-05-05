@@ -24,11 +24,12 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
     useEffect(() => {
         if (!chat.id) return;
-
+        console.log("ПОДписка от канала:", `chat.${chat.id}`);
         let channel: any;
 
         try {
             channel = window.Echo.private(`chat.${chat.id}`);
+            
             
             channel.listen('.MessageSent', (event: any) => {
                 console.log("Received message event:", event);
@@ -44,6 +45,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
         }
 
         return () => {
+            console.log("Отписка от канала:", `chat.${chat.id}`);
             if (channel) {
                 try {
                     channel.stopListening('.MessageSent');
