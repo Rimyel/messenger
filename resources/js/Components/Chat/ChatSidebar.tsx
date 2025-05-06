@@ -10,19 +10,22 @@ import {
     DialogDescription,
     DialogFooter,
 } from "@/Components/ui/dialog";
-import { Search, Plus, Users, UserPlus, Group } from "lucide-react";
+import { Skeleton } from "@/Components/ui/skeleton";
+import { Checkbox } from "@/Components/ui/checkbox";
+import { Label } from "@/Components/ui/label";
+import { Search, Plus, Users, UserPlus, Group, Hash } from "lucide-react";
 import type { Chat, ChatParticipant } from "@/types/chat";
 import { chatService } from "@/services/chat";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
+import { cn } from "@/lib/utils";
 
 interface ChatSidebarProps {
     chats: Chat[];
     selectedChat?: Chat;
     onSelectChat: (chat: Chat) => void;
     onCreatePrivateChat: (userId: number) => Promise<void>;
-    onCreateGroupChat: (
-        name: string,
-        participantIds: number[]
-    ) => Promise<void>;
+    onCreateGroupChat: (name: string, participantIds: number[]) => Promise<void>;
     currentUser?: ChatParticipant;
 }
 
@@ -43,14 +46,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
     const [isSelectUserDialogOpen, setIsSelectUserDialogOpen] = useState(false);
     const [companyUsers, setCompanyUsers] = useState<ChatParticipant[]>([]);
+    const [isLoading, setIsLoading] = useState(false);
 
     useEffect(() => {
         const fetchCompanyUsers = async () => {
+            setIsLoading(true);
             try {
                 const users = await chatService.getCompanyUsers();
                 setCompanyUsers(users);
             } catch (error) {
                 console.error("Failed to fetch company users:", error);
+            } finally {
+                setIsLoading(false);
             }
         };
 
@@ -79,30 +86,29 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
 
     const filteredChats = chats.filter((chat) => {
         const searchTerm = searchQuery.toLowerCase();
-        if (chat.type === "private") {
+        if (chat?.type === "private") {
             const otherParticipant = chat.participants?.find(
-                (p) => p.id !== currentUser?.id
+                (p) => p?.id !== currentUser?.id
             );
-            return otherParticipant?.name.toLowerCase().includes(searchTerm);
+            return otherParticipant?.name?.toLowerCase().includes(searchTerm) ?? false;
         }
-        return chat?.name.toLowerCase().includes(searchTerm);
-   
+        return chat?.name?.toLowerCase().includes(searchTerm) ?? false;
     });
 
     const getChatDisplayName = (chat: Chat): string => {
-        if (chat.type === "private") {
+        if (chat?.type === "private") {
             const otherParticipant = chat.participants?.find(
-                (p) => p.id !== currentUser?.id
+                (p) => p?.id !== currentUser?.id
             );
             return otherParticipant?.name || "Неизвестный пользователь";
         }
-        return chat.name;
+        return chat?.name || "Неизвестный чат";
     };
 
     const getChatAvatar = (chat: Chat): string | undefined => {
-        if (chat.type === "private") {
+        if (chat?.type === "private") {
             const otherParticipant = chat.participants?.find(
-                (p) => p.id !== currentUser?.id
+                (p) => p?.id !== currentUser?.id
             );
             return otherParticipant?.avatar;
         }
@@ -110,7 +116,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     };
 
     return (
-        <div className="w-[320px] border-r h-full flex flex-col">
+        <aside className="w-[320px] border-r h-full flex flex-col bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="p-4 border-b flex items-center gap-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -130,62 +136,69 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 </Button>
             </div>
             <ScrollArea className="flex-1">
-                <div className="flex flex-col">
-                    {filteredChats.map((chat) => (
-                        <button
-                            key={chat.id}
-                            onClick={() => onSelectChat(chat)}
-                            className={`flex items-center p-4 gap-3 hover:bg-accent transition-colors ${
-                                selectedChat?.id === chat.id ? "bg-accent" : ""
-                            }`}
-                        >
-                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                {chat.type === "group" ? (
-                                    <Users className="h-5 w-5 text-primary" />
-                                ) : getChatAvatar(chat) ? (
-                                    <img
-                                        src={getChatAvatar(chat)}
-                                        alt={getChatDisplayName(chat)}
-                                        className="w-full h-full rounded-full object-cover"
-                                    />
-                                ) : (
-                                    <span className="text-primary text-sm">
-                                        {getChatDisplayName(chat)
-                                            .split(" ")
-                                            .map((n) => n[0])
-                                            .join("")}
-                                    </span>
+                <div className="flex flex-col py-2">
+                    {filteredChats?.map((chat) => {
+                        const isSelected = selectedChat?.id === chat?.id;
+                        const lastMessageDate = chat?.lastMessage?.sent_at 
+                            ? format(new Date(chat.lastMessage.sent_at), 'HH:mm')
+                            : null;
+
+                        return (
+                            <button
+                                key={chat?.id}
+                                onClick={() => onSelectChat(chat)}
+                                className={cn(
+                                    "flex items-center p-3 gap-3 hover:bg-accent transition-colors relative",
+                                    "focus:outline-none focus:bg-accent",
+                                    "mx-2 rounded-lg",
+                                    isSelected && "bg-accent"
                                 )}
-                            </div>
-                            <div className="flex-1 text-left">
-                                <div className="flex justify-between items-start">
-                                    <span className="font-medium">
-                                        {getChatDisplayName(chat)}
-                                    </span>
-                                    {chat.lastMessage && (
-                                        <span className="text-xs text-muted-foreground">
-                                            {new Date(
-                                                chat.lastMessage.sent_at
-                                            ).toLocaleTimeString([], {
-                                                hour: "2-digit",
-                                                minute: "2-digit",
-                                            })}
+                            >
+                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center relative shrink-0">
+                                    {chat?.type === "group" ? (
+                                        <Users className="h-5 w-5 text-primary" />
+                                    ) : getChatAvatar(chat) ? (
+                                        <img
+                                            src={getChatAvatar(chat)}
+                                            alt={getChatDisplayName(chat)}
+                                            className="w-full h-full rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <span className="text-primary text-sm">
+                                            {getChatDisplayName(chat)
+                                                .split(" ")
+                                                .map((n) => n?.[0])
+                                                .join("")}
                                         </span>
                                     )}
                                 </div>
-                                {chat.lastMessage && (
-                                    <p className="text-sm text-muted-foreground truncate">
-                                        {/* {chat.type === "group" && (
-                                            <span className="font-medium">
-                                                {chat.lastMessage.sender.name}:{" "}
+                                <div className="flex-1 min-w-0">
+                                    <div className="flex justify-between items-baseline gap-2">
+                                        <span className="font-medium truncate">
+                                            {getChatDisplayName(chat)}
+                                        </span>
+                                        {lastMessageDate && (
+                                            <span className="text-xs text-muted-foreground shrink-0">
+                                                {lastMessageDate}
                                             </span>
-                                        )} */}
-                                        {chat.lastMessage.content}
-                                    </p>
-                                )}
-                            </div>
-                        </button>
-                    ))}
+                                        )}
+                                    </div>
+                                    {chat?.lastMessage && (
+                                        <div className="flex gap-1 items-baseline">
+                                            {chat?.type === "group" && chat?.lastMessage?.sender?.id !== undefined && chat?.lastMessage?.sender?.id === currentUser?.id && (
+                                                <span className="text-xs text-primary font-medium shrink-0">
+                                                    Вы:
+                                                </span>
+                                            )}
+                                            <p className="text-sm text-muted-foreground truncate">
+                                                {chat?.lastMessage?.content}
+                                            </p>
+                                        </div>
+                                    )}
+                                </div>
+                            </button>
+                        );
+                    })}
                 </div>
             </ScrollArea>
 
@@ -240,12 +253,14 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                     </DialogHeader>
                     <div className="flex flex-col gap-4">
                         <div>
-                            <Input
-                                placeholder="Название группы"
-                                className="mb-4"
-                                value={groupName}
-                                onChange={(e) => setGroupName(e.target.value)}
-                            />
+                            <div className="flex gap-2 items-center mb-4">
+                                <Hash className="w-4 h-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Название группы"
+                                    value={groupName}
+                                    onChange={(e) => setGroupName(e.target.value)}
+                                />
+                            </div>
                             <div className="relative mb-4">
                                 <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                                 <Input
@@ -256,47 +271,60 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 />
                             </div>
                             <ScrollArea className="h-[200px]">
-                                {companyUsers
-                                    .filter(user =>
-                                        user.name.toLowerCase().includes(groupSearchQuery.toLowerCase())
-                                    )
-                                    .map(user => (
-                                        <div key={user.id} className="flex items-center gap-3 p-2">
-                                            <input
-                                                type="checkbox"
-                                                id={`participant-${user.id}`}
-                                                checked={selectedParticipants.includes(user.id)}
-                                                onChange={(e) => {
-                                                    if (e.target.checked) {
-                                                        setSelectedParticipants([...selectedParticipants, user.id]);
-                                                    } else {
-                                                        setSelectedParticipants(selectedParticipants.filter(id => id !== user.id));
-                                                    }
-                                                }}
-                                            />
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    {user.avatar ? (
-                                                        <img
-                                                            src={user.avatar}
-                                                            alt={user.name}
-                                                            className="w-full h-full rounded-full object-cover"
-                                                        />
-                                                    ) : (
-                                                        <span className="text-primary text-sm">
-                                                            {user.name
-                                                                .split(" ")
-                                                                .map((n) => n[0])
-                                                                .join("")}
-                                                        </span>
-                                                    )}
+                                {isLoading ? (
+                                    <div className="space-y-4 p-4">
+                                        {[1, 2, 3].map((i) => (
+                                            <div key={i} className="flex items-center gap-4">
+                                                <Skeleton className="h-10 w-10 rounded-full" />
+                                                <div className="space-y-2">
+                                                    <Skeleton className="h-4 w-[200px]" />
                                                 </div>
-                                                <label htmlFor={`participant-${user.id}`} className="font-medium">
-                                                    {user.name}
-                                                </label>
                                             </div>
-                                        </div>
-                                    ))}
+                                        ))}
+                                    </div>
+                                ) : (
+                                    companyUsers
+                                        .filter(user =>
+                                            user?.name?.toLowerCase().includes(groupSearchQuery.toLowerCase())
+                                        )
+                                        .map(user => (
+                                            <div key={user?.id} className="flex items-center gap-3 p-2 hover:bg-accent rounded-lg">
+                                                <Checkbox
+                                                    id={`participant-${user?.id}`}
+                                                    checked={selectedParticipants.includes(user?.id || 0)}
+                                                    onCheckedChange={(checked: boolean) => {
+                                                        if (user?.id === undefined) return;
+                                                        if (checked) {
+                                                            setSelectedParticipants([...selectedParticipants, user.id]);
+                                                        } else {
+                                                            setSelectedParticipants(selectedParticipants.filter(id => id !== user.id));
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="flex items-center gap-2 flex-1">
+                                                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                                        {user?.avatar ? (
+                                                            <img
+                                                                src={user.avatar}
+                                                                alt={user?.name || ''}
+                                                                className="w-full h-full rounded-full object-cover"
+                                                            />
+                                                        ) : (
+                                                            <span className="text-primary text-sm">
+                                                                {(user?.name || '')
+                                                                    .split(" ")
+                                                                    .map((n) => n?.[0])
+                                                                    .join("")}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    <Label htmlFor={`participant-${user?.id}`} className="flex-1 cursor-pointer">
+                                                        {user?.name}
+                                                    </Label>
+                                                </div>
+                                            </div>
+                                        ))
+                                )}
                             </ScrollArea>
                         </div>
                         <DialogFooter>
@@ -307,7 +335,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 onClick={handleCreateGroupChat}
                                 disabled={!groupName || selectedParticipants.length === 0}
                             >
-                                Создать
+                                Создать группу
                             </Button>
                         </DialogFooter>
                     </div>
@@ -325,53 +353,64 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             Выберите пользователя для создания личного чата
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="p-4 border-b">
-                        <div className="relative">
-                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                            <Input
-                                placeholder="Поиск пользователей"
-                                className="pl-9"
-                                value={userSearchQuery}
-                                onChange={(e) => setUserSearchQuery(e.target.value)}
-                            />
-                        </div>
+                    <div className="relative mb-4">
+                        <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Поиск пользователей"
+                            className="pl-9"
+                            value={userSearchQuery}
+                            onChange={(e) => setUserSearchQuery(e.target.value)}
+                        />
                     </div>
-                    <ScrollArea className="h-[300px]">
-                        <div className="flex flex-col">
-                            {companyUsers
-                                .filter(user =>
-                                    user.name.toLowerCase().includes(userSearchQuery.toLowerCase())
-                                )
-                                .map(user => (
-                                    <button
-                                        key={user.id}
-                                        onClick={() => handleCreatePrivateChat(user.id)}
-                                        className="flex items-center gap-3 p-3 hover:bg-accent transition-colors rounded-lg text-left"
-                                    >
-                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                            {user.avatar ? (
-                                                <img
-                                                    src={user.avatar}
-                                                    alt={user.name}
-                                                    className="w-full h-full rounded-full object-cover"
-                                                />
-                                            ) : (
-                                                <span className="text-primary text-sm">
-                                                    {user.name
-                                                        .split(" ")
-                                                        .map((n) => n[0])
-                                                        .join("")}
-                                                </span>
-                                            )}
+                    <ScrollArea className="h-[300px] -mx-4 px-4">
+                        {isLoading ? (
+                            <div className="space-y-4">
+                                {[1, 2, 3].map((i) => (
+                                    <div key={i} className="flex items-center gap-4">
+                                        <Skeleton className="h-10 w-10 rounded-full" />
+                                        <div className="space-y-2">
+                                            <Skeleton className="h-4 w-[200px]" />
                                         </div>
-                                        <span className="font-medium">{user.name}</span>
-                                    </button>
+                                    </div>
                                 ))}
-                        </div>
+                            </div>
+                        ) : (
+                            <div className="flex flex-col">
+                                {companyUsers
+                                    .filter(user =>
+                                        user?.name?.toLowerCase().includes(userSearchQuery.toLowerCase())
+                                    )
+                                    .map(user => (
+                                        <button
+                                            key={user?.id}
+                                            onClick={() => user?.id !== undefined && handleCreatePrivateChat(user.id)}
+                                            className="flex items-center gap-3 p-3 hover:bg-accent transition-colors rounded-lg text-left -mx-4 px-4"
+                                        >
+                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                                                {user?.avatar ? (
+                                                    <img
+                                                        src={user.avatar}
+                                                        alt={user?.name || ''}
+                                                        className="w-full h-full rounded-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <span className="text-primary text-sm">
+                                                        {(user?.name || '')
+                                                            .split(" ")
+                                                            .map((n) => n?.[0])
+                                                            .join("")}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <span className="font-medium">{user?.name}</span>
+                                        </button>
+                                    ))}
+                            </div>
+                        )}
                     </ScrollArea>
                 </DialogContent>
             </Dialog>
-        </div>
+        </aside>
     );
 };
 

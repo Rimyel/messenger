@@ -7,8 +7,11 @@ import type { ChatMessage, Chat, ChatParticipant } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { AuthService } from "@/services/auth";
 import { router } from "@inertiajs/core";
+import { useIsMobile } from "@/hooks/use-mobile";
+import { Sheet, SheetContent, SheetTrigger } from "@/Components/ui/sheet";
+import { Button } from "@/Components/ui/button";
+import { Menu } from "lucide-react";
 
-// initialChats — начальные данные о чатах, переданные из Laravel (через Inertia). Если данные есть, они используются для инициализации состояния.
 interface Props {
     initialChats?: Chat[];
 }
@@ -19,8 +22,15 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
     const [isLoading, setIsLoading] = useState(false);
     const { user, token } = useAuthStore((state) => state);
+    const isMobile = useIsMobile();
+    const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
 
- // Проверяем, есть ли токен пользователя. Если нет, перенаправляем на страницу входа.
+    useEffect(() => {
+        if (!isMobile) {
+            setSidebarOpen(true);
+        }
+    }, [isMobile]);
+
     useEffect(() => {
         if (!AuthService.isAuthenticated()) {
             router.visit("/login");
@@ -35,14 +45,11 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     }, [user]);
 
     useEffect(() => {
-        if (selectedChat) {
-            // Load messages and subscribe to chat
+        if (selectedChat?.id) {
             const initializeChat = async () => {
                 try {
-                    // First load messages
                     await loadMessages(selectedChat.id);
                     
-                    // Then subscribe to chat updates
                     chatService.subscribeToChat(
                         selectedChat.id,
                         handleNewMessage,
@@ -54,6 +61,10 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                             ));
                         }
                     );
+
+                    if (isMobile) {
+                        setSidebarOpen(false);
+                    }
                 } catch (error) {
                     console.error("Error initializing chat:", error);
                 }
@@ -63,18 +74,19 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         }
 
         return () => {
-            if (selectedChat) {
+            if (selectedChat?.id) {
                 chatService.unsubscribeFromChat(selectedChat.id);
             }
-            // Clear messages when changing chats
             setMessages([]);
         };
-    }, [selectedChat]);
+    }, [selectedChat?.id, isMobile]);
 
     const loadChats = async () => {
         try {
             const data = await chatService.getChats();
-            setChats(data);
+            if (Array.isArray(data)) {
+                setChats(data);
+            }
         } catch (error) {
             console.error("Error loading chats:", error);
         }
@@ -82,9 +94,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
 
     const loadMessages = async (chatId: number) => {
         try {
-            console.log("Loading messages for chat:", chatId);
             const data = await chatService.getMessages(chatId);
-            console.log("Loaded messages:", data);
             if (Array.isArray(data)) {
                 setMessages(data);
             } else {
@@ -98,18 +108,20 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     };
 
     const handleNewMessage = (message: ChatMessage) => {
-        console.log("handleNewMessage вызван с сообщением:", message);
-        
+        if (!message) return;
+    
         setMessages(prev => {
-            console.log("Текущие сообщения:", prev);
-            console.log("Добавляем новое сообщение:", message);
+            const exists = prev.some(m => m.id === message.id);
+            if (exists) {
+                // можно также обновить сообщение, если оно изменилось
+                return prev.map(m => m.id === message.id ? message : m);
+            }
             return [...prev, message];
         });
-
-        // обновляем последнее сообщение в списке чатов
+    
         setChats(prevChats =>
             prevChats.map(chat =>
-                chat.id === selectedChat?.id
+                chat?.id === selectedChat?.id
                     ? { ...chat, lastMessage: message }
                     : chat
             )
@@ -117,34 +129,51 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     };
 
     const handleSendMessage = async (content: string) => {
-        if (!selectedChat) return;
+        if (!selectedChat?.id || !content.trim()) return;
+
+        // Create temporary message with sending status
+        const tempMessage: ChatMessage = {
+            id: Date.now(), // Temporary ID
+            content: content,
+            sender: currentUser,
+            sent_at: new Date().toISOString(),
+            status: 'sending',
+            delivered_at: undefined,
+            read_at: undefined
+        };
+
+        // Add message to UI immediately
+        setMessages(prev => [...prev, tempMessage]);
 
         try {
-            console.log("Отправка сообщения в чат:", selectedChat.id);
-            const message = await chatService.sendMessage(selectedChat.id, content);
+            // Send to server
+            const sentMessage = await chatService.sendMessage(selectedChat.id, content);
             
-            console.log("Сообщение успешно отправлено:", message);
-// Нет, мне нужно дождаться события 
+            // Update the temporary message with the real one
+            setMessages(prev => prev.map(msg =>
+                msg.id === tempMessage.id ? sentMessage : msg
+            ));
         } catch (error) {
+            // Remove temporary message on error
+            setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
             console.error("Error sending message:", error);
         }
     };
 
     const handleCreatePrivateChat = async (userId: number) => {
+        if (!userId) return;
+
         setIsLoading(true);
         try {
             const newChat = await chatService.createPrivateChat({ userId });
             
-            // Add new chat or update existing chats list
             setChats(prev => {
-                const existingChatIndex = prev.findIndex(c => c.id === newChat.id);
+                const existingChatIndex = prev.findIndex(c => c?.id === newChat?.id);
                 if (existingChatIndex !== -1) {
-                    // Update existing chat
                     const updatedChats = [...prev];
                     updatedChats[existingChatIndex] = newChat;
                     return updatedChats;
                 } else {
-                    // Add new chat to the beginning of the list
                     return [newChat, ...prev];
                 }
             });
@@ -158,17 +187,15 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         }
     };
 
-    const handleCreateGroupChat = async (
-        name: string,
-        participantIds: number[]
-    ) => {
+    const handleCreateGroupChat = async (name: string, participantIds: number[]) => {
+        if (!name || !participantIds.length) return;
+
         setIsLoading(true);
         try {
             const newChat = await chatService.createGroupChat({
                 name,
                 participantIds,
             });
-            // Add new chat to the beginning of the list
             setChats(prev => [newChat, ...prev]);
             setSelectedChat(newChat);
         } catch (error: any) {
@@ -185,23 +212,47 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         avatar: user?.avatar || '',
     };
 
+    const chatSidebar = (
+        <ChatSidebar
+            chats={chats}
+            selectedChat={selectedChat}
+            onSelectChat={setSelectedChat}
+            onCreatePrivateChat={handleCreatePrivateChat}
+            onCreateGroupChat={handleCreateGroupChat}
+            currentUser={currentUser}
+        />
+    );
+
     return (
-        <div className="flex h-full relative">
+        <div className="flex h-full bg-background relative">
             {isLoading && (
-                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50 backdrop-blur-sm">
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
             )}
-            <ChatSidebar
-                chats={chats}
-                selectedChat={selectedChat}
-                onSelectChat={setSelectedChat}
-                onCreatePrivateChat={handleCreatePrivateChat}
-                onCreateGroupChat={handleCreateGroupChat}
-                currentUser={currentUser}
-            />
+            
+            {isMobile ? (
+                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
+                    <SheetTrigger asChild>
+                        <Button 
+                            variant="ghost" 
+                            size="icon"
+                            className="absolute left-4 top-4 z-30 md:hidden"
+                        >
+                            <Menu className="h-5 w-5" />
+                            <span className="sr-only">Toggle Sidebar</span>
+                        </Button>
+                    </SheetTrigger>
+                    <SheetContent side="left" className="p-0 w-[320px]">
+                        {chatSidebar}
+                    </SheetContent>
+                </Sheet>
+            ) : (
+                chatSidebar
+            )}
+
             {selectedChat ? (
-                <div className="flex-1 flex flex-col">
+                <div className="flex-1 flex flex-col h-full">
                     <ChatMessages
                         messages={messages}
                         currentUser={currentUser}
@@ -211,7 +262,12 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                 </div>
             ) : (
                 <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                    Выберите чат для начала общения
+                    <div className="max-w-[420px] text-center space-y-2">
+                        <h2 className="text-xl font-semibold">Выберите чат</h2>
+                        <p className="text-sm">
+                            Выберите существующий чат или создайте новый, чтобы начать общение
+                        </p>
+                    </div>
                 </div>
             )}
         </div>
