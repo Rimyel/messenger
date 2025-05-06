@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Events\MessageSent;
+use App\Events\MessageStatusUpdated;
 use App\Models\Chat;
 use App\Models\Message;
 use App\Models\User;
@@ -10,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
+
 class ChatController extends Controller
 {
     public function index(): JsonResponse
@@ -65,6 +67,9 @@ class ChatController extends Controller
                                 'avatar' => $msg->sender->avatar,
                             ],
                             'sent_at' => $msg->sent_at->toISOString(),
+                            'status' => $msg->status,
+                            'delivered_at' => $msg->delivered_at?->toISOString(),
+                            'read_at' => $msg->read_at?->toISOString(),
                         ];
                     })
             );
@@ -132,7 +137,6 @@ class ChatController extends Controller
     {
         try {
             $request->validate([
-                // 'chatId' => 'required|exists:chats,id',
                 'content' => 'required|string',
             ]);
 
@@ -148,6 +152,7 @@ class ChatController extends Controller
                 'sender_id' => $user->id,
                 'content' => $request->content,
                 'sent_at' => now(),
+                'status' => 'sent' // Change initial status to 'sent'
             ]);
 
             Log::info("Отправляем событие MessageSent для чата:", [
@@ -161,9 +166,76 @@ class ChatController extends Controller
             broadcast($event);
             Log::info("Событие MessageSent отправлено", ['event' => get_class($event)]);
 
-            return response()->json($message->load('sender:id,name,avatar'));
+            // Return message with sender info
+            $message->load('sender:id,name,avatar');
+
+            return response()->json([
+                'id' => $message->id,
+                'content' => $message->content,
+                'sender' => [
+                    'id' => $message->sender->id,
+                    'name' => $message->sender->name,
+                    'avatar' => $message->sender->avatar,
+                ],
+                'sent_at' => $message->sent_at->toISOString(),
+                'status' => $message->status,
+                'delivered_at' => null,
+                'read_at' => null
+            ]);
         } catch (\Exception $e) {
             Log::error("Ошибка при отправке сообщения:", ['error' => $e->getMessage()]);
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function markMessageDelivered(Chat $chat, Message $message): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            // Verify user is part of the chat
+            if (!$chat->participants()->where('user_id', $user->id)->exists()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            // Only update if recipient is viewing
+            if ($message->sender_id !== $user->id) {
+                $message->update([
+                    'status' => 'delivered',
+                    'delivered_at' => now(),
+                ]);
+
+                broadcast(new MessageStatusUpdated($message));
+            }
+
+            return response()->json(['status' => 'success']);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function markMessageRead(Chat $chat, Message $message): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            // Verify user is part of the chat
+            if (!$chat->participants()->where('user_id', $user->id)->exists()) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+
+            // Only update if recipient is viewing
+            if ($message->sender_id !== $user->id) {
+                $message->update([
+                    'status' => 'read',
+                    'read_at' => now(),
+                ]);
+
+                broadcast(new MessageStatusUpdated($message));
+            }
+
+            return response()->json(['status' => 'success']);
+        } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }

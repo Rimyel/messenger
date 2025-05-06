@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\{ProfileController, MainController};
+use App\Http\Controllers\{ProfileController, MainController, ChatController};
 use App\Http\Controllers\CompanyController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
@@ -45,6 +45,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
         Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
         Route::post('/companies/{company}/leave', [CompanyController::class, 'leave']);
+    });
+
+    // Chat routes
+    Route::prefix('api/chats')->group(function () {
+        Route::get('/', [ChatController::class, 'index']);
+        Route::get('/{chat}/messages', [ChatController::class, 'messages']);
+        Route::post('/{chat}/messages', [ChatController::class, 'sendMessage']);
+        Route::post('/private', [ChatController::class, 'createPrivateChat']);
+        Route::post('/group', [ChatController::class, 'createGroupChat']);
+        Route::post('/{chat}/messages/{message}/delivered', [ChatController::class, 'markMessageDelivered']);
+        Route::post('/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
     });
 });
 

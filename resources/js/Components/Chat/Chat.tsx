@@ -35,18 +35,38 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
 
     useEffect(() => {
         if (selectedChat) {
-            loadMessages(selectedChat.id);
-            try {
-                chatService.subscribeToChat(selectedChat.id, handleNewMessage);
-            } catch (error) {
-                console.error("Error subscribing to chat:", error);
-            }
+            // Load messages and subscribe to chat
+            const initializeChat = async () => {
+                try {
+                    // First load messages
+                    await loadMessages(selectedChat.id);
+                    
+                    // Then subscribe to chat updates
+                    chatService.subscribeToChat(
+                        selectedChat.id,
+                        handleNewMessage,
+                        (messageId, status, timestamp) => {
+                            setMessages(prev => prev.map(msg =>
+                                msg.id === messageId
+                                    ? { ...msg, status, delivered_at: status === 'delivered' ? timestamp : msg.delivered_at, read_at: status === 'read' ? timestamp : msg.read_at }
+                                    : msg
+                            ));
+                        }
+                    );
+                } catch (error) {
+                    console.error("Error initializing chat:", error);
+                }
+            };
+
+            initializeChat();
         }
 
         return () => {
             if (selectedChat) {
                 chatService.unsubscribeFromChat(selectedChat.id);
             }
+            // Clear messages when changing chats
+            setMessages([]);
         };
     }, [selectedChat]);
 
@@ -61,10 +81,18 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
 
     const loadMessages = async (chatId: number) => {
         try {
+            console.log("Loading messages for chat:", chatId);
             const data = await chatService.getMessages(chatId);
-            setMessages(data);
+            console.log("Loaded messages:", data);
+            if (Array.isArray(data)) {
+                setMessages(data);
+            } else {
+                console.error("Invalid message data format:", data);
+                setMessages([]);
+            }
         } catch (error) {
             console.error("Error loading messages:", error);
+            setMessages([]);
         }
     };
 

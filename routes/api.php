@@ -35,4 +35,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/chats/private', [ChatController::class, 'createPrivateChat']);
     Route::post('/chats/group', [ChatController::class, 'createGroupChat']);
     Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
+    Route::post('/chats/{chat}/messages/{message}/delivered', [ChatController::class, 'markMessageDelivered']);
+    Route::post('/chats/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
 });

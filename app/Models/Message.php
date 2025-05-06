@@ -14,10 +14,15 @@ class Message extends Model
         'sender_id',
         'content',
         'sent_at',
+        'status',
+        'delivered_at',
+        'read_at'
     ];
 
     protected $casts = [
         'sent_at' => 'datetime',
+        'delivered_at' => 'datetime',
+        'read_at' => 'datetime'
     ];
 
     public function chat(): BelongsTo

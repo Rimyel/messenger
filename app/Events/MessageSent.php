@@ -55,6 +55,9 @@ class MessageSent implements ShouldBroadcast
                 ],
                 'sent_at' => $this->message->sent_at->toISOString(),
                 'chat_id' => $this->message->chat_id,
+                'status' => $this->message->status,
+                'delivered_at' => $this->message->delivered_at?->toISOString(),
+                'read_at' => $this->message->read_at?->toISOString(),
             ],
         ];
     }

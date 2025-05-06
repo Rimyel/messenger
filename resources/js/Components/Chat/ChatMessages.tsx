@@ -1,8 +1,39 @@
 import React, { useState } from "react";
-import type { ChatMessage, Chat, ChatParticipant } from "@/types/chat";
+import type { ChatMessage, Chat, ChatParticipant, MessageStatus } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { Users } from "lucide-react";
+import { Users, Clock, Check } from "lucide-react";
 import { useEffect } from "react";
+import { chatService } from "@/services/chat";
+
+const MessageStatusIcon = ({ status, isOwn }: { status: MessageStatus; isOwn: boolean }) => {
+    const textColor = isOwn ? "text-primary-foreground/80" : "text-gray-400";
+    const textColorRead = isOwn ? "text-primary-foreground" : "text-blue-500";
+
+    if (!status) return null;
+
+    switch (status) {
+        case 'sending':
+            return <Clock className={cn("h-3 w-3 animate-pulse", textColor)} />;
+        case 'sent':
+            return <Check className={cn("h-3 w-3", textColor)} />;
+        case 'delivered':
+            return (
+                <div className="relative inline-flex">
+                    <Check className={cn("h-3 w-3", textColor)} />
+                    <Check className={cn("h-3 w-3 -ml-[3px]", textColor)} />
+                </div>
+            );
+        case 'read':
+            return (
+                <div className="relative inline-flex">
+                    <Check className={cn("h-3 w-3", textColorRead)} />
+                    <Check className={cn("h-3 w-3 -ml-[3px]", textColorRead)} />
+                </div>
+            );
+        default:
+            return null;
+    }
+};
 
 interface ChatMessagesProps {
     messages: ChatMessage[];
@@ -15,26 +46,81 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
     currentUser,
     chat,
 }) => {
-    const [messages, setMessages] = useState<ChatMessage[]>(initialMessages);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [error, setError] = useState<string | null>(null);
 
+    // Handle initial messages
     useEffect(() => {
-        setMessages(initialMessages);
+        if (initialMessages?.length) {
+            setMessages(initialMessages);
+        }
     }, [initialMessages]);
+
+    // Message observer for read status
+    useEffect(() => {
+        if (!currentUser) return;
+
+        const observer = new IntersectionObserver(
+            (entries) => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
+                        const message = messages.find(m => m.id === messageId);
+                        
+                        if (message && message.sender.id !== currentUser.id) {
+                            if (message.status === 'delivered') {
+                                chatService.markMessageRead(chat.id, message.id);
+                            } else if (message.status === 'sent') {
+                                chatService.markMessageDelivered(chat.id, message.id)
+                                    .then(() => chatService.markMessageRead(chat.id, message.id));
+                            }
+                        }
+                    }
+                });
+            },
+            {
+                root: null,
+                threshold: 0.5,
+            }
+        );
+
+        // Observe all message elements
+        const messageElements = document.querySelectorAll('[data-message-id]');
+        messageElements.forEach((element) => observer.observe(element));
+
+        return () => {
+            observer.disconnect();
+        };
+    }, [chat.id, currentUser, messages]);
 
     useEffect(() => {
         if (!chat.id) return;
-        console.log("ПОДписка от канала:", `chat.${chat.id}`);
-        let channel: any;
+        console.log("Подписка от канала:", `chat.${chat.id}`);
 
         try {
-            channel = window.Echo.private(`chat.${chat.id}`);
-            
-            
-            channel.listen('.MessageSent', (event: any) => {
-                console.log("Received message event:", event);
-                if (event.message) {
-                    setMessages(prev => [...prev, event.message]);
+            chatService.subscribeToChat(
+                chat.id,
+                (message: ChatMessage) => {
+                    setMessages(prev => [...prev, message]);
+                },
+                (messageId: number, status: MessageStatus, timestamp: string) => {
+                    setMessages(prev => prev.map(msg => 
+                        msg.id === messageId 
+                            ? { ...msg, status, delivered_at: status === 'delivered' ? timestamp : msg.delivered_at, read_at: status === 'read' ? timestamp : msg.read_at }
+                            : msg
+                    ));
+                }
+            );
+
+            // Mark messages as delivered when viewing
+            initialMessages.forEach(message => {
+                if (message.sender.id !== currentUser?.id) {
+                    if (message.status === 'sent') {
+                        chatService.markMessageDelivered(chat.id, message.id)
+                            .then(() => chatService.markMessageRead(chat.id, message.id));
+                    } else if (message.status === 'delivered') {
+                        chatService.markMessageRead(chat.id, message.id);
+                    }
                 }
             });
 
@@ -46,18 +132,9 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
 
         return () => {
             console.log("Отписка от канала:", `chat.${chat.id}`);
-            if (channel) {
-                try {
-                    channel.stopListening('.MessageSent');
-                    if (window.Echo) {
-                        window.Echo.leave(`chat.${chat.id}`);
-                    }
-                } catch (err) {
-                    console.error('Error cleaning up chat:', err);
-                }
-            }
+            chatService.unsubscribeFromChat(chat.id);
         };
-    }, [chat.id]);
+    }, [chat.id, currentUser, initialMessages]);
 
     const getChatDisplayName = (): string => {
         if (chat.type === "private") {
@@ -126,6 +203,7 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                     return (
                         <div
                             key={message.id}
+                            data-message-id={message.id}
                             className={cn(
                                 "flex",
                                 isOwn ? "justify-end" : "justify-start"
@@ -147,18 +225,25 @@ export const ChatMessages: React.FC<ChatMessagesProps> = ({
                                 <p className="text-sm">{message.content}</p>
                                 <div
                                     className={cn(
-                                        "text-xs mt-1",
+                                        "text-xs mt-1 flex items-center gap-1",
                                         isOwn
                                             ? "text-primary-foreground/80"
                                             : "text-muted-foreground"
                                     )}
                                 >
-                                    {new Date(message.sent_at).toLocaleString(
-                                        "ru-RU",
-                                        {
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        }
+                                    <span>
+                                        {new Date(message.sent_at).toLocaleString(
+                                            "ru-RU",
+                                            {
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            }
+                                        )}
+                                    </span>
+                                    {isOwn && (
+                                        <span className="flex items-center ml-1.5 min-w-[20px]">
+                                            <MessageStatusIcon status={message.status} isOwn={isOwn} />
+                                        </span>
                                     )}
                                 </div>
                             </div>

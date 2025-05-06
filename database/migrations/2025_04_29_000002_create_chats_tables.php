@@ -29,6 +29,9 @@ return new class extends Migration
             $table->foreignId('sender_id')->references('id')->on('users')->cascadeOnDelete();
             $table->text('content');
             $table->timestamp('sent_at');
+            $table->enum('status', ['sending', 'sent', 'delivered', 'read'])->default('sending');
+            $table->timestamp('delivered_at')->nullable();
+            $table->timestamp('read_at')->nullable();
         });
     }
 
