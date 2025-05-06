@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { ScrollArea } from "@/Components/ui/scroll-area";
 import { Input } from "@/Components/ui/input";
 import { Button } from "@/Components/ui/button";
@@ -12,6 +12,7 @@ import {
 } from "@/Components/ui/dialog";
 import { Search, Plus, Users, UserPlus, Group } from "lucide-react";
 import type { Chat, ChatParticipant } from "@/types/chat";
+import { chatService } from "@/services/chat";
 
 interface ChatSidebarProps {
     chats: Chat[];
@@ -36,9 +37,27 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     const [isNewChatDialogOpen, setIsNewChatDialogOpen] = useState(false);
     const [isGroupChatDialogOpen, setIsGroupChatDialogOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState("");
+    const [userSearchQuery, setUserSearchQuery] = useState("");
+    const [groupSearchQuery, setGroupSearchQuery] = useState("");
     const [groupName, setGroupName] = useState("");
     const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
     const [isSelectUserDialogOpen, setIsSelectUserDialogOpen] = useState(false);
+    const [companyUsers, setCompanyUsers] = useState<ChatParticipant[]>([]);
+
+    useEffect(() => {
+        const fetchCompanyUsers = async () => {
+            try {
+                const users = await chatService.getCompanyUsers();
+                setCompanyUsers(users);
+            } catch (error) {
+                console.error("Failed to fetch company users:", error);
+            }
+        };
+
+        if (isSelectUserDialogOpen || isGroupChatDialogOpen) {
+            fetchCompanyUsers();
+        }
+    }, [isSelectUserDialogOpen, isGroupChatDialogOpen]);
 
     const handleCreateGroupChat = async () => {
         if (!groupName || selectedParticipants.length === 0) return;
@@ -227,33 +246,57 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 value={groupName}
                                 onChange={(e) => setGroupName(e.target.value)}
                             />
+                            <div className="relative mb-4">
+                                <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                                <Input
+                                    placeholder="Поиск пользователей"
+                                    className="pl-9"
+                                    value={groupSearchQuery}
+                                    onChange={(e) => setGroupSearchQuery(e.target.value)}
+                                />
+                            </div>
                             <ScrollArea className="h-[200px]">
-                                {chats
-                                    .filter(chat => chat.type === 'private')
-                                    .map(chat => {
-                                        const participant = chat.participants?.find(p => p.id !== currentUser?.id);
-                                        if (!participant) return null;
-                                        
-                                        return (
-                                            <div key={participant.id} className="flex items-center gap-2 p-2">
-                                                <input
-                                                    type="checkbox"
-                                                    id={`participant-${participant.id}`}
-                                                    checked={selectedParticipants.includes(participant.id)}
-                                                    onChange={(e) => {
-                                                        if (e.target.checked) {
-                                                            setSelectedParticipants([...selectedParticipants, participant.id]);
-                                                        } else {
-                                                            setSelectedParticipants(selectedParticipants.filter(id => id !== participant.id));
-                                                        }
-                                                    }}
-                                                />
-                                                <label htmlFor={`participant-${participant.id}`}>
-                                                    {participant.name}
+                                {companyUsers
+                                    .filter(user =>
+                                        user.name.toLowerCase().includes(groupSearchQuery.toLowerCase())
+                                    )
+                                    .map(user => (
+                                        <div key={user.id} className="flex items-center gap-3 p-2">
+                                            <input
+                                                type="checkbox"
+                                                id={`participant-${user.id}`}
+                                                checked={selectedParticipants.includes(user.id)}
+                                                onChange={(e) => {
+                                                    if (e.target.checked) {
+                                                        setSelectedParticipants([...selectedParticipants, user.id]);
+                                                    } else {
+                                                        setSelectedParticipants(selectedParticipants.filter(id => id !== user.id));
+                                                    }
+                                                }}
+                                            />
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    {user.avatar ? (
+                                                        <img
+                                                            src={user.avatar}
+                                                            alt={user.name}
+                                                            className="w-full h-full rounded-full object-cover"
+                                                        />
+                                                    ) : (
+                                                        <span className="text-primary text-sm">
+                                                            {user.name
+                                                                .split(" ")
+                                                                .map((n) => n[0])
+                                                                .join("")}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <label htmlFor={`participant-${user.id}`} className="font-medium">
+                                                    {user.name}
                                                 </label>
                                             </div>
-                                        );
-                                    })}
+                                        </div>
+                                    ))}
                             </ScrollArea>
                         </div>
                         <DialogFooter>
@@ -282,40 +325,48 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             Выберите пользователя для создания личного чата
                         </DialogDescription>
                     </DialogHeader>
+                    <div className="p-4 border-b">
+                        <div className="relative">
+                            <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                            <Input
+                                placeholder="Поиск пользователей"
+                                className="pl-9"
+                                value={userSearchQuery}
+                                onChange={(e) => setUserSearchQuery(e.target.value)}
+                            />
+                        </div>
+                    </div>
                     <ScrollArea className="h-[300px]">
                         <div className="flex flex-col">
-                            {chats
-                                .filter(chat => chat.type === 'private')
-                                .map(chat => {
-                                    const participant = chat.participants?.find(p => p.id !== currentUser?.id);
-                                    if (!participant) return null;
-                                    
-                                    return (
-                                        <button
-                                            key={participant.id}
-                                            onClick={() => handleCreatePrivateChat(participant.id)}
-                                            className="flex items-center gap-3 p-3 hover:bg-accent transition-colors rounded-lg text-left"
-                                        >
-                                            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                {participant.avatar ? (
-                                                    <img
-                                                        src={participant.avatar}
-                                                        alt={participant.name}
-                                                        className="w-full h-full rounded-full object-cover"
-                                                    />
-                                                ) : (
-                                                    <span className="text-primary text-sm">
-                                                        {participant.name
-                                                            .split(" ")
-                                                            .map((n) => n[0])
-                                                            .join("")}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <span className="font-medium">{participant.name}</span>
-                                        </button>
-                                    );
-                                })}
+                            {companyUsers
+                                .filter(user =>
+                                    user.name.toLowerCase().includes(userSearchQuery.toLowerCase())
+                                )
+                                .map(user => (
+                                    <button
+                                        key={user.id}
+                                        onClick={() => handleCreatePrivateChat(user.id)}
+                                        className="flex items-center gap-3 p-3 hover:bg-accent transition-colors rounded-lg text-left"
+                                    >
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                            {user.avatar ? (
+                                                <img
+                                                    src={user.avatar}
+                                                    alt={user.name}
+                                                    className="w-full h-full rounded-full object-cover"
+                                                />
+                                            ) : (
+                                                <span className="text-primary text-sm">
+                                                    {user.name
+                                                        .split(" ")
+                                                        .map((n) => n[0])
+                                                        .join("")}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <span className="font-medium">{user.name}</span>
+                                    </button>
+                                ))}
                         </div>
                     </ScrollArea>
                 </DialogContent>

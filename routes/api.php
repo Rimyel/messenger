@@ -30,6 +30,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
 
     // Маршруты для чатов
+    Route::get('/chat-users', [ChatController::class, 'getCompanyUsers']);
     Route::get('/chats', [ChatController::class, 'index']);
     Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
     Route::post('/chats/private', [ChatController::class, 'createPrivateChat']);

@@ -19,6 +19,7 @@ return new class extends Migration
         Schema::create('chat_user', function (Blueprint $table) {
             $table->foreignId('chat_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->timestamps();
             
             $table->primary(['chat_id', 'user_id']);
         });

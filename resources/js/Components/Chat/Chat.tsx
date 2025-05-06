@@ -17,6 +17,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const [selectedChat, setSelectedChat] = useState<Chat | undefined>();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
+    const [isLoading, setIsLoading] = useState(false);
     const { user, token } = useAuthStore((state) => state);
 
  // Проверяем, есть ли токен пользователя. Если нет, перенаправляем на страницу входа.
@@ -130,12 +131,30 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     };
 
     const handleCreatePrivateChat = async (userId: number) => {
+        setIsLoading(true);
         try {
             const newChat = await chatService.createPrivateChat({ userId });
-            setChats(prev => [...prev, newChat]);
+            
+            // Add new chat or update existing chats list
+            setChats(prev => {
+                const existingChatIndex = prev.findIndex(c => c.id === newChat.id);
+                if (existingChatIndex !== -1) {
+                    // Update existing chat
+                    const updatedChats = [...prev];
+                    updatedChats[existingChatIndex] = newChat;
+                    return updatedChats;
+                } else {
+                    // Add new chat to the beginning of the list
+                    return [newChat, ...prev];
+                }
+            });
+            
             setSelectedChat(newChat);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating private chat:", error);
+            alert(error.response?.data?.error || "Failed to create private chat");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -143,15 +162,20 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         name: string,
         participantIds: number[]
     ) => {
+        setIsLoading(true);
         try {
             const newChat = await chatService.createGroupChat({
                 name,
                 participantIds,
             });
-            setChats(prev => [...prev, newChat]);
+            // Add new chat to the beginning of the list
+            setChats(prev => [newChat, ...prev]);
             setSelectedChat(newChat);
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error creating group chat:", error);
+            alert(error.response?.data?.error || "Failed to create group chat");
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -162,7 +186,12 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     };
 
     return (
-        <div className="flex h-full">
+        <div className="flex h-full relative">
+            {isLoading && (
+                <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50">
+                    <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+                </div>
+            )}
             <ChatSidebar
                 chats={chats}
                 selectedChat={selectedChat}

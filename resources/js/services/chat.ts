@@ -1,4 +1,4 @@
-import type { ChatMessage, Chat, CreateGroupChatData, CreatePrivateChatData, MessageStatus } from "@/types/chat";
+import type { ChatMessage, Chat, CreateGroupChatData, CreatePrivateChatData, MessageStatus, ChatParticipant } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
 import api from "./api";
 
@@ -126,6 +126,16 @@ class ChatService {
             await api.post(`/chats/${chatId}/messages/${messageId}/read`);
         } catch (error) {
             console.error("Error marking message as read:", error);
+            throw error;
+        }
+    }
+
+    async getCompanyUsers(): Promise<ChatParticipant[]> {
+        try {
+            const response = await api.get("/chat-users");
+            return response.data;
+        } catch (error) {
+            console.error("Error fetching company users:", error);
             throw error;
         }
     }

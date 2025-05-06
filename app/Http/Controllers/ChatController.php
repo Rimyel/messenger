@@ -14,31 +14,56 @@ use Illuminate\Support\Facades\Log;
 
 class ChatController extends Controller
 {
+    public function getCompanyUsers(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $users = User::where('company_id', $user->company_id)
+                ->where('id', '!=', $user->id)
+                ->select('id', 'name', 'avatar')
+                ->get();
+
+            return response()->json($users);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch users'], 500);
+        }
+    }
+
     public function index(): JsonResponse
     {
-        $user = Auth::user();
-        return response()->json(
-            $user->chats()
+        try {
+            $user = Auth::user();
+            $chats = $user->chats()
                 ->with(['lastMessage', 'participants'])
                 ->get()
                 ->map(function ($chat) use ($user) {
-                    $data = [
-                        'id' => $chat->id,
-                        'type' => $chat->type,
-                        'name' => $chat->name,
-                        'lastMessage' => $chat->lastMessage,
-                        'updatedAt' => $chat->updated_at,
-                    ];
-
                     if ($chat->type === 'private') {
                         $otherParticipant = $chat->participants->where('id', '!=', $user->id)->first();
-                        $data['name'] = $otherParticipant->name;
-                        $data['participantAvatar'] = $otherParticipant->avatar;
+                        return [
+                            'id' => $chat->id,
+                            'type' => 'private',
+                            'name' => $otherParticipant->name,
+                            'lastMessage' => $chat->lastMessage,
+                            'participants' => $chat->participants,
+                            'updatedAt' => $chat->updated_at,
+                            'participantAvatar' => $otherParticipant->avatar
+                        ];
+                    } else {
+                        return [
+                            'id' => $chat->id,
+                            'type' => 'group',
+                            'name' => $chat->name,
+                            'lastMessage' => $chat->lastMessage,
+                            'participants' => $chat->participants,
+                            'updatedAt' => $chat->updated_at
+                        ];
                     }
+                });
 
-                    return $data;
-                })
-        );
+            return response()->json($chats);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to fetch chats'], 500);
+        }
     }
 
     public function messages($chatId): JsonResponse
@@ -80,57 +105,113 @@ class ChatController extends Controller
 
     public function createPrivateChat(Request $request): JsonResponse
     {
-        $request->validate([
-            'userId' => 'required|exists:users,id',
-        ]);
+        try {
+            $request->validate([
+                'userId' => 'required|exists:users,id',
+            ]);
 
-        $user = Auth::user();
-        $otherUser = User::findOrFail($request->userId);
+            $user = Auth::user();
+            $otherUser = User::findOrFail($request->userId);
 
-        // Check if chat already exists
-        $existingChat = Chat::whereHas('participants', function ($query) use ($user) {
-            $query->where('user_id', $user->id);
-        })->whereHas('participants', function ($query) use ($otherUser) {
-            $query->where('user_id', $otherUser->id);
-        })->where('type', 'private')
-            ->first();
+            // Prevent creating chat with yourself
+            if ($user->id === $otherUser->id) {
+                return response()->json(['error' => 'Cannot create chat with yourself'], 400);
+            }
 
-        if ($existingChat) {
-            return response()->json($existingChat);
+            // Validate users are from the same company
+            if ($user->company_id !== $otherUser->company_id) {
+                return response()->json(['error' => 'Cannot create chat with user from different company'], 403);
+            }
+
+            // Check if chat already exists
+            $existingChat = Chat::whereHas('participants', function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            })->whereHas('participants', function ($query) use ($otherUser) {
+                $query->where('user_id', $otherUser->id);
+            })->where('type', 'private')
+                ->with(['lastMessage', 'participants'])
+                ->first();
+
+            if ($existingChat) {
+                return response()->json([
+                    'id' => $existingChat->id,
+                    'type' => 'private',
+                    'name' => $otherUser->name,
+                    'lastMessage' => $existingChat->lastMessage,
+                    'participants' => $existingChat->participants,
+                    'updatedAt' => $existingChat->updated_at
+                ]);
+            }
+
+            // Create new private chat
+            $chat = Chat::create([
+                'company_id' => $user->company_id,
+                'type' => 'private',
+            ]);
+
+            $chat->participants()->attach([$user->id, $otherUser->id]);
+            $chat->load(['lastMessage', 'participants']);
+
+            return response()->json([
+                'id' => $chat->id,
+                'type' => 'private',
+                'name' => $otherUser->name,
+                'lastMessage' => null,
+                'participants' => $chat->participants,
+                'updatedAt' => $chat->updated_at
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
         }
-
-        // Create new private chat
-        $chat = Chat::create([
-            'company_id' => $user->company_id,
-            'type' => 'private',
-        ]);
-
-        $chat->participants()->attach([$user->id, $otherUser->id]);
-
-        return response()->json($chat->load('participants'));
     }
 
     public function createGroupChat(Request $request): JsonResponse
     {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'participantIds' => 'required|array|min:2',
-            'participantIds.*' => 'exists:users,id',
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'participantIds' => 'required|array|min:2',
+                'participantIds.*' => 'exists:users,id',
+            ]);
 
-        $user = Auth::user();
+            $user = Auth::user();
+            
+            // Remove duplicates and creator from participants list
+            $participantIds = array_unique($request->participantIds);
 
-        $chat = Chat::create([
-            'company_id' => $user->company_id,
-            'type' => 'group',
-            'name' => $request->name,
-        ]);
+            // Validate all participants are from the same company
+            $participants = User::whereIn('id', $participantIds)->get();
+            foreach ($participants as $participant) {
+                if ($participant->company_id !== $user->company_id) {
+                    return response()->json([
+                        'error' => "User {$participant->name} is from a different company"
+                    ], 403);
+                }
+            }
 
-        // Add all participants including the creator
-        $participantIds = array_unique(array_merge([$user->id], $request->participantIds));
-        $chat->participants()->attach($participantIds);
+            $chat = Chat::create([
+                'company_id' => $user->company_id,
+                'type' => 'group',
+                'name' => $request->name,
+            ]);
 
-        return response()->json($chat->load('participants'));
+            // Add all participants including creator
+            $allParticipants = array_unique(array_merge([$user->id], $participantIds));
+            $chat->participants()->attach($allParticipants);
+
+            $chat->load(['lastMessage', 'participants']);
+
+            return response()->json([
+                'id' => $chat->id,
+                'type' => 'group',
+                'name' => $chat->name,
+                'lastMessage' => null,
+                'participants' => $chat->participants,
+                'updatedAt' => $chat->updated_at
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
     public function sendMessage(Chat $chat, Request $request): JsonResponse

@@ -57,7 +57,9 @@ class User extends Authenticatable
 
     public function chats(): BelongsToMany
     {
-        return $this->belongsToMany(Chat::class, 'chat_user');
+        return $this->belongsToMany(Chat::class, 'chat_user')
+            ->orderBy('updated_at', 'desc')
+            ->withTimestamps();
     }
 
     public function sentMessages()
