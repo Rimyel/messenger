@@ -1,4 +1,14 @@
 export type MessageStatus = 'sending' | 'sent' | 'delivered' | 'read';
+export type MediaType = 'image' | 'video' | 'audio' | 'document';
+
+export interface MessageMedia {
+    id: number;
+    type: MediaType;
+    link: string;
+    name_file: string;
+    mime_type: string;
+    size: number;
+}
 
 export interface ChatMessage {
     id: number;
@@ -12,6 +22,7 @@ export interface ChatMessage {
     status: MessageStatus;
     delivered_at?: string;
     read_at?: string;
+    media?: MessageMedia[];
 }
 
 export interface ChatParticipant {

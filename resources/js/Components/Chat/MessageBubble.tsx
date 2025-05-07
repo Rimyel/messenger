@@ -1,6 +1,7 @@
 import { FC } from "react";
-import type { ChatMessage } from "@/types/chat";
+import type { ChatMessage, MessageMedia } from "@/types/chat";
 import clsx from "clsx";
+import { Download, FileText, Music, Video } from "lucide-react";
 
 interface Props {
     message: ChatMessage;
@@ -45,7 +46,63 @@ const MessageStatusIcon = ({
 };
 
 const MessageBubble: FC<Props> = ({ message, isOwn }) => {
-    const { content, sender, sent_at, status } = message;
+    const { content, sender, sent_at, status, media } = message;
+
+    const renderMediaPreview = (media: MessageMedia[]) => {
+        return (
+            <div className="space-y-2 mb-2">
+                {media.map((file, index) => {
+                    if (file.type === 'image') {
+                        return (
+                            <div key={index} className="rounded-lg overflow-hidden">
+                                <img
+                                    src={file.link}
+                                    alt={file.name_file}
+                                    className="max-h-[200px] w-full object-cover"
+                                />
+                            </div>
+                        );
+                    }
+
+                    const getIcon = () => {
+                        switch (file.type) {
+                            case 'video':
+                                return <Video className="h-5 w-5" />;
+                            case 'audio':
+                                return <Music className="h-5 w-5" />;
+                            default:
+                                return <FileText className="h-5 w-5" />;
+                        }
+                    };
+
+                    return (
+                        <a
+                            key={index}
+                            href={file.link}
+                            download={file.name_file}
+                            className={clsx(
+                                "flex items-center gap-2 p-2 rounded-lg",
+                                "hover:bg-black/5 transition-colors",
+                                {
+                                    "hover:bg-white/10": isOwn,
+                                    "hover:bg-black/10": !isOwn,
+                                }
+                            )}
+                        >
+                            {getIcon()}
+                            <div className="flex-1 min-w-0">
+                                <div className="truncate text-sm">{file.name_file}</div>
+                                <div className="text-xs opacity-70">
+                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </div>
+                            </div>
+                            <Download className="h-4 w-4 opacity-70" />
+                        </a>
+                    );
+                })}
+            </div>
+        );
+    };
 
     return (
         <div
@@ -56,7 +113,7 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
         >
             <div
                 className={clsx(
-                    "rounded-2xl px-3 py-2 max-w-[280px] text-sm shadow-sm",
+                    "rounded-2xl px-3 py-2 max-w-[320px] text-sm shadow-sm",
                     {
                         "bg-primary text-primary-foreground": isOwn,
                         "bg-muted/50 text-foreground": !isOwn,
@@ -68,7 +125,8 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
                         {sender.name}
                     </div>
                 )}
-                <div className="whitespace-pre-wrap break-words leading-relaxed">{content}</div>
+                {media && media.length > 0 && renderMediaPreview(media)}
+                {content && <div className="whitespace-pre-wrap break-words leading-relaxed">{content}</div>}
                 <div className="flex items-center justify-end gap-0.5 mt-1 text-[10px] text-muted-foreground/80">
                     <span className="flex-shrink-0">
                         {new Date(sent_at).toLocaleTimeString([], {

@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Log;
 
+use Illuminate\Support\Facades\Storage;
+use App\Models\MessagesMedia;
+
 class ChatController extends Controller
 {
     public function getCompanyUsers(): JsonResponse
@@ -79,7 +82,7 @@ class ChatController extends Controller
 
             return response()->json(
                 $chat->messages()
-                    ->with('sender:id,name,avatar')
+                    ->with(['sender:id,name,avatar', 'media'])
                     ->orderBy('sent_at', 'asc')
                     ->get()
                     ->map(function ($msg) {
@@ -95,6 +98,16 @@ class ChatController extends Controller
                             'status' => $msg->status,
                             'delivered_at' => $msg->delivered_at?->toISOString(),
                             'read_at' => $msg->read_at?->toISOString(),
+                            'media' => $msg->media->map(function ($media) {
+                                return [
+                                    'id' => $media->id,
+                                    'type' => $media->type,
+                                    'link' => Storage::url($media->link),
+                                    'name_file' => $media->name_file,
+                                    'mime_type' => $media->mime_type,
+                                    'size' => $media->size
+                                ];
+                            })
                         ];
                     })
             );
@@ -218,7 +231,9 @@ class ChatController extends Controller
     {
         try {
             $request->validate([
-                'content' => 'required|string',
+                'content' => 'required_without:files|string|nullable',
+                'files' => 'required_without:content|array|nullable',
+                'files.*' => 'required|file|max:10240', // Max 10MB per file
             ]);
 
             $user = Auth::user();
@@ -233,8 +248,28 @@ class ChatController extends Controller
                 'sender_id' => $user->id,
                 'content' => $request->content,
                 'sent_at' => now(),
-                'status' => 'sent' // Change initial status to 'sent'
+                'status' => 'sent',
+                'content' => $request->content ?? ''
             ]);
+
+            // Handle file uploads if present
+            if ($request->hasFile('files')) {
+                foreach ($request->file('files') as $file) {
+                    $path = $file->store('chat-files', 'public');
+                    
+                    MessagesMedia::create([
+                        'message_id' => $message->id,
+                        'type' => $this->getFileType($file->getMimeType()),
+                        'link' => $path,
+                        'name_file' => $file->getClientOriginalName(),
+                        'mime_type' => $file->getMimeType(),
+                        'size' => $file->getSize()
+                    ]);
+                }
+            }
+
+            // Load media relationship
+            $message->load('media');
 
             Log::info("Отправляем событие MessageSent для чата:", [
                 'chat_id' => $chat->id,
@@ -247,8 +282,8 @@ class ChatController extends Controller
             broadcast($event);
             Log::info("Событие MessageSent отправлено", ['event' => get_class($event)]);
 
-            // Return message with sender info
-            $message->load('sender:id,name,avatar');
+            // Return message with sender and media info
+            $message->load(['sender:id,name,avatar', 'media']);
 
             return response()->json([
                 'id' => $message->id,
@@ -261,7 +296,17 @@ class ChatController extends Controller
                 'sent_at' => $message->sent_at->toISOString(),
                 'status' => $message->status,
                 'delivered_at' => null,
-                'read_at' => null
+                'read_at' => null,
+                'media' => $message->media->map(function ($media) {
+                    return [
+                        'id' => $media->id,
+                        'type' => $media->type,
+                        'link' => Storage::url($media->link),
+                        'name_file' => $media->name_file,
+                        'mime_type' => $media->mime_type,
+                        'size' => $media->size
+                    ];
+                })
             ]);
         } catch (\Exception $e) {
             Log::error("Ошибка при отправке сообщения:", ['error' => $e->getMessage()]);
@@ -318,6 +363,19 @@ class ChatController extends Controller
             return response()->json(['status' => 'success']);
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    private function getFileType(string $mimeType): string
+    {
+        if (str_starts_with($mimeType, 'image/')) {
+            return 'image';
+        } elseif (str_starts_with($mimeType, 'video/')) {
+            return 'video';
+        } elseif (str_starts_with($mimeType, 'audio/')) {
+            return 'audio';
+        } else {
+            return 'document';
         }
     }
 }

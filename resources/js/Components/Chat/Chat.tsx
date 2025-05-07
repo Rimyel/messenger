@@ -109,16 +109,35 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
 
     const handleNewMessage = (message: ChatMessage) => {
         if (!message) return;
-    
+
         setMessages(prev => {
-            const exists = prev.some(m => m.id === message.id);
-            if (exists) {
-                // можно также обновить сообщение, если оно изменилось
-                return prev.map(m => m.id === message.id ? message : m);
+            // Find temporary message with matching content and sender
+            const tempMessage = prev.find(m =>
+                m.status === 'sending' &&
+                m.content === message.content &&
+                m.sender.id === message.sender.id &&
+                (!m.media?.length && !message.media?.length ||
+                 m.media?.length === message.media?.length)
+            );
+
+            if (tempMessage) {
+                // Replace the temporary message with the server message
+                return prev.map(m => m === tempMessage ? {
+                    ...message,
+                    media: message.media?.map(media => ({
+                        ...media,
+                        link: media.link.startsWith('blob:') ? tempMessage.media?.find(
+                            m => m.name_file === media.name_file
+                        )?.link || media.link : media.link
+                    }))
+                } : m);
             }
+
+            // If it's a new message from another sender
             return [...prev, message];
         });
-    
+
+        // Update chat list with latest message
         setChats(prevChats =>
             prevChats.map(chat =>
                 chat?.id === selectedChat?.id
@@ -126,10 +145,10 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                     : chat
             )
         );
-    };
+};
 
-    const handleSendMessage = async (content: string) => {
-        if (!selectedChat?.id || !content.trim()) return;
+    const handleSendMessage = async (content: string, files?: File[]) => {
+        if (!selectedChat?.id || (!content.trim() && (!files || files.length === 0))) return;
 
         // Create temporary message with sending status
         const tempMessage: ChatMessage = {
@@ -139,20 +158,22 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             sent_at: new Date().toISOString(),
             status: 'sending',
             delivered_at: undefined,
-            read_at: undefined
+            read_at: undefined,
+            media: files?.map(file => ({
+                id: Date.now(),
+                type: file.type.startsWith('image/') ? 'image' : 'document',
+                link: URL.createObjectURL(file),
+                name_file: file.name,
+                mime_type: file.type,
+                size: file.size
+            }))
         };
 
         // Add message to UI immediately
         setMessages(prev => [...prev, tempMessage]);
 
         try {
-            // Send to server
-            const sentMessage = await chatService.sendMessage(selectedChat.id, content);
-            
-            // Update the temporary message with the real one
-            setMessages(prev => prev.map(msg =>
-                msg.id === tempMessage.id ? sentMessage : msg
-            ));
+            await chatService.sendMessage(selectedChat.id, content, files);
         } catch (error) {
             // Remove temporary message on error
             setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));

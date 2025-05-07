@@ -20,7 +20,7 @@ class MessageSent implements ShouldBroadcast
 
     public function __construct(Message $message)
     {
-        $this->message = $message->load('sender:id,name,avatar');
+        $this->message = $message->load(['sender:id,name,avatar', 'media']);
         Log::info('Создано событие MessageSent', [
             'chat_id' => $message->chat_id,
             'message_id' => $message->id,
@@ -58,6 +58,16 @@ class MessageSent implements ShouldBroadcast
                 'status' => $this->message->status,
                 'delivered_at' => $this->message->delivered_at?->toISOString(),
                 'read_at' => $this->message->read_at?->toISOString(),
+                'media' => $this->message->media->map(function ($media) {
+                    return [
+                        'id' => $media->id,
+                        'type' => $media->type,
+                        'link' => asset('storage/' . $media->link),
+                        'name_file' => $media->name_file,
+                        'mime_type' => $media->mime_type,
+                        'size' => $media->size
+                    ];
+                }),
             ],
         ];
     }

@@ -62,9 +62,22 @@ class ChatService {
         }
     }
 
-    async sendMessage(chatId: number, content: string): Promise<ChatMessage> {
+    async sendMessage(chatId: number, content: string, files?: File[]): Promise<ChatMessage> {
         try {
-            const response = await api.post(`/chats/${chatId}/messages`, { content });
+            const formData = new FormData();
+            formData.append('content', content);
+            
+            if (files && files.length > 0) {
+                files.forEach(file => {
+                    formData.append('files[]', file);
+                });
+            }
+
+            const response = await api.post(`/chats/${chatId}/messages`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
+            });
             return response.data;
         } catch (error) {
             console.error("Error sending message:", error);

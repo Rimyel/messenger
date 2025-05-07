@@ -1,6 +1,9 @@
 import axios from "axios";
 import { useAuthStore } from "@/stores/useAuthStore";
 
+// Get CSRF token from meta tag
+const csrf_token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+
 // Создаем экземпляр axios с базовой конфигурацией
 const api = axios.create({
     baseURL: "/api",
@@ -8,6 +11,7 @@ const api = axios.create({
         "Content-Type": "application/json",
         Accept: "application/json",
         "X-Requested-With": "XMLHttpRequest",
+        "X-CSRF-TOKEN": csrf_token || '',
     },
     withCredentials: true,
 });
@@ -19,6 +23,12 @@ api.interceptors.request.use(
         if (token) {
             config.headers["Authorization"] = `Bearer ${token}`;
         }
+
+        // For FormData requests, remove Content-Type header to let the browser set it
+        if (config.data instanceof FormData) {
+            delete config.headers["Content-Type"];
+        }
+        
         return config;
     },
     function (error) {
