@@ -3,6 +3,7 @@
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\Auth\ApiAuthController;
 use App\Http\Controllers\ChatController;
+use App\Http\Controllers\ChatManagementController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -26,15 +27,17 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/companies', [CompanyController::class, 'store']);
     Route::get('/companies/{company}', [CompanyController::class, 'show']);
     Route::put('/companies/{company}', [CompanyController::class, 'update']);
-    Route::delete('/companies/{company}', action: [CompanyController::class, 'destroy']);
+    Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
     Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
 
-    // Маршруты для чатов
-    Route::get('/chat-users', [ChatController::class, 'getCompanyUsers']);
+    // Маршруты для управления чатами
+    Route::get('/chat-users', [ChatManagementController::class, 'getCompanyUsers']);
+    Route::post('/chats/private', [ChatManagementController::class, 'createPrivateChat']);
+    Route::post('/chats/group', [ChatManagementController::class, 'createGroupChat']);
+
+    // Маршруты для работы с сообщениями
     Route::get('/chats', [ChatController::class, 'index']);
     Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
-    Route::post('/chats/private', [ChatController::class, 'createPrivateChat']);
-    Route::post('/chats/group', [ChatController::class, 'createGroupChat']);
     Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
     Route::post('/chats/{chat}/messages/{message}/delivered', [ChatController::class, 'markMessageDelivered']);
     Route::post('/chats/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
