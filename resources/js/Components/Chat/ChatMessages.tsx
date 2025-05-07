@@ -1,7 +1,9 @@
-import { FC, useEffect, useRef } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import type { ChatMessage, Chat, ChatParticipant } from "@/types/chat";
 import MessageBubble from "./MessageBubble";
 import { chatService } from "@/services/chat";
+import { ScrollArea } from "@/Components/ui/scroll-area";
+import { Button } from "@/Components/ui/button";
 
 interface Props {
   messages: ChatMessage[];
@@ -17,22 +19,41 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
   const messageObserverRef = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const lastMessageCountRef = useRef(messages.length);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const processedMessagesRef = useRef<Set<number>>(new Set());
+
+  const initialLoadRef = useRef(true);
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
+    const viewport = document.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement;
+    if (!viewport) return;
 
-    // If messages were added at the end (new messages)
-    if (messages.length > lastMessageCountRef.current) {
-      const shouldScroll =
-        container.scrollHeight - container.scrollTop - container.clientHeight < 100;
-      
-      if (shouldScroll) {
-        endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+    const currentLength = messages.length;
+    const previousLength = lastMessageCountRef.current;
+
+    // Определяем тип изменения сообщений
+    const isFirstLoad = initialLoadRef.current && currentLength > 0;
+    const isMessageAddedAtEnd = !initialLoadRef.current &&
+      currentLength > previousLength &&
+      messages[currentLength - 1].id > messages[previousLength - 1]?.id;
+    const isOldMessagesLoaded = !initialLoadRef.current &&
+      currentLength > previousLength &&
+      messages[0].id < messages[previousLength]?.id;
+
+    // Автоскролл только при первой загрузке или новых сообщениях
+    if (isFirstLoad || (isMessageAddedAtEnd && !isOldMessagesLoaded)) {
+      const isNearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 100;
+      if (isNearBottom || isFirstLoad) {
+        requestAnimationFrame(() => {
+          endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+        });
       }
     }
 
-    lastMessageCountRef.current = messages.length;
+    if (isFirstLoad) {
+      initialLoadRef.current = false;
+    }
+    lastMessageCountRef.current = currentLength;
   }, [messages]);
 
   useEffect(() => {
@@ -45,13 +66,30 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
             const messageId = parseInt(entry.target.getAttribute('data-message-id') || '0');
             const message = messages.find(m => m.id === messageId);
             
-            if (message && message.sender.id !== currentUser.id) {
-              if (message.status === 'delivered') {
-                chatService.markMessageRead(chat.id, message.id);
-              } else if (message.status === 'sent') {
-                chatService.markMessageDelivered(chat.id, message.id)
-                  .then(() => chatService.markMessageRead(chat.id, message.id));
-              }
+            if (message &&
+                message.sender.id !== currentUser.id &&
+                !processedMessagesRef.current.has(message.id)) {
+              const updateStatus = async () => {
+                try {
+        
+                  processedMessagesRef.current.add(message.id);
+
+                  if (message.status === 'sent') {
+                    await chatService.markMessageDelivered(chat.id, message.id);
+
+                    await new Promise(resolve => setTimeout(resolve, 100));
+                  }
+                  if ((message.status === 'delivered' || message.status === 'sent') &&
+                      processedMessagesRef.current.has(message.id)) {
+                    await chatService.markMessageRead(chat.id, message.id);
+                  }
+                } catch (error) {
+
+                  processedMessagesRef.current.delete(message.id);
+                  console.error('Error updating message status:', error);
+                }
+              };
+              updateStatus();
             }
           }
         });
@@ -70,20 +108,29 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
 
     return () => {
       messageObserverRef.current?.disconnect();
+
+      processedMessagesRef.current.clear();
     };
   }, [chat.id, currentUser, messages]);
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-y-auto p-4 space-y-2"
-      onScroll={(e) => {
-        const target = e.target as HTMLDivElement;
-        if (target.scrollTop === 0 && !isLoadingMore && hasMore) {
-          onLoadMore();
-        }
-      }}
-    >
+    <div className="relative flex-1 h-[calc(100vh-12rem)]">
+      <ScrollArea
+        className="h-full"
+        onScrollCapture={(e: React.UIEvent<HTMLDivElement>) => {
+          const viewport = e.currentTarget.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement;
+          if (viewport) {
+            if (viewport.scrollTop === 0 && !isLoadingMore && hasMore) {
+              onLoadMore();
+            }
+            
+   
+            const isNearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 200;
+            setShowScrollButton(!isNearBottom);
+          }
+        }}
+      >
+      <div ref={containerRef} className="space-y-2 p-4">
       {isLoadingMore && (
         <div className="flex justify-center mb-4">
           <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
@@ -98,6 +145,33 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
         </div>
       ))}
       <div ref={endOfMessagesRef} />
+      </div>
+      </ScrollArea>
+      
+      {/* Кнопка скролла вниз */}
+      <Button
+        variant="secondary"
+        size="icon"
+        className={`fixed bottom-20 right-8 rounded-full shadow-lg transition-all duration-200 ${
+          showScrollButton ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4 pointer-events-none'
+        }`}
+        onClick={() => {
+          endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+        }}
+      >
+        <svg
+          width="24"
+          height="24"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </Button>
     </div>
   );
 };

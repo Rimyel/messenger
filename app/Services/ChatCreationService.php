@@ -11,17 +11,17 @@ class ChatCreationService
     {
         $otherUser = User::findOrFail($otherUserId);
 
-        // Prevent creating chat with yourself
+       
         if ($user->id === $otherUser->id) {
             throw new \Exception('Cannot create chat with yourself');
         }
 
-        // Validate users are from the same company
+       
         if ($user->company_id !== $otherUser->company_id) {
             throw new \Exception('Cannot create chat with user from different company');
         }
 
-        // Check if chat already exists
+        
         $existingChat = Chat::whereHas('participants', function ($query) use ($user) {
             $query->where('user_id', $user->id);
         })->whereHas('participants', function ($query) use ($otherUser) {
@@ -41,7 +41,7 @@ class ChatCreationService
             ];
         }
 
-        // Create new private chat
+       
         $chat = Chat::create([
             'company_id' => $user->company_id,
             'type' => 'private',
@@ -62,10 +62,10 @@ class ChatCreationService
 
     public function createGroupChat($user, string $name, array $participantIds)
     {
-        // Remove duplicates and creator from participants list
+        
         $participantIds = array_unique($participantIds);
 
-        // Validate all participants are from the same company
+        
         $participants = User::whereIn('id', $participantIds)->get();
         foreach ($participants as $participant) {
             if ($participant->company_id !== $user->company_id) {
@@ -79,7 +79,7 @@ class ChatCreationService
             'name' => $name,
         ]);
 
-        // Add all participants including creator
+     
         $allParticipants = array_unique(array_merge([$user->id], $participantIds));
         $chat->participants()->attach($allParticipants);
 
