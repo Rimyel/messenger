@@ -7,14 +7,32 @@ interface Props {
   messages: ChatMessage[];
   currentUser: ChatParticipant;
   chat: Chat;
+  onLoadMore: () => Promise<void>;
+  isLoadingMore: boolean;
+  hasMore: boolean;
 }
 
-const ChatMessages: FC<Props> = ({ messages, currentUser, chat }) => {
+const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLoadingMore, hasMore }) => {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const messageObserverRef = useRef<IntersectionObserver | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const lastMessageCountRef = useRef(messages.length);
 
   useEffect(() => {
-    endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+    const container = containerRef.current;
+    if (!container) return;
+
+    // If messages were added at the end (new messages)
+    if (messages.length > lastMessageCountRef.current) {
+      const shouldScroll =
+        container.scrollHeight - container.scrollTop - container.clientHeight < 100;
+      
+      if (shouldScroll) {
+        endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+
+    lastMessageCountRef.current = messages.length;
   }, [messages]);
 
   useEffect(() => {
@@ -56,7 +74,21 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat }) => {
   }, [chat.id, currentUser, messages]);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-2">
+    <div
+      ref={containerRef}
+      className="flex-1 overflow-y-auto p-4 space-y-2"
+      onScroll={(e) => {
+        const target = e.target as HTMLDivElement;
+        if (target.scrollTop === 0 && !isLoadingMore && hasMore) {
+          onLoadMore();
+        }
+      }}
+    >
+      {isLoadingMore && (
+        <div className="flex justify-center mb-4">
+          <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
+        </div>
+      )}
       {messages.map((message) => (
         <div key={message.id} data-message-id={message.id}>
           <MessageBubble

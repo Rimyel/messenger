@@ -48,3 +48,14 @@ export interface CreateGroupChatData {
 export interface CreatePrivateChatData {
     userId: number;
 }
+
+export interface MessagesResponse {
+    messages: ChatMessage[];
+    hasMore: boolean;
+    nextCursor?: string;
+}
+
+export interface GetMessagesParams {
+    limit?: number;
+    cursor?: string;
+}

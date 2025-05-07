@@ -69,48 +69,69 @@ class ChatController extends Controller
         }
     }
 
-    public function messages($chatId): JsonResponse
+    public function messages($chatId, Request $request): JsonResponse
     {
         try {
             $user = Auth::user();
             $chat = Chat::findOrFail($chatId);
+            $limit = (int) $request->query('limit', 20);
+            $cursor = $request->query('cursor');
 
-            // Verify user is part of the chat
             if (!$chat->participants()->where('user_id', $user->id)->exists()) {
                 return response()->json(['error' => 'Unauthorized'], 403);
             }
 
-            return response()->json(
-                $chat->messages()
-                    ->with(['sender:id,name,avatar', 'media'])
-                    ->orderBy('sent_at', 'asc')
-                    ->get()
-                    ->map(function ($msg) {
+            $query = $chat->messages()
+                ->with(['sender:id,name,avatar', 'media'])
+                ->orderBy('id', 'desc');
+
+            if ($cursor) {
+                // Parse cursor format "id:12345"
+                $messageId = (int) explode(':', $cursor)[1];
+                $query->where('id', '<', $messageId);
+            }
+
+            $messages = $query->take($limit + 1)->get();
+            $hasMore = $messages->count() > $limit;
+
+            if ($hasMore) {
+                $messages = $messages->take($limit);
+            }
+
+            $mappedMessages = $messages->map(function ($msg) {
+                return [
+                    'id' => $msg->id,
+                    'content' => $msg->content,
+                    'sender' => [
+                        'id' => $msg->sender->id,
+                        'name' => $msg->sender->name,
+                        'avatar' => $msg->sender->avatar,
+                    ],
+                    'sent_at' => $msg->sent_at->toISOString(),
+                    'status' => $msg->status,
+                    'delivered_at' => $msg->delivered_at?->toISOString(),
+                    'read_at' => $msg->read_at?->toISOString(),
+                    'media' => $msg->media->map(function ($media) {
                         return [
-                            'id' => $msg->id,
-                            'content' => $msg->content,
-                            'sender' => [
-                                'id' => $msg->sender->id,
-                                'name' => $msg->sender->name,
-                                'avatar' => $msg->sender->avatar,
-                            ],
-                            'sent_at' => $msg->sent_at->toISOString(),
-                            'status' => $msg->status,
-                            'delivered_at' => $msg->delivered_at?->toISOString(),
-                            'read_at' => $msg->read_at?->toISOString(),
-                            'media' => $msg->media->map(function ($media) {
-                                return [
-                                    'id' => $media->id,
-                                    'type' => $media->type,
-                                    'link' => Storage::url($media->link),
-                                    'name_file' => $media->name_file,
-                                    'mime_type' => $media->mime_type,
-                                    'size' => $media->size
-                                ];
-                            })
+                            'id' => $media->id,
+                            'type' => $media->type,
+                            'link' => asset('storage/' . $media->link),
+                            'name_file' => $media->name_file,
+                            'mime_type' => $media->mime_type,
+                            'size' => $media->size
                         ];
-                    })
-            );
+                    })->all()
+                ];
+            })->all();
+
+            // Generate next cursor from the oldest message
+            $nextCursor = $hasMore && !empty($messages) ? 'id:' . $messages->last()->id : null;
+
+            return response()->json([
+                'messages' => $mappedMessages,
+                'hasMore' => $hasMore,
+                'nextCursor' => $nextCursor
+            ]);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch messages'], 500);
         }
@@ -188,7 +209,7 @@ class ChatController extends Controller
             ]);
 
             $user = Auth::user();
-            
+
             // Remove duplicates and creator from participants list
             $participantIds = array_unique($request->participantIds);
 
@@ -246,17 +267,16 @@ class ChatController extends Controller
             $message = Message::create([
                 'chat_id' => $chat->id,
                 'sender_id' => $user->id,
-                'content' => $request->content,
-                'sent_at' => now(),
-                'status' => 'sent',
-                'content' => $request->content ?? ''
+                'content' => $request->content ?? '',
+                'sent_at' => now()->setTimezone('UTC'),
+                'status' => 'sent'
             ]);
 
             // Handle file uploads if present
             if ($request->hasFile('files')) {
                 foreach ($request->file('files') as $file) {
                     $path = $file->store('chat-files', 'public');
-                    
+
                     MessagesMedia::create([
                         'message_id' => $message->id,
                         'type' => $this->getFileType($file->getMimeType()),
@@ -301,7 +321,7 @@ class ChatController extends Controller
                     return [
                         'id' => $media->id,
                         'type' => $media->type,
-                        'link' => Storage::url($media->link),
+                        'link' => asset('storage/' . $media->link),
                         'name_file' => $media->name_file,
                         'mime_type' => $media->mime_type,
                         'size' => $media->size
@@ -328,7 +348,7 @@ class ChatController extends Controller
             if ($message->sender_id !== $user->id) {
                 $message->update([
                     'status' => 'delivered',
-                    'delivered_at' => now(),
+                    'delivered_at' => now()->setTimezone('UTC'),
                 ]);
 
                 broadcast(new MessageStatusUpdated($message));
@@ -354,7 +374,7 @@ class ChatController extends Controller
             if ($message->sender_id !== $user->id) {
                 $message->update([
                     'status' => 'read',
-                    'read_at' => now(),
+                    'read_at' => now()->setTimezone('UTC'),
                 ]);
 
                 broadcast(new MessageStatusUpdated($message));

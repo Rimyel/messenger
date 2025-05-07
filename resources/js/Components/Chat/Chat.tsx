@@ -21,6 +21,9 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
     const [isLoading, setIsLoading] = useState(false);
+    const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [hasMore, setHasMore] = useState(true);
+    const [nextCursor, setNextCursor] = useState<string>();
     const { user, token } = useAuthStore((state) => state);
     const isMobile = useIsMobile();
     const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
@@ -92,15 +95,27 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         }
     };
 
-    const loadMessages = async (chatId: number) => {
+    const loadMessages = async (chatId: number, cursor?: string) => {
         try {
-            const data = await chatService.getMessages(chatId);
-            if (Array.isArray(data)) {
-                setMessages(data);
-            } else {
-                console.error("Invalid message data format:", data);
-                setMessages([]);
-            }
+            const { messages: newMessages, hasMore, nextCursor } = await chatService.getMessages(chatId, {
+                limit: 20,
+                cursor
+            });
+
+            setMessages(prev => {
+                if (!cursor) {
+                    return newMessages;
+                }
+                
+                // Get array of IDs of new messages to avoid duplicates
+                const newMessageIds = new Set(newMessages.map(msg => msg.id));
+                // Filter out any existing messages that we just loaded
+                const filteredPrev = prev.filter(msg => !newMessageIds.has(msg.id));
+                // Combine new messages with filtered existing messages
+                return [...newMessages, ...filteredPrev];
+            });
+            setHasMore(hasMore);
+            setNextCursor(nextCursor);
         } catch (error) {
             console.error("Error loading messages:", error);
             setMessages([]);
@@ -278,6 +293,18 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                         messages={messages}
                         currentUser={currentUser}
                         chat={selectedChat}
+                        onLoadMore={async () => {
+                            if (!isLoadingMore && hasMore && nextCursor) {
+                                setIsLoadingMore(true);
+                                try {
+                                    await loadMessages(selectedChat.id, nextCursor);
+                                } finally {
+                                    setIsLoadingMore(false);
+                                }
+                            }
+                        }}
+                        isLoadingMore={isLoadingMore}
+                        hasMore={hasMore}
                     />
                     <ChatInput onSendMessage={handleSendMessage} />
                 </div>

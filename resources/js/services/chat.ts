@@ -1,4 +1,13 @@
-import type { ChatMessage, Chat, CreateGroupChatData, CreatePrivateChatData, MessageStatus, ChatParticipant } from "@/types/chat";
+import type {
+    ChatMessage,
+    Chat,
+    CreateGroupChatData,
+    CreatePrivateChatData,
+    MessageStatus,
+    ChatParticipant,
+    MessagesResponse,
+    GetMessagesParams
+} from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
 import api from "./api";
 
@@ -95,9 +104,18 @@ class ChatService {
         }
     }
 
-    async getMessages(chatId: number): Promise<ChatMessage[]> {
+    async getMessages(chatId: number, params?: GetMessagesParams): Promise<MessagesResponse> {
         try {
-            const response = await api.get(`/chats/${chatId}/messages`);
+            const queryParams = new URLSearchParams();
+            if (params?.limit) {
+                queryParams.append('limit', params.limit.toString());
+            }
+            if (params?.cursor) {
+                queryParams.append('cursor', params.cursor);
+            }
+
+            const url = `/chats/${chatId}/messages${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
+            const response = await api.get(url);
             return response.data;
         } catch (error) {
             console.error("Error fetching messages:", error);

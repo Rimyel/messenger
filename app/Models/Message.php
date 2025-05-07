@@ -26,6 +26,13 @@ class Message extends Model
         'read_at' => 'datetime'
     ];
 
+    protected $dateFormat = 'Y-m-d H:i:s';
+
+    protected function serializeDate(\DateTimeInterface $date): string
+    {
+        return $date->format($this->dateFormat);
+    }
+
     public function chat(): BelongsTo
     {
         return $this->belongsTo(Chat::class);
