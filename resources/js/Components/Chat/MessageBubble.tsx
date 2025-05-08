@@ -2,6 +2,7 @@ import { FC } from "react";
 import type { ChatMessage, MessageMedia } from "@/types/chat";
 import clsx from "clsx";
 import { Download, FileText, Music, Video } from "lucide-react";
+import { formatInTimeZone } from 'date-fns-tz';
 
 interface Props {
     message: ChatMessage;
@@ -129,10 +130,11 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
                 {content && <div className="whitespace-pre-wrap break-words leading-relaxed">{content}</div>}
                 <div className="flex items-center justify-end gap-0.5 mt-1 text-[10px] text-muted-foreground/80">
                     <span className="flex-shrink-0">
-                        {new Date(sent_at).toLocaleTimeString([], {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                        })}
+                        {formatInTimeZone(
+                            new Date(sent_at),
+                            Intl.DateTimeFormat().resolvedOptions().timeZone,
+                            'HH:mm'
+                        )}
                     </span>
                     {isOwn && (
                         <span className="flex items-center flex-shrink-0">

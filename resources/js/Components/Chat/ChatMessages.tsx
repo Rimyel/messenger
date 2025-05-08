@@ -4,6 +4,8 @@ import MessageBubble from "./MessageBubble";
 import { chatService } from "@/services/chat";
 import { ScrollArea } from "@/Components/ui/scroll-area";
 import { Button } from "@/Components/ui/button";
+import { format, formatInTimeZone } from "date-fns-tz";
+import { ru } from "date-fns/locale";
 
 interface Props {
   messages: ChatMessage[];
@@ -40,14 +42,12 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
       currentLength > previousLength &&
       messages[0].id < messages[previousLength]?.id;
 
-    // Автоскролл только при первой загрузке или новых сообщениях
-    if (isFirstLoad || (isMessageAddedAtEnd && !isOldMessagesLoaded)) {
-      const isNearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 100;
-      if (isNearBottom || isFirstLoad) {
-        requestAnimationFrame(() => {
-          endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
-        });
-      }
+    // Автоскролл при первой загрузке, новых сообщениях или если последнее сообщение от текущего пользователя
+    if (isFirstLoad || (isMessageAddedAtEnd && !isOldMessagesLoaded) ||
+        (messages.length > 0 && messages[messages.length - 1].sender.id === currentUser.id)) {
+      requestAnimationFrame(() => {
+        endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
+      });
     }
 
     if (isFirstLoad) {
@@ -133,12 +133,43 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
           <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
         </div>
       )}
-      {messages.map((message) => (
-        <div key={message.id} data-message-id={message.id}>
-          <MessageBubble
-            message={message}
-            isOwn={message.sender.id === currentUser.id}
-          />
+      {messages.reduce<{ date: string; messages: JSX.Element[] }[]>((groups, message) => {
+        // Parse the ISO string with timezone information
+        const messageDate = formatInTimeZone(
+            new Date(message.sent_at),
+            Intl.DateTimeFormat().resolvedOptions().timeZone,
+            'dd MMMM yyyy',
+            { locale: ru }
+        );
+        const lastGroup = groups[groups.length - 1];
+
+        const messageElement = (
+          <div key={message.id} data-message-id={message.id}>
+            <MessageBubble
+              message={message}
+              isOwn={message.sender.id === currentUser.id}
+            />
+          </div>
+        );
+
+        if (lastGroup && lastGroup.date === messageDate) {
+          lastGroup.messages.push(messageElement);
+        } else {
+          groups.push({
+            date: messageDate,
+            messages: [messageElement]
+          });
+        }
+
+        return groups;
+      }, []).map((group, index) => (
+        <div key={group.date} className="space-y-2">
+          <div className="flex items-center justify-center">
+            <div className="bg-muted px-3 py-1 rounded-full text-xs text-muted-foreground">
+              {group.date}
+            </div>
+          </div>
+          {group.messages}
         </div>
       ))}
       <div ref={endOfMessagesRef} />

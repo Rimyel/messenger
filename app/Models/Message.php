@@ -26,11 +26,9 @@ class Message extends Model
         'read_at' => 'datetime'
     ];
 
-    protected $dateFormat = 'Y-m-d H:i:s';
-
     protected function serializeDate(\DateTimeInterface $date): string
     {
-        return $date->format($this->dateFormat);
+        return $date->setTimezone('UTC')->format('Y-m-d\TH:i:s.u\Z');
     }
 
     public function chat(): BelongsTo

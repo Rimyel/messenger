@@ -56,7 +56,7 @@ class ChatListService
 
         $query = $chat->messages()
             ->with(['sender:id,name,avatar', 'media'])
-            ->orderBy('id', 'desc');
+            ->orderBy('sent_at', 'asc');
 
         if ($cursor) {
             $messageId = (int) explode(':', $cursor)[1];
