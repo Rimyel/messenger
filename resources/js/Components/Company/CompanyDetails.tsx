@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
-import { Loader2, Users } from "lucide-react";
+import { Button } from "@/Components/ui/button";
+import { Loader2, Users, LogOut } from "lucide-react";
 import { Company, User } from "@/types/company";
 import { CompanyApi } from "@/services/api";
 import { toast } from "sonner";
 
 interface CompanyDetailsProps {
     companyId: number;
+    handleLeaveCompany: () => void;
 }
 
 const MembersList: React.FC<{ users: User[] }> = ({ users }) => {
@@ -42,7 +44,7 @@ const MembersList: React.FC<{ users: User[] }> = ({ users }) => {
     );
 };
 
-const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId }) => {
+const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveCompany }) => {
     const [company, setCompany] = useState<Company | null>(null);
     const [loading, setLoading] = useState(true);
 
@@ -138,6 +140,17 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId }) => {
                     {company.users && company.users.length > 0 && (
                         <MembersList users={company.users} />
                     )}
+
+                    <div className="mt-8">
+                        <Button
+                            variant="ghost"
+                            className="w-full justify-center gap-2 text-red-600 hover:text-red-600 hover:bg-red-50"
+                            onClick={handleLeaveCompany}
+                        >
+                            <LogOut className="h-4 w-4" />
+                            <span>Выйти из компании</span>
+                        </Button>
+                    </div>
                 </div>
             </CardContent>
         </Card>

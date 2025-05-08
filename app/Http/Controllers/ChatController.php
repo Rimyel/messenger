@@ -71,22 +71,6 @@ class ChatController extends Controller
         }
     }
 
-    public function markMessageDelivered(Chat $chat, Message $message): JsonResponse
-    {
-        try {
-            $user = Auth::user();
-
-            if (!$chat->participants()->where('user_id', $user->id)->exists()) {
-                return response()->json(['error' => 'Unauthorized'], 403);
-            }
-
-            $this->chatMessageService->markMessageDelivered($chat, $message, $user);
-            return response()->json(['status' => 'success']);
-        } catch (\Exception $e) {
-            return response()->json(['error' => $e->getMessage()], 500);
-        }
-    }
-
     public function markMessageRead(Chat $chat, Message $message): JsonResponse
     {
         try {

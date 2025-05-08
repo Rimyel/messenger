@@ -27,16 +27,12 @@ import type { Company } from "@/types/company";
 interface SidebarProps {
     currentCompany: Company | null;
     setCurrentContent: (content: string) => void;
-    handleLeaveCompany: () => void;
-    handleLogout: () => void;
     setIsCreatingCompany: (value: boolean) => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
     currentCompany,
     setCurrentContent,
-    handleLeaveCompany,
-    handleLogout,
     setIsCreatingCompany,
 }) => {
     return (
@@ -164,28 +160,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             <UserCircle className="h-4 w-4" />
                             <span className="group-data-[collapsible=icon]:hidden">
                                 Личный кабинет
-                            </span>
-                        </Button>
-                        {currentCompany && (
-                            <Button
-                                variant="ghost"
-                                className="w-full justify-start gap-2 text-red-600 hover:text-red-600 group-data-[collapsible=icon]:justify-center"
-                                onClick={handleLeaveCompany}
-                            >
-                                <LogOut className="h-4 w-4" />
-                                <span className="group-data-[collapsible=icon]:hidden">
-                                    Выйти из компании
-                                </span>
-                            </Button>
-                        )}
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start gap-2 text-red-600 hover:text-red-600 group-data-[collapsible=icon]:justify-center"
-                            onClick={handleLogout}
-                        >
-                            <LogOut className="h-4 w-4" />
-                            <span className="group-data-[collapsible=icon]:hidden">
-                                Выйти из аккаунта
                             </span>
                         </Button>
                     </SidebarGroupContent>

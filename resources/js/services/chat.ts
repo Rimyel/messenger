@@ -143,15 +143,6 @@ class ChatService {
         }
     }
 
-    async markMessageDelivered(chatId: number, messageId: number): Promise<void> {
-        try {
-            await api.post(`/chats/${chatId}/messages/${messageId}/delivered`);
-        } catch (error) {
-            console.error("Error marking message as delivered:", error);
-            throw error;
-        }
-    }
-
     async markMessageRead(chatId: number, messageId: number): Promise<void> {
         try {
             await api.post(`/chats/${chatId}/messages/${messageId}/read`);

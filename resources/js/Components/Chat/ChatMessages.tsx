@@ -68,25 +68,17 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
             
             if (message &&
                 message.sender.id !== currentUser.id &&
-                !processedMessagesRef.current.has(message.id)) {
+                !processedMessagesRef.current.has(messageId)) {
               const updateStatus = async () => {
                 try {
-        
-                  processedMessagesRef.current.add(message.id);
-
-                  if (message.status === 'sent') {
-                    await chatService.markMessageDelivered(chat.id, message.id);
-
-                    await new Promise(resolve => setTimeout(resolve, 100));
-                  }
-                  if ((message.status === 'delivered' || message.status === 'sent') &&
-                      processedMessagesRef.current.has(message.id)) {
+                  // Only mark sent messages as read
+                  if (message.status === 'sent' && !message.read_at) {
+                    processedMessagesRef.current.add(messageId);
                     await chatService.markMessageRead(chat.id, message.id);
                   }
                 } catch (error) {
-
-                  processedMessagesRef.current.delete(message.id);
-                  console.error('Error updating message status:', error);
+                  processedMessagesRef.current.delete(messageId);
+                  console.error('Error marking message as read:', error);
                 }
               };
               updateStatus();
@@ -99,10 +91,15 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
       }
     );
 
+    // Only observe sent messages from other users that aren't read yet
     messages.forEach(message => {
-      const element = document.querySelector(`[data-message-id="${message.id}"]`);
-      if (element) {
-        messageObserverRef.current?.observe(element);
+      if (message.sender.id !== currentUser.id &&
+          message.status === 'sent' &&
+          !message.read_at) {
+        const element = document.querySelector(`[data-message-id="${message.id}"]`);
+        if (element) {
+          messageObserverRef.current?.observe(element);
+        }
       }
     });
 

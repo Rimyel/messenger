@@ -20,7 +20,7 @@ class ChatMessageService
             'sender_id' => $user->id,
             'content' => $request->content ?? '',
             'sent_at' => now()->setTimezone('UTC'),
-            'status' => 'sent'
+            'status' => 'sent' // Initial status is 'sent' (one checkmark)
         ]);
 
         if ($request->hasFile('files')) {
@@ -54,26 +54,13 @@ class ChatMessageService
         return $message;
     }
 
-    public function markMessageDelivered(Chat $chat, Message $message, $user)
-    {
-        if ($message->sender_id !== $user->id) {
-            $message->update([
-                'status' => 'delivered',
-                'delivered_at' => now()->setTimezone('UTC'),
-            ]);
-
-            broadcast(new MessageStatusUpdated($message));
-        }
-
-        return $message;
-    }
-
     public function markMessageRead(Chat $chat, Message $message, $user)
     {
-        if ($message->sender_id !== $user->id) {
+        // Only mark as read if it's not the sender and message isn't read
+        if ($message->sender_id !== $user->id && $message->status !== 'read') {
             $message->update([
-                'status' => 'read',
-                'read_at' => now()->setTimezone('UTC'),
+                'status' => 'read', // Update to 'read' (two checkmarks)
+                'read_at' => now()->setTimezone('UTC')
             ]);
 
             broadcast(new MessageStatusUpdated($message));
