@@ -25,6 +25,8 @@ interface MainContentProps {
     isLoading: boolean;
     status?: string;
     chats?: ChatType[];
+    handleLogout: () => void;
+    handleLeaveCompany: () => void;
 }
 
 const LoadingSpinner = () => (
@@ -41,6 +43,8 @@ export const MainContent: React.FC<MainContentProps> = ({
     isLoading,
     status,
     chats,
+    handleLogout,
+    handleLeaveCompany,
 }) => {
     const renderContent = () => {
         if (isLoading) {
@@ -52,7 +56,10 @@ export const MainContent: React.FC<MainContentProps> = ({
                 if (currentCompany) {
                     return (
                         <Suspense fallback={<LoadingSpinner />}>
-                            <CompanyDetails companyId={currentCompany.id} />
+                            <CompanyDetails
+                                companyId={currentCompany.id}
+                                handleLeaveCompany={handleLeaveCompany}
+                            />
                         </Suspense>
                     );
                 }
@@ -86,7 +93,10 @@ export const MainContent: React.FC<MainContentProps> = ({
             case "profile":
                 return (
                     <Suspense fallback={<LoadingSpinner />}>
-                        <ProfileContent status={status} />
+                        <ProfileContent
+                            status={status}
+                            handleLogout={handleLogout}
+                        />
                     </Suspense>
                 );
             case "chat":

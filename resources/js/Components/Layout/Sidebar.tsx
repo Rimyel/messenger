@@ -37,11 +37,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 }) => {
     return (
         <UISidebar collapsible="icon">
-            <SidebarHeader className="flex items-center justify-between">
+            <SidebarHeader>
                 <h2 className="px-4 text-lg font-semibold group-data-[collapsible=icon]:hidden">
                     Панель управления
                 </h2>
-                <SidebarTrigger />
             </SidebarHeader>
             <SidebarContent>
                 <SidebarGroup>

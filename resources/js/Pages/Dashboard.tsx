@@ -9,6 +9,7 @@ import { CompanyApi } from "@/services/api";
 import type { Company } from "@/types/company";
 import { Chat } from "@/types/chat";
 
+
 // Lazy load components
 const Sidebar = lazy(() => import("@/Components/Layout/Sidebar"));
 const Navbar = lazy(() => import("@/Components/Layout/Navbar"));
@@ -33,7 +34,7 @@ const Dashboard: React.FC = () => {
     const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
     const [currentContent, setCurrentContent] = useState<string>("dashboard");
     const [isCreatingCompany, setIsCreatingCompany] = useState(false);
-    const [isLoading, setIsLoading] = useState(true);    
+    const [isLoading, setIsLoading] = useState(true);
 
     const { apiToken, userId, status, chats } = usePage().props as Props;
 
@@ -102,7 +103,6 @@ const Dashboard: React.FC = () => {
                 {},
                 {
                     onSuccess: () => {
-                        clearAuth();
                         toast.success("Вы успешно вышли из системы");
                     },
                     onError: () => {
@@ -128,15 +128,13 @@ const Dashboard: React.FC = () => {
                     <Sidebar
                         currentCompany={currentCompany}
                         setCurrentContent={setCurrentContent}
-                        handleLeaveCompany={handleLeaveCompany}
-                        handleLogout={handleLogout}
                         setIsCreatingCompany={setIsCreatingCompany}
                     />
                 </Suspense>
 
                 <div className="flex-1 flex flex-col w-full">
                     <Suspense fallback={<LoadingSpinner />}>
-                        <Navbar triggerSearch={triggerSearch} />
+                        <Navbar currentContent={currentContent} />
                     </Suspense>
 
                     <Suspense fallback={<LoadingSpinner />}>
@@ -148,6 +146,8 @@ const Dashboard: React.FC = () => {
                             isLoading={isLoading}
                             status={status}
                             chats={chats}
+                            handleLogout={handleLogout}
+                            handleLeaveCompany={handleLeaveCompany}
                         />
                     </Suspense>
                     <Toaster />

@@ -19,7 +19,7 @@ class ApiAuthController extends Controller
         $user = $request->user();
         // Удаляем старые токены пользователя для безопасности
         $user->tokens()->delete();
-        
+
         // Создаем новый токен с полными правами
         $token = $user->createToken('API Token', ['*'])->plainTextToken;
 
@@ -35,12 +35,17 @@ class ApiAuthController extends Controller
      */
     public function logout(Request $request)
     {
-        // Удаляем текущий токен
-        $request->user()->currentAccessToken()->delete();
+        try {
+            // Sanctum: отозвать токен текущего пользователя
+            if ($request->user()) {
+                $request->user()->currentAccessToken()->delete();
+            }
 
-        return response()->json([
-            'message' => 'Logged out successfully'
-        ]);
+            return response()->json(['message' => 'Выход выполнен успешно']);
+        } catch (\Exception $e) {
+            \Log::error("Ошибка выхода: " . $e->getMessage());
+            return response()->json(['error' => 'Ошибка сервера'], 500);
+        }
     }
 
     /**
