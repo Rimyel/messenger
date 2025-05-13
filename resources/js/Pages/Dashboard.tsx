@@ -1,6 +1,7 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
 import { SidebarProvider } from "@/Components/ui/sidebar";
 import { usePage, router } from "@inertiajs/react";
+import { Inertia } from "@inertiajs/inertia";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { Toaster } from "@/Components/ui/sonner";
 import { toast } from "sonner";
@@ -8,7 +9,6 @@ import { AuthService } from "@/services/auth";
 import { CompanyApi } from "@/services/api";
 import type { Company } from "@/types/company";
 import { Chat } from "@/types/chat";
-
 
 // Lazy load components
 const Sidebar = lazy(() => import("@/Components/Layout/Sidebar"));
@@ -40,11 +40,11 @@ const Dashboard: React.FC = () => {
 
     useEffect(() => {
         const currentToken = AuthService.getCurrentToken();
-        // console.log('Current authentication status:', {
-        //     isAuthenticated: AuthService.isAuthenticated(),
-        //     token: currentToken,
-        //     tokenLength: currentToken?.length
-        // });
+        console.log("Current authentication status:", {
+            isAuthenticated: AuthService.isAuthenticated(),
+            token: currentToken,
+            tokenLength: currentToken?.length,
+        });
 
         if (apiToken) {
             setToken(apiToken);
@@ -96,20 +96,27 @@ const Dashboard: React.FC = () => {
         }
     };
 
-    const handleLogout = () => {
-        if (window.confirm("Вы действительно хотите выйти?")) {
-            router.post(
-                "/logout",
+    const handleLogout = async () => {
+        if (!window.confirm("Вы действительно хотите выйти?")) return;
+
+        try {
+            await Inertia.post(
+                route("logout"),
                 {},
                 {
-                    onSuccess: () => {
-                        toast.success("Вы успешно вышли из системы");
-                    },
-                    onError: () => {
-                        toast.error("Произошла ошибка при выходе из системы");
-                    },
+                    preserveScroll: true,
+                    only: [],
                 }
             );
+
+            await AuthService.logout();
+
+            useAuthStore.getState().clearAuth();
+
+            window.location.href = "/";
+        } catch (error) {
+            console.error("Ошибка при выходе:", error);
+            toast.error("Произошла ошибка при выходе из системы");
         }
     };
 

@@ -12,33 +12,26 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// Get CSRF token before each request
+// Объединенный перехватчик для добавления всех необходимых заголовков
 api.interceptors.request.use(
     function (config) {
-        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-        if (token) {
-            config.headers["X-CSRF-TOKEN"] = token;
+        // Добавляем CSRF токен
+        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        if (csrfToken) {
+            config.headers["X-CSRF-TOKEN"] = csrfToken;
         }
-        return config;
-    },
-    function (error) {
-        return Promise.reject(error);
-    }
-);
 
-// Перехватчик запроса для добавления авторизационного токена
-api.interceptors.request.use(
-    function (config) {
+        // Добавляем авторизационный токен
         const { token } = useAuthStore.getState();
         if (token) {
             config.headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // For FormData requests, remove Content-Type header to let the browser set it
+        // Для FormData запросов удаляем Content-Type
         if (config.data instanceof FormData) {
             delete config.headers["Content-Type"];
         }
-        
+
         return config;
     },
     function (error) {

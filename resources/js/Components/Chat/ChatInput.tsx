@@ -1,7 +1,7 @@
 import React, { useState, useRef } from "react";
 import { Textarea } from "@/Components/ui/textarea";
 import { Button } from "@/Components/ui/button";
-import { Send, Paperclip, Smile, X } from "lucide-react";
+import { Send, Paperclip, Smile, X, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
     Tooltip,
@@ -102,6 +102,13 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
                                     alt={file.file.name}
                                     className="h-20 w-20 object-cover rounded"
                                 />
+                            ) : file.file.type.startsWith('audio/') ? (
+                                <div className="h-20 w-20 flex flex-col items-center justify-center bg-secondary rounded gap-2">
+                                    <Music className="h-8 w-8 text-primary" />
+                                    <span className="text-xs text-center break-words px-2 line-clamp-2">
+                                        {file.file.name}
+                                    </span>
+                                </div>
                             ) : (
                                 <div className="h-20 w-20 flex items-center justify-center bg-secondary rounded">
                                     <span className="text-xs text-center break-words px-2">
