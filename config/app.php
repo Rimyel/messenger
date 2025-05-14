@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => 'UTC', // Do not change this value to ensure consistent UTC storage
 
     /*
     |--------------------------------------------------------------------------

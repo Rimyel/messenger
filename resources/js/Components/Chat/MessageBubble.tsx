@@ -3,7 +3,7 @@ import type { ChatMessage, MessageMedia } from "@/types/chat";
 import clsx from "clsx";
 import { Download, FileText, Video } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
-import { formatInTimeZone } from 'date-fns-tz';
+import { formatInTimeZone } from "date-fns-tz";
 
 interface Props {
     message: ChatMessage;
@@ -20,8 +20,12 @@ const MessageStatusIcon = ({
     status: string;
     isOwn: boolean;
 }) => {
-    const textColor = isOwn ? "text-primary-foreground/60" : "text-muted-foreground/60";
-    const textColorRead = isOwn ? "text-primary-foreground/80" : "text-primary/80";
+    const textColor = isOwn
+        ? "text-primary-foreground/60"
+        : "text-muted-foreground/60";
+    const textColorRead = isOwn
+        ? "text-primary-foreground/80"
+        : "text-primary/80";
 
     switch (status) {
         case "sending":
@@ -54,9 +58,12 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
         return (
             <div className="space-y-2 mb-2">
                 {media.map((file, index) => {
-                    if (file.type === 'image') {
+                    if (file.type === "image") {
                         return (
-                            <div key={index} className="rounded-lg overflow-hidden">
+                            <div
+                                key={index}
+                                className="rounded-lg overflow-hidden"
+                            >
                                 <img
                                     src={file.link}
                                     alt={file.name_file}
@@ -68,46 +75,46 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
 
                     const getIcon = () => {
                         switch (file.type) {
-                            case 'video':
+                            case "video":
                                 return <Video className="h-5 w-5" />;
                             default:
                                 return <FileText className="h-5 w-5" />;
                         }
                     };
 
-                    return (
-                        file.type === 'audio' ? (
-                            <AudioPlayer
-                                key={index}
-                                src={file.link}
-                                filename={file.name_file}
-                                fileSize={file.size || 0}
-                                isOwn={isOwn}
-                            />
-                        ) : (
-                            <a
-                                key={index}
-                                href={file.link}
-                                download={file.name_file}
-                                className={clsx(
-                                    "flex items-center gap-2 p-2 rounded-lg",
-                                    "hover:bg-black/5 transition-colors",
-                                    {
-                                        "hover:bg-white/10": isOwn,
-                                        "hover:bg-black/10": !isOwn,
-                                    }
-                                )}
-                            >
-                                {getIcon()}
-                                <div className="flex-1 min-w-0">
-                                    <div className="truncate text-sm">{file.name_file}</div>
-                                    <div className="text-xs opacity-70">
-                                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                                    </div>
+                    return file.type === "audio" ? (
+                        <AudioPlayer
+                            key={index}
+                            src={file.link}
+                            filename={file.name_file}
+                            fileSize={file.size || 0}
+                            isOwn={isOwn}
+                        />
+                    ) : (
+                        <a
+                            key={index}
+                            href={file.link}
+                            download={file.name_file}
+                            className={clsx(
+                                "flex items-center gap-2 p-2 rounded-lg",
+                                "hover:bg-black/5 transition-colors",
+                                {
+                                    "hover:bg-white/10": isOwn,
+                                    "hover:bg-black/10": !isOwn,
+                                }
+                            )}
+                        >
+                            {getIcon()}
+                            <div className="flex-1 min-w-0">
+                                <div className="truncate text-sm">
+                                    {file.name_file}
                                 </div>
-                                <Download className="h-4 w-4 opacity-70" />
-                            </a>
-                        )
+                                <div className="text-xs opacity-70">
+                                    {(file.size / 1024 / 1024).toFixed(2)} MB
+                                </div>
+                            </div>
+                            <Download className="h-4 w-4 opacity-70" />
+                        </a>
                     );
                 })}
             </div>
@@ -136,13 +143,17 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
                     </div>
                 )}
                 {media && media.length > 0 && renderMediaPreview(media)}
-                {content && <div className="whitespace-pre-wrap break-words leading-relaxed">{content}</div>}
+                {content && (
+                    <div className="whitespace-pre-wrap break-words leading-relaxed">
+                        {content}
+                    </div>
+                )}
                 <div className="flex items-center justify-end gap-0.5 mt-1 text-[10px] text-muted-foreground/80">
                     <span className="flex-shrink-0">
                         {formatInTimeZone(
                             new Date(sent_at),
                             Intl.DateTimeFormat().resolvedOptions().timeZone,
-                            'HH:mm'
+                            "HH:mm"
                         )}
                     </span>
                     {isOwn && (

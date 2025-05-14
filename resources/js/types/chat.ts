@@ -23,6 +23,9 @@ export interface ChatMessage {
     delivered_at?: string;
     read_at?: string;
     media?: MessageMedia[];
+    preview?: string;
+    hasMedia?: boolean;
+    mediaType?: MediaType;
 }
 
 export interface ChatParticipant {
