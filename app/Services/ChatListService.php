@@ -46,7 +46,7 @@ class ChatListService
             });
     }
 
-    public function getChatMessages($chatId, $user, $limit = 20, $cursor = null)
+    public function getChatMessages($chatId, $user, $limit = 20, $cursor = null, $search = null)
     {
         $chat = Chat::findOrFail($chatId);
 
@@ -55,8 +55,30 @@ class ChatListService
         }
 
         $query = $chat->messages()
-            ->with(['sender:id,name,avatar', 'media'])
-            ->orderBy('sent_at', 'asc');
+            ->with(['sender:id,name,avatar', 'media']);
+
+        if ($search) {
+            $searchTerm = "%{$search}%";
+            
+            // Сначала подсчитаем общее количество сообщений для поиска
+            $totalCount = $query->where('content', 'like', $searchTerm)->count();
+
+            // Создаем основной запрос с сортировкой по релевантности и дате
+            $query->where('content', 'like', $searchTerm)
+                ->orderByRaw('
+                    CASE
+                        WHEN content LIKE ? THEN 1
+                        WHEN content LIKE ? THEN 2
+                        ELSE 3
+                    END,
+                    sent_at DESC
+                ', [
+                    $search, // Точное совпадение
+                    $searchTerm // Частичное совпадение
+                ]);
+        } else {
+            $query->orderBy('sent_at', 'desc');
+        }
 
         if ($cursor) {
             $messageId = (int) explode(':', $cursor)[1];
@@ -98,10 +120,16 @@ class ChatListService
 
         $nextCursor = $hasMore && !empty($messages) ? 'id:' . $messages->last()->id : null;
 
-        return [
+        $result = [
             'messages' => $mappedMessages,
             'hasMore' => $hasMore,
             'nextCursor' => $nextCursor
         ];
+
+        if ($search) {
+            $result['totalCount'] = $totalCount;
+        }
+
+        return $result;
     }
 }

@@ -14,9 +14,20 @@ interface Props {
   onLoadMore: () => Promise<void>;
   isLoadingMore: boolean;
   hasMore: boolean;
+  searchQuery?: string;
+  totalCount?: number;
 }
 
-const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLoadingMore, hasMore }) => {
+const ChatMessages: FC<Props> = ({
+  messages,
+  currentUser,
+  chat,
+  onLoadMore,
+  isLoadingMore,
+  hasMore,
+  searchQuery,
+  totalCount
+}) => {
   const endOfMessagesRef = useRef<HTMLDivElement | null>(null);
   const messageObserverRef = useRef<IntersectionObserver | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -33,18 +44,12 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
     const currentLength = messages.length;
     const previousLength = lastMessageCountRef.current;
 
-    // Определяем тип изменения сообщений
     const isFirstLoad = initialLoadRef.current && currentLength > 0;
-    const isMessageAddedAtEnd = !initialLoadRef.current &&
-      currentLength > previousLength &&
-      messages[currentLength - 1].id > messages[previousLength - 1]?.id;
-    const isOldMessagesLoaded = !initialLoadRef.current &&
-      currentLength > previousLength &&
-      messages[0].id < messages[previousLength]?.id;
+    const isNewMessage = !initialLoadRef.current &&
+      currentLength === previousLength + 1 &&
+      messages[currentLength - 1]?.sender.id === currentUser.id;
 
-    // Автоскролл при первой загрузке, новых сообщениях или если последнее сообщение от текущего пользователя
-    if (isFirstLoad || (isMessageAddedAtEnd && !isOldMessagesLoaded) ||
-        (messages.length > 0 && messages[messages.length - 1].sender.id === currentUser.id)) {
+    if (isFirstLoad || isNewMessage) {
       requestAnimationFrame(() => {
         endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
       });
@@ -118,22 +123,40 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
           const viewport = e.currentTarget.querySelector('[data-radix-scroll-area-viewport]') as HTMLDivElement;
           if (viewport) {
             if (viewport.scrollTop === 0 && !isLoadingMore && hasMore) {
-              onLoadMore();
+              const previousScrollHeight = viewport.scrollHeight;
+              
+              onLoadMore().then(() => {
+                // После загрузки сообщений восстанавливаем позицию
+                requestAnimationFrame(() => {
+                  const newScrollHeight = viewport.scrollHeight;
+                  const scrollDiff = newScrollHeight - previousScrollHeight;
+                  viewport.scrollTop = scrollDiff;
+                });
+              });
             }
             
-   
             const isNearBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 200;
             setShowScrollButton(!isNearBottom);
           }
         }}
       >
-      <div ref={containerRef} className="space-y-2 p-4">
+      <div ref={containerRef} className="space-y-2">
+        {searchQuery && (
+          <div className="bg-muted/50 p-2 text-sm text-center border-b">
+            {messages.length > 0 ? (
+              <span>Найдено {totalCount || messages.length} сообщений</span>
+            ) : (
+              <span>Сообщений не найдено</span>
+            )}
+          </div>
+        )}
+        <div className="p-4">
       {isLoadingMore && (
         <div className="flex justify-center mb-4">
           <div className="animate-spin h-5 w-5 border-2 border-primary border-t-transparent rounded-full"></div>
         </div>
       )}
-      {messages.reduce<{ date: string; messages: JSX.Element[] }[]>((groups, message) => {
+      {[...messages].reverse().reduce<{ date: string; messages: JSX.Element[] }[]>((groups, message) => {
         // Parse the ISO string with timezone information
         const messageDate = formatInTimeZone(
             new Date(message.sent_at),
@@ -148,6 +171,7 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
             <MessageBubble
               message={message}
               isOwn={message.sender.id === currentUser.id}
+              searchQuery={searchQuery}
             />
           </div>
         );
@@ -172,7 +196,8 @@ const ChatMessages: FC<Props> = ({ messages, currentUser, chat, onLoadMore, isLo
           {group.messages}
         </div>
       ))}
-      <div ref={endOfMessagesRef} />
+        <div ref={endOfMessagesRef} />
+        </div>
       </div>
       </ScrollArea>
       

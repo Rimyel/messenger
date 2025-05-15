@@ -113,6 +113,9 @@ class ChatService {
             if (params?.cursor) {
                 queryParams.append('cursor', params.cursor);
             }
+            if (params?.search) {
+                queryParams.append('search', params.search);
+            }
 
             const url = `/chats/${chatId}/messages${queryParams.toString() ? `?${queryParams.toString()}` : ''}`;
             const response = await api.get(url);

@@ -5,9 +5,8 @@ import { ArrowLeft } from "lucide-react";
 import type { Chat as ChatType } from "@/types/chat";
 
 // Lazy load components
-const CreateCompanyForm = lazy(
-    () => import("@/Components/Company/CreateCompanyForm")
-);
+const CreateCompanyForm = lazy(() => import("@/Components/Company/CreateCompanyForm"));
+const UserManagement = lazy(() => import("@/Components/Company/UserManagement"));
 const SearchCompany = lazy(() => import("@/Components/Company/SearchCompany"));
 const CompanyDetails = lazy(
     () => import("@/Components/Company/CompanyDetails")
@@ -52,6 +51,15 @@ export const MainContent: React.FC<MainContentProps> = ({
         }
 
         switch (currentContent) {
+            case "users":
+                if (currentCompany) {
+                    return (
+                        <Suspense fallback={<LoadingSpinner />}>
+                            <UserManagement />
+                        </Suspense>
+                    );
+                }
+                return <h1>Для управления пользователями необходимо выбрать компанию</h1>;
             case "company":
                 if (currentCompany) {
                     return (

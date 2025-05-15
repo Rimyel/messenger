@@ -61,4 +61,22 @@ export interface MessagesResponse {
 export interface GetMessagesParams {
     limit?: number;
     cursor?: string;
+    search?: string;
+}
+
+export interface SearchMessagesResponse {
+    messages: ChatMessage[];
+    totalCount: number;
+    chat?: {
+        id: number;
+        name: string;
+        type: 'private' | 'group';
+    };
+}
+
+export interface SearchMessageParams {
+    query: string;
+    chatId?: number;
+    limit?: number;
+    offset?: number;
 }

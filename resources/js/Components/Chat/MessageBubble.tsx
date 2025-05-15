@@ -1,5 +1,6 @@
 import { FC } from "react";
 import type { ChatMessage, MessageMedia } from "@/types/chat";
+import HighlightedText from "./HighlightedText";
 import clsx from "clsx";
 import { Download, FileText, Video } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
@@ -9,6 +10,7 @@ import { formatInTimeZone } from "date-fns-tz";
 interface Props {
     message: ChatMessage;
     isOwn: boolean;
+    searchQuery?: string;
 }
 
 import { Clock, Check } from "lucide-react";
@@ -52,7 +54,7 @@ const MessageStatusIcon = ({
     }
 };
 
-const MessageBubble: FC<Props> = ({ message, isOwn }) => {
+const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
     const { content, sender, sent_at, status, media } = message;
 
     const renderMediaPreview = (media: MessageMedia[]) => {
@@ -182,7 +184,10 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
                 {media && media.length > 0 && renderMediaPreview(media)}
                 {content && (
                     <div className="whitespace-pre-wrap break-words leading-relaxed">
-                        {content}
+                        <HighlightedText
+                            text={content}
+                            highlight={searchQuery}
+                        />
                     </div>
                 )}
                 <div className="flex items-center justify-end gap-0.5 mt-1 text-[10px] text-muted-foreground/80">

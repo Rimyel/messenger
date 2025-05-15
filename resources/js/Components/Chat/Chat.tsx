@@ -1,8 +1,9 @@
-import { FC, useState, useEffect } from "react";
+import { FC, useState, useEffect, useCallback } from "react";
 import { chatService } from "@/services/chat";
 import ChatSidebar from "./ChatSidebar";
 import ChatMessages from "./ChatMessages";
 import ChatInput from "./ChatInput";
+import ChatHeader from "./ChatHeader";
 import type { ChatMessage, Chat, ChatParticipant } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { AuthService } from "@/services/auth";
@@ -22,6 +23,8 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
     const [isLoading, setIsLoading] = useState(false);
     const [isLoadingMore, setIsLoadingMore] = useState(false);
+    const [isSearchMode, setIsSearchMode] = useState(false);
+    const [searchQuery, setSearchQuery] = useState("");
     const [hasMore, setHasMore] = useState(true);
     const [nextCursor, setNextCursor] = useState<string>();
     const { user, token } = useAuthStore((state) => state);
@@ -51,17 +54,32 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         if (selectedChat?.id) {
             const initializeChat = async () => {
                 try {
+                    setIsSearchMode(false);
+                    setSearchQuery("");
                     await loadMessages(selectedChat.id);
-                    
+
                     chatService.subscribeToChat(
                         selectedChat.id,
                         handleNewMessage,
                         (messageId, status, timestamp) => {
-                            setMessages(prev => prev.map(msg =>
-                                msg.id === messageId
-                                    ? { ...msg, status, delivered_at: status === 'delivered' ? timestamp : msg.delivered_at, read_at: status === 'read' ? timestamp : msg.read_at }
-                                    : msg
-                            ));
+                            setMessages((prev) =>
+                                prev.map((msg) =>
+                                    msg.id === messageId
+                                        ? {
+                                              ...msg,
+                                              status,
+                                              delivered_at:
+                                                  status === "delivered"
+                                                      ? timestamp
+                                                      : msg.delivered_at,
+                                              read_at:
+                                                  status === "read"
+                                                      ? timestamp
+                                                      : msg.read_at,
+                                          }
+                                        : msg
+                                )
+                            );
                         }
                     );
 
@@ -95,24 +113,35 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         }
     };
 
-    const loadMessages = async (chatId: number, cursor?: string) => {
+    const loadMessages = async (
+        chatId: number,
+        cursor?: string,
+        search?: string
+    ) => {
         try {
-            const { messages: newMessages, hasMore, nextCursor } = await chatService.getMessages(chatId, {
+            const {
+                messages: newMessages,
+                hasMore,
+                nextCursor,
+            } = await chatService.getMessages(chatId, {
                 limit: 20,
-                cursor
+                cursor,
+                search,
             });
 
-            setMessages(prev => {
+            setMessages((prev) => {
                 if (!cursor) {
                     return newMessages;
                 }
-                
+
                 // Get array of IDs of new messages to avoid duplicates
-                const newMessageIds = new Set(newMessages.map(msg => msg.id));
+                const newMessageIds = new Set(newMessages.map((msg) => msg.id));
                 // Filter out any existing messages that we just loaded
-                const filteredPrev = prev.filter(msg => !newMessageIds.has(msg.id));
-                // Combine new messages with filtered existing messages
-                return [...newMessages, ...filteredPrev];
+                const filteredPrev = prev.filter(
+                    (msg) => !newMessageIds.has(msg.id)
+                );
+                // Combine filtered existing messages with new messages
+                return [...filteredPrev, ...newMessages];
             });
             setHasMore(hasMore);
             setNextCursor(nextCursor);
@@ -125,27 +154,35 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const handleNewMessage = (message: ChatMessage) => {
         if (!message) return;
 
-        setMessages(prev => {
+        setMessages((prev) => {
             // Find temporary message with matching content and sender
-            const tempMessage = prev.find(m =>
-                m.status === 'sending' &&
-                m.content === message.content &&
-                m.sender.id === message.sender.id &&
-                (!m.media?.length && !message.media?.length ||
-                 m.media?.length === message.media?.length)
+            const tempMessage = prev.find(
+                (m) =>
+                    m.status === "sending" &&
+                    m.content === message.content &&
+                    m.sender.id === message.sender.id &&
+                    ((!m.media?.length && !message.media?.length) ||
+                        m.media?.length === message.media?.length)
             );
 
             if (tempMessage) {
                 // Replace the temporary message with the server message
-                return prev.map(m => m === tempMessage ? {
-                    ...message,
-                    media: message.media?.map(media => ({
-                        ...media,
-                        link: media.link.startsWith('blob:') ? tempMessage.media?.find(
-                            m => m.name_file === media.name_file
-                        )?.link || media.link : media.link
-                    }))
-                } : m);
+                return prev.map((m) =>
+                    m === tempMessage
+                        ? {
+                              ...message,
+                              media: message.media?.map((media) => ({
+                                  ...media,
+                                  link: media.link.startsWith("blob:")
+                                      ? tempMessage.media?.find(
+                                            (m) =>
+                                                m.name_file === media.name_file
+                                        )?.link || media.link
+                                      : media.link,
+                              })),
+                          }
+                        : m
+                );
             }
 
             // If it's a new message from another sender
@@ -153,17 +190,21 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         });
 
         // Update chat list with latest message
-        setChats(prevChats =>
-            prevChats.map(chat =>
+        setChats((prevChats) =>
+            prevChats.map((chat) =>
                 chat?.id === selectedChat?.id
                     ? { ...chat, lastMessage: message }
                     : chat
             )
         );
-};
+    };
 
     const handleSendMessage = async (content: string, files?: File[]) => {
-        if (!selectedChat?.id || (!content.trim() && (!files || files.length === 0))) return;
+        if (
+            !selectedChat?.id ||
+            (!content.trim() && (!files || files.length === 0))
+        )
+            return;
 
         // Create temporary message with sending status
         const tempMessage: ChatMessage = {
@@ -171,27 +212,29 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             content: content,
             sender: currentUser,
             sent_at: new Date().toISOString(),
-            status: 'sending',
+            status: "sending",
             delivered_at: undefined,
             read_at: undefined,
-            media: files?.map(file => ({
+            media: files?.map((file) => ({
                 id: Date.now(),
-                type: file.type.startsWith('image/') ? 'image' : 'document',
+                type: file.type.startsWith("image/") ? "image" : "document",
                 link: URL.createObjectURL(file),
                 name_file: file.name,
                 mime_type: file.type,
-                size: file.size
-            }))
+                size: file.size,
+            })),
         };
 
         // Add message to UI immediately
-        setMessages(prev => [...prev, tempMessage]);
+        setMessages((prev) => [...prev, tempMessage]);
 
         try {
             await chatService.sendMessage(selectedChat.id, content, files);
         } catch (error) {
             // Remove temporary message on error
-            setMessages(prev => prev.filter(msg => msg.id !== tempMessage.id));
+            setMessages((prev) =>
+                prev.filter((msg) => msg.id !== tempMessage.id)
+            );
             console.error("Error sending message:", error);
         }
     };
@@ -202,9 +245,11 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         setIsLoading(true);
         try {
             const newChat = await chatService.createPrivateChat({ userId });
-            
-            setChats(prev => {
-                const existingChatIndex = prev.findIndex(c => c?.id === newChat?.id);
+
+            setChats((prev) => {
+                const existingChatIndex = prev.findIndex(
+                    (c) => c?.id === newChat?.id
+                );
                 if (existingChatIndex !== -1) {
                     const updatedChats = [...prev];
                     updatedChats[existingChatIndex] = newChat;
@@ -213,17 +258,22 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                     return [newChat, ...prev];
                 }
             });
-            
+
             setSelectedChat(newChat);
         } catch (error: any) {
             console.error("Error creating private chat:", error);
-            alert(error.response?.data?.error || "Failed to create private chat");
+            alert(
+                error.response?.data?.error || "Failed to create private chat"
+            );
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleCreateGroupChat = async (name: string, participantIds: number[]) => {
+    const handleCreateGroupChat = async (
+        name: string,
+        participantIds: number[]
+    ) => {
         if (!name || !participantIds.length) return;
 
         setIsLoading(true);
@@ -232,7 +282,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                 name,
                 participantIds,
             });
-            setChats(prev => [newChat, ...prev]);
+            setChats((prev) => [newChat, ...prev]);
             setSelectedChat(newChat);
         } catch (error: any) {
             console.error("Error creating group chat:", error);
@@ -244,8 +294,8 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
 
     const currentUser: ChatParticipant = {
         id: user?.id || 0,
-        name: user?.name || '',
-        avatar: user?.avatar || '',
+        name: user?.name || "",
+        avatar: user?.avatar || "",
     };
 
     const chatSidebar = (
@@ -266,12 +316,12 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                     <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
                 </div>
             )}
-            
+
             {isMobile ? (
                 <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
                     <SheetTrigger asChild>
-                        <Button 
-                            variant="ghost" 
+                        <Button
+                            variant="ghost"
                             size="icon"
                             className="absolute left-4 top-4 z-30 md:hidden"
                         >
@@ -289,15 +339,90 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
 
             {selectedChat ? (
                 <div className="flex-1 flex flex-col h-full">
+                    <ChatHeader
+                        chat={selectedChat}
+                        isSearchMode={isSearchMode}
+                        searchQuery={searchQuery}
+                        onSearchQueryChange={async (query) => {
+                            setSearchQuery(query);
+                            setIsLoading(true);
+                            try {
+                                if (query.trim()) {
+                                    const result =
+                                        await chatService.getMessages(
+                                            selectedChat.id,
+                                            {
+                                                limit: 50,
+                                                search: query,
+                                            }
+                                        );
+                                    setHasMore(result.hasMore);
+                                    setNextCursor(result.nextCursor);
+                                    setMessages(result.messages);
+                                } else {
+                                    await loadMessages(selectedChat.id);
+                                }
+                            } catch (error) {
+                                console.error(
+                                    "Error searching messages:",
+                                    error
+                                );
+                            } finally {
+                                setIsLoading(false);
+                            }
+                        }}
+                        onToggleSearch={() => {
+                            setIsSearchMode(!isSearchMode);
+                            if (isSearchMode) {
+                                setSearchQuery("");
+                                loadMessages(selectedChat.id);
+                            }
+                        }}
+                    />
                     <ChatMessages
                         messages={messages}
                         currentUser={currentUser}
                         chat={selectedChat}
                         onLoadMore={async () => {
-                            if (!isLoadingMore && hasMore && nextCursor) {
+                            if (isSearchMode) {
+                                if (!isLoadingMore && hasMore && nextCursor) {
+                                    setIsLoadingMore(true);
+                                    try {
+                                        const result =
+                                            await chatService.getMessages(
+                                                selectedChat.id,
+                                                {
+                                                    limit: 50,
+                                                    cursor: nextCursor,
+                                                    search: searchQuery,
+                                                }
+                                            );
+                                        setMessages((prev) => [
+                                            ...prev,
+                                            ...result.messages.reverse(),
+                                        ]);
+                                        setHasMore(result.hasMore);
+                                        setNextCursor(result.nextCursor);
+                                    } catch (error) {
+                                        console.error(
+                                            "Error loading more search results:",
+                                            error
+                                        );
+                                    } finally {
+                                        setIsLoadingMore(false);
+                                    }
+                                }
+                            } else if (
+                                !isLoadingMore &&
+                                hasMore &&
+                                nextCursor
+                            ) {
                                 setIsLoadingMore(true);
                                 try {
-                                    await loadMessages(selectedChat.id, nextCursor);
+                                    await loadMessages(
+                                        selectedChat.id,
+                                        nextCursor
+                                    );
                                 } finally {
                                     setIsLoadingMore(false);
                                 }
@@ -305,6 +430,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                         }}
                         isLoadingMore={isLoadingMore}
                         hasMore={hasMore}
+                        searchQuery={isSearchMode ? searchQuery : undefined}
                     />
                     <ChatInput onSendMessage={handleSendMessage} />
                 </div>
@@ -313,7 +439,8 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                     <div className="max-w-[420px] text-center space-y-2">
                         <h2 className="text-xl font-semibold">Выберите чат</h2>
                         <p className="text-sm">
-                            Выберите существующий чат или создайте новый, чтобы начать общение
+                            Выберите существующий чат или создайте новый, чтобы
+                            начать общение
                         </p>
                     </div>
                 </div>

@@ -41,8 +41,9 @@ class ChatController extends Controller
             $user = Auth::user();
             $limit = (int) $request->query('limit', 20);
             $cursor = $request->query('cursor');
+            $search = $request->query('search');
 
-            $result = $this->chatListService->getChatMessages($chatId, $user, $limit, $cursor);
+            $result = $this->chatListService->getChatMessages($chatId, $user, $limit, $cursor, $search);
             return response()->json($result);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch messages'], 500);
