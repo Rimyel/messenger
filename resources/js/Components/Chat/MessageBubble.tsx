@@ -3,6 +3,7 @@ import type { ChatMessage, MessageMedia } from "@/types/chat";
 import clsx from "clsx";
 import { Download, FileText, Video } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
+import { VideoPlayer } from "./VideoPlayer";
 import { formatInTimeZone } from "date-fns-tz";
 
 interface Props {
@@ -82,15 +83,51 @@ const MessageBubble: FC<Props> = ({ message, isOwn }) => {
                         }
                     };
 
-                    return file.type === "audio" ? (
-                        <AudioPlayer
-                            key={index}
-                            src={file.link}
-                            filename={file.name_file}
-                            fileSize={file.size || 0}
-                            isOwn={isOwn}
-                        />
-                    ) : (
+                    if (file.type === "audio") {
+                        return (
+                            <AudioPlayer
+                                key={index}
+                                src={file.link}
+                                filename={file.name_file}
+                                fileSize={file.size || 0}
+                                isOwn={isOwn}
+                            />
+                        );
+                    }
+                    
+                    if (file.type === "video") {
+                        return (
+                            <div key={index} className="max-w-sm sm:max-w-md">
+                                <VideoPlayer src={file.link} />
+                                <div className={clsx(
+                                    "flex items-center justify-between p-2 text-xs",
+                                    "hover:bg-black/5 transition-colors",
+                                    {
+                                        "hover:bg-white/10": isOwn,
+                                        "hover:bg-black/10": !isOwn,
+                                    }
+                                )}>
+                                    <div className="flex items-center gap-1.5">
+                                        <Video className="h-3.5 w-3.5" />
+                                        <span>Video</span>
+                                        <span className="opacity-70">
+                                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                        </span>
+                                    </div>
+                                    <a
+                                        href={file.link}
+                                        download={file.name_file}
+                                        onClick={(e) => e.stopPropagation()}
+                                        className="flex items-center gap-1"
+                                    >
+                                        <Download className="h-3.5 w-3.5 opacity-70" />
+                                    </a>
+                                </div>
+                            </div>
+                        );
+                    }
+
+                    return (
                         <a
                             key={index}
                             href={file.link}
