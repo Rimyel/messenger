@@ -19,7 +19,7 @@ const HighlightedText: FC<Props> = ({ text, highlight }) => {
                 return (
                     <span
                         key={index}
-                        className={isHighlight ? 'bg-yellow-600 dark:bg-yellow-900' : ''}
+                        className={isHighlight ? 'bg-yellow-200 dark:bg-yellow-900' : ''}
                     >
                         {part}
                     </span>

@@ -37,7 +37,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
                 );
                 setMessage("");
                 setSelectedFiles([]);
-                // Reset textarea height
+
                 if (textareaRef.current) {
                     textareaRef.current.style.height = 'auto';
                 }

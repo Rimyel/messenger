@@ -176,4 +176,27 @@ class CompanyController extends Controller
 
         return response()->json(['message' => 'Вы успешно покинули компанию']);
     }
+
+    /**
+     * Получить список пользователей компании
+     */
+    public function users(Company $company)
+    {
+        // Проверяем, принадлежит ли пользователь к этой компании
+        if (auth()->user()->company_id !== $company->id) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        $users = \App\Models\User::where('company_id', $company->id)
+            ->get(['id', 'name', 'email', 'created_at', 'updated_at'])
+            ->map(function($user) use ($company) {
+                // Определяем роль пользователя
+                $isFirstUser = $company->users()->orderBy('created_at')->first()->id === $user->id;
+                $role = $isFirstUser ? 'owner' : 'member';
+                
+                return array_merge($user->toArray(), ['role' => $role]);
+            });
+
+        return response()->json($users);
+    }
 }

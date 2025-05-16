@@ -21,14 +21,14 @@ class Message extends Model
     ];
 
     protected $casts = [
-        'sent_at' => 'datetime',
-        'delivered_at' => 'datetime',
-        'read_at' => 'datetime'
+        'sent_at' => 'datetime:UTC',
+        'delivered_at' => 'datetime:UTC',
+        'read_at' => 'datetime:UTC'
     ];
 
     protected function serializeDate(\DateTimeInterface $date): string
     {
-        return $date->setTimezone('UTC')->format('Y-m-d\TH:i:s.u\Z');
+        return $date->utc()->format('Y-m-d\TH:i:s.u\Z');
     }
 
     public function chat(): BelongsTo

@@ -23,6 +23,14 @@ class AuthServiceProvider extends ServiceProvider
     {
         $this->registerPolicies();
 
-        //
+        Gate::define('manage-company', function ($user, $company) {
+            if ($user->company_id !== $company->id) {
+                return false;
+            }
+
+            // Проверяем, является ли пользователь создателем компании
+            $firstUser = $company->users()->orderBy('created_at')->first();
+            return $firstUser && $firstUser->id === $user->id;
+        });
     }
 }

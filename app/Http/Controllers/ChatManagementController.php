@@ -55,7 +55,7 @@ class ChatManagementController extends Controller
         try {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'participantIds' => 'required|array|min:2',
+                'participantIds' => 'required|array|min:1',
                 'participantIds.*' => 'exists:users,id',
             ]);
 

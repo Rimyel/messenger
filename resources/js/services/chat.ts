@@ -126,9 +126,9 @@ class ChatService {
         }
     }
 
-    async createPrivateChat(data: CreatePrivateChatData): Promise<Chat> {
+    async createPrivateChat({ userId }: CreatePrivateChatData): Promise<Chat> {
         try {
-            const response = await api.post("/chats/private", data);
+            const response = await api.post("/chats/private", { userId });
             return response.data;
         } catch (error) {
             console.error("Error creating private chat:", error);
@@ -136,9 +136,12 @@ class ChatService {
         }
     }
 
-    async createGroupChat(data: CreateGroupChatData): Promise<Chat> {
+    async createGroupChat({ name, participantIds }: CreateGroupChatData): Promise<Chat> {
         try {
-            const response = await api.post("/chats/group", data);
+            const response = await api.post("/chats/group", {
+                name,
+                participantIds
+            });
             return response.data;
         } catch (error) {
             console.error("Error creating group chat:", error);
@@ -157,7 +160,7 @@ class ChatService {
 
     async getCompanyUsers(): Promise<ChatParticipant[]> {
         try {
-            const response = await api.get("/chat-users");
+            const response = await api.get("/chats/users");
             return response.data;
         } catch (error) {
             console.error("Error fetching company users:", error);

@@ -31,14 +31,8 @@ class ChatCreationService
             ->first();
 
         if ($existingChat) {
-            return [
-                'id' => $existingChat->id,
-                'type' => 'private',
-                'name' => $otherUser->name,
-                'lastMessage' => $existingChat->lastMessage,
-                'participants' => $existingChat->participants,
-                'updatedAt' => $existingChat->updated_at
-            ];
+            $existingChat->name = $otherUser->name;
+            return $existingChat;
         }
 
        
@@ -50,14 +44,8 @@ class ChatCreationService
         $chat->participants()->attach([$user->id, $otherUser->id]);
         $chat->load(['lastMessage', 'participants']);
 
-        return [
-            'id' => $chat->id,
-            'type' => 'private',
-            'name' => $otherUser->name,
-            'lastMessage' => null,
-            'participants' => $chat->participants,
-            'updatedAt' => $chat->updated_at
-        ];
+        $chat->name = $otherUser->name;
+        return $chat;
     }
 
     public function createGroupChat($user, string $name, array $participantIds)
@@ -85,13 +73,6 @@ class ChatCreationService
 
         $chat->load(['lastMessage', 'participants']);
 
-        return [
-            'id' => $chat->id,
-            'type' => 'group',
-            'name' => $chat->name,
-            'lastMessage' => null,
-            'participants' => $chat->participants,
-            'updatedAt' => $chat->updated_at
-        ];
+        return $chat;
     }
 }

@@ -55,10 +55,12 @@ export const MainContent: React.FC<MainContentProps> = ({
                 if (currentCompany) {
                     return (
                         <Suspense fallback={<LoadingSpinner />}>
-                            <UserManagement />
+                            <UserManagement company={currentCompany} />
                         </Suspense>
                     );
                 }
+                // я успешно зашел на этот компонент, но теперь есть такие ошибки как "message": "Call to undefined method App\\Http\\Controllers\\CompanyController::users()",
+                //Ошибка при загрузке запросов: AxiosError {message: 'Request failed with status code 403', name: 'AxiosError', code: 'ERR_BAD_REQUEST', config: {…}, request: XMLHttpReq GET http://127.0.0.1:8000/api/companies/1/join-requests 403 (Forbidden) "message": "Call to undefined method App\\Models\\User::companies()", Учти эти ошибки и устраняй последовательно
                 return <h1>Для управления пользователями необходимо выбрать компанию</h1>;
             case "company":
                 if (currentCompany) {

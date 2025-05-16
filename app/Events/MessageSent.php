@@ -53,7 +53,9 @@ class MessageSent implements ShouldBroadcast
                     'name' => $this->message->sender->name,
                     'avatar' => $this->message->sender->avatar,
                 ],
-                'sent_at' => $this->message->sent_at->toISOString(),
+                'sent_at' => $this->message->sent_at instanceof \Carbon\Carbon
+                    ? $this->message->sent_at->timezone('UTC')->toISOString()
+                    : \Carbon\Carbon::parse($this->message->sent_at)->timezone('UTC')->toISOString(),
                 'chat_id' => $this->message->chat_id,
                 'status' => $this->message->status,
                 'delivered_at' => $this->message->delivered_at?->toISOString(),

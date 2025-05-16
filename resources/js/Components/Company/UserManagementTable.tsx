@@ -1,7 +1,10 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { MoreHorizontal, Shield, ShieldAlert, ShieldCheck, UserX } from "lucide-react"
+import { CompanyUserApi } from "@/services/company-user"
+import { toast } from "sonner"
+import type { CompanyRole, CompanyUser } from "@/types/company"
 
 import { Badge } from "@/Components/ui/badge"
 import { Button } from "@/Components/ui/button"
@@ -23,80 +26,24 @@ import {
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/Components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/Components/ui/table"
 
-// Типы данных
-type UserRole = "admin" | "manager" | "member"
-
-interface User {
-  id: string
-  name: string
-  email: string
-  role: UserRole
-  joinDate: string
-  avatar: string
-}
-
-// Примеры данных пользователей
-const USERS_DATA: User[] = [
-  {
-    id: "1",
-    name: "Иван Петров",
-    email: "ivan@example.com",
-    role: "admin",
-    joinDate: "15.03.2023",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "2",
-    name: "Анна Сидорова",
-    email: "anna@example.com",
-    role: "manager",
-    joinDate: "22.05.2023",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "3",
-    name: "Сергей Иванов",
-    email: "sergey@example.com",
-    role: "member",
-    joinDate: "10.07.2023",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "4",
-    name: "Мария Кузнецова",
-    email: "maria@example.com",
-    role: "member",
-    joinDate: "05.09.2023",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "5",
-    name: "Алексей Смирнов",
-    email: "alexey@example.com",
-    role: "manager",
-    joinDate: "18.11.2023",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-]
-
 // Компонент для отображения роли с иконкой
-function RoleBadge({ role }: { role: UserRole }) {
+function RoleBadge({ role }: { role: CompanyRole }) {
   switch (role) {
-    case "admin":
+    case "owner":
       return (
         <Badge className="border-purple-200 bg-purple-50 text-purple-700 dark:border-purple-800 dark:bg-purple-950 dark:text-purple-300">
           <ShieldAlert className="mr-1 h-3 w-3" />
-          Администратор
+          Владелец
         </Badge>
       )
-    case "manager":
+    case "admin":
       return (
         <Badge className="border-blue-200 bg-blue-50 text-blue-700 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-300">
           <ShieldCheck className="mr-1 h-3 w-3" />
-          Менеджер
+          Администратор
         </Badge>
       )
-    case "member":
+    default:
       return (
         <Badge className="border-gray-200 bg-gray-50 text-gray-700 dark:border-gray-800 dark:bg-gray-950 dark:text-gray-300">
           <Shield className="mr-1 h-3 w-3" />
@@ -108,11 +55,13 @@ function RoleBadge({ role }: { role: UserRole }) {
 
 interface UserManagementTableProps {
   searchQuery: string
+  companyId: number
 }
 
-export function UserManagementTable({ searchQuery }: UserManagementTableProps) {
-  const [users, setUsers] = useState<User[]>(USERS_DATA)
-  const [userToRemove, setUserToRemove] = useState<User | null>(null)
+export function UserManagementTable({ searchQuery, companyId }: UserManagementTableProps) {
+  const [users, setUsers] = useState<CompanyUser[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [userToRemove, setUserToRemove] = useState<CompanyUser | null>(null)
   const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false)
 
   // Фильтрация пользователей по поисковому запросу
@@ -122,17 +71,50 @@ export function UserManagementTable({ searchQuery }: UserManagementTableProps) {
       user.email.toLowerCase().includes(searchQuery.toLowerCase()),
   )
 
-  // Изменение роли пользователя
-  const changeUserRole = (userId: string, newRole: UserRole) => {
-    setUsers(users.map((user) => (user.id === userId ? { ...user, role: newRole } : user)))
+  useEffect(() => {
+    loadUsers()
+  }, [companyId])
+
+  const loadUsers = async () => {
+    try {
+      setIsLoading(true)
+      const data = await CompanyUserApi.getUsers(companyId)
+      setUsers(data)
+    } catch (error) {
+      console.error('Ошибка при загрузке пользователей:', error)
+      toast.error('Не удалось загрузить список пользователей')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  // Удаление пользователя
-  const removeUser = () => {
-    if (userToRemove) {
+  // Изменение роли пользователя
+  const changeUserRole = async (userId: number, newRole: Exclude<CompanyRole, 'owner'>) => {
+    try {
+      await CompanyUserApi.updateRole(companyId, userId, { role: newRole })
+      setUsers(users.map((user) =>
+        user.id === userId ? { ...user, role: newRole } : user
+      ))
+      toast.success('Роль пользователя успешно обновлена')
+    } catch (error) {
+      console.error('Ошибка при изменении роли:', error)
+      toast.error('Не удалось изменить роль пользователя')
+    }
+  }
+
+  // Удаление пользователя из компании
+  const removeUser = async () => {
+    if (!userToRemove) return
+
+    try {
+      await CompanyUserApi.leave(companyId)
       setUsers(users.filter((user) => user.id !== userToRemove.id))
-      setUserToRemove(null)
+      toast.success('Пользователь исключен из компании')
       setIsRemoveDialogOpen(false)
+      setUserToRemove(null)
+    } catch (error) {
+      console.error('Ошибка при исключении пользователя:', error)
+      toast.error('Не удалось исключить пользователя из компании')
     }
   }
 
@@ -154,7 +136,11 @@ export function UserManagementTable({ searchQuery }: UserManagementTableProps) {
                 <TableRow key={user.id}>
                   <TableCell>
                     <div className="flex items-center gap-3">
-                      <img src={user.avatar || "/placeholder.svg"} alt={user.name} className="h-10 w-10 rounded-full" />
+                      <img
+                        src={`https://www.gravatar.com/avatar/${user.email}?d=mp`}
+                        alt={user.name || ''}
+                        className="h-10 w-10 rounded-full"
+                      />
                       <div>
                         <div className="font-medium">{user.name}</div>
                         <div className="text-sm text-muted-foreground">{user.email}</div>
@@ -164,7 +150,7 @@ export function UserManagementTable({ searchQuery }: UserManagementTableProps) {
                   <TableCell>
                     <Select
                       defaultValue={user.role}
-                      onValueChange={(value: UserRole) => changeUserRole(user.id, value)}
+                      onValueChange={(value: Exclude<CompanyRole, 'owner'>) => changeUserRole(user.id, value)}
                     >
                       <SelectTrigger className="w-[180px]">
                         <SelectValue>
@@ -174,14 +160,8 @@ export function UserManagementTable({ searchQuery }: UserManagementTableProps) {
                       <SelectContent>
                         <SelectItem value="admin">
                           <div className="flex items-center">
-                            <ShieldAlert className="mr-2 h-4 w-4 text-purple-600" />
-                            Администратор
-                          </div>
-                        </SelectItem>
-                        <SelectItem value="manager">
-                          <div className="flex items-center">
                             <ShieldCheck className="mr-2 h-4 w-4 text-blue-600" />
-                            Менеджер
+                            Администратор
                           </div>
                         </SelectItem>
                         <SelectItem value="member">
@@ -193,31 +173,33 @@ export function UserManagementTable({ searchQuery }: UserManagementTableProps) {
                       </SelectContent>
                     </Select>
                   </TableCell>
-                  <TableCell>{user.joinDate}</TableCell>
+                  <TableCell>{new Date(user.created_at).toLocaleDateString('ru-RU')}</TableCell>
                   <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                          <span className="sr-only">Открыть меню</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem>Просмотреть профиль</DropdownMenuItem>
-                        <DropdownMenuItem>Отправить сообщение</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          className="text-destructive focus:text-destructive"
-                          onClick={() => {
-                            setUserToRemove(user)
-                            setIsRemoveDialogOpen(true)
-                          }}
-                        >
-                          <UserX className="mr-2 h-4 w-4" />
-                          Исключить из компании
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    {user.role !== 'owner' && (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon">
+                            <MoreHorizontal className="h-4 w-4" />
+                            <span className="sr-only">Открыть меню</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem>Просмотреть профиль</DropdownMenuItem>
+                          <DropdownMenuItem>Отправить сообщение</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive focus:text-destructive"
+                            onClick={() => {
+                              setUserToRemove(user)
+                              setIsRemoveDialogOpen(true)
+                            }}
+                          >
+                            <UserX className="mr-2 h-4 w-4" />
+                            Исключить из компании
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    )}
                   </TableCell>
                 </TableRow>
               ))

@@ -7,6 +7,7 @@ import { Toaster } from "@/Components/ui/sonner";
 import { toast } from "sonner";
 import { AuthService } from "@/services/auth";
 import { CompanyApi } from "@/services/api";
+import { CompanyUserApi } from "@/services/company-user";
 import type { Company } from "@/types/company";
 import { Chat } from "@/types/chat";
 
@@ -83,7 +84,7 @@ const Dashboard: React.FC = () => {
         if (!currentCompany) return;
 
         try {
-            await CompanyApi.leave(currentCompany.id);
+            await CompanyUserApi.leave(currentCompany.id);
             setCurrentCompany(null);
             toast.success("Вы успешно вышли из компании");
         } catch (error: any) {

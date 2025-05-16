@@ -52,8 +52,6 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('/', [ChatController::class, 'index']);
         Route::get('/{chat}/messages', [ChatController::class, 'messages']);
         Route::post('/{chat}/messages', [ChatController::class, 'sendMessage']);
-        Route::post('/private', [ChatController::class, 'createPrivateChat']);
-        Route::post('/group', [ChatController::class, 'createGroupChat']);
         Route::post('/{chat}/messages/{message}/delivered', [ChatController::class, 'markMessageDelivered']);
         Route::post('/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
     });

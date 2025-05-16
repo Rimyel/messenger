@@ -7,8 +7,13 @@ import { Search, UserPlus, X } from "lucide-react"
 import { Button } from "@/Components/ui/button"
 import { Input } from "@/Components/ui/input"
 import { useState } from "react"
+import type { Company } from "@/types/company"
 
-export default function UserManagement() {
+interface Props {
+  company: Company
+}
+
+export default function UserManagement({ company }: Props) {
   const [searchQuery, setSearchQuery] = useState("")
 
   return (
@@ -50,11 +55,11 @@ export default function UserManagement() {
               Пригласить пользователя
             </Button>
           </div>
-          <UserManagementTable searchQuery={searchQuery} />
-        </TabsContent>
+          <UserManagementTable searchQuery={searchQuery} companyId={company.id} />
+        </TabsContent> 
 
         <TabsContent value="requests" className="mt-6">
-          <JoinRequestsTable />
+          <JoinRequestsTable companyId={company.id} />
         </TabsContent>
       </Tabs>
     </div>

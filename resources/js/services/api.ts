@@ -16,7 +16,9 @@ const api = axios.create({
 api.interceptors.request.use(
     function (config) {
         // Добавляем CSRF токен
-        const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const csrfToken = document
+            .querySelector('meta[name="csrf-token"]')
+            ?.getAttribute("content");
         if (csrfToken) {
             config.headers["X-CSRF-TOKEN"] = csrfToken;
         }
@@ -92,18 +94,6 @@ export const CompanyApi = {
     // Удаление компании
     delete: async (id: number) => {
         await api.delete(`/companies/${id}`);
-    },
-
-    // Присоединение к компании
-    join: async (id: number) => {
-        const response = await api.post(`/companies/${id}/join`);
-        return response.data;
-    },
-
-    // Выход из компании
-    leave: async (id: number) => {
-        const response = await api.post(`/companies/${id}/leave`);
-        return response.data;
     },
 };
 

@@ -37,8 +37,8 @@ class MessageStatusUpdated implements ShouldBroadcast
             'message' => [
                 'id' => $this->message->id,
                 'status' => $this->message->status,
-                'delivered_at' => $this->message->delivered_at?->toISOString(),
-                'read_at' => $this->message->read_at?->toISOString(),
+                'delivered_at' => $this->message->delivered_at?->timezone('UTC')->toISOString(),
+                'read_at' => $this->message->read_at?->timezone('UTC')->toISOString(),
             ],
         ];
     }

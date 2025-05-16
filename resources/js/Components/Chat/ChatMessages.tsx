@@ -158,12 +158,11 @@ const ChatMessages: FC<Props> = ({
       )}
       {[...messages].reverse().reduce<{ date: string; messages: JSX.Element[] }[]>((groups, message) => {
         // Parse the ISO string with timezone information
-        const messageDate = formatInTimeZone(
-            new Date(message.sent_at),
-            Intl.DateTimeFormat().resolvedOptions().timeZone,
-            'dd MMMM yyyy',
-            { locale: ru }
-        );
+        const messageDate = new Date(message.sent_at).toLocaleDateString('ru-RU', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+        });
         const lastGroup = groups[groups.length - 1];
 
         const messageElement = (

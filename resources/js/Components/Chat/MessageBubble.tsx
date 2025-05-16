@@ -1,4 +1,4 @@
-import { FC } from "react";
+import { FC, useRef } from "react";
 import type { ChatMessage, MessageMedia } from "@/types/chat";
 import HighlightedText from "./HighlightedText";
 import clsx from "clsx";
@@ -6,7 +6,7 @@ import { Download, FileText, Video } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
 import { formatInTimeZone } from "date-fns-tz";
-
+import React, { useMemo } from 'react';
 interface Props {
     message: ChatMessage;
     isOwn: boolean;
@@ -15,7 +15,7 @@ interface Props {
 
 import { Clock, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
-
+const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 const MessageStatusIcon = ({
     status,
     isOwn,
@@ -56,7 +56,7 @@ const MessageStatusIcon = ({
 
 const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
     const { content, sender, sent_at, status, media } = message;
-
+    
     const renderMediaPreview = (media: MessageMedia[]) => {
         return (
             <div className="space-y-2 mb-2">
@@ -96,24 +96,30 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                             />
                         );
                     }
-                    
+
                     if (file.type === "video") {
                         return (
                             <div key={index} className="max-w-sm sm:max-w-md">
                                 <VideoPlayer src={file.link} />
-                                <div className={clsx(
-                                    "flex items-center justify-between p-2 text-xs",
-                                    "hover:bg-black/5 transition-colors",
-                                    {
-                                        "hover:bg-white/10": isOwn,
-                                        "hover:bg-black/10": !isOwn,
-                                    }
-                                )}>
+                                <div
+                                    className={clsx(
+                                        "flex items-center justify-between p-2 text-xs",
+                                        "hover:bg-black/5 transition-colors",
+                                        {
+                                            "hover:bg-white/10": isOwn,
+                                            "hover:bg-black/10": !isOwn,
+                                        }
+                                    )}
+                                >
                                     <div className="flex items-center gap-1.5">
                                         <Video className="h-3.5 w-3.5" />
                                         <span>Video</span>
                                         <span className="opacity-70">
-                                            ({(file.size / 1024 / 1024).toFixed(2)} MB)
+                                            (
+                                            {(file.size / 1024 / 1024).toFixed(
+                                                2
+                                            )}{" "}
+                                            MB)
                                         </span>
                                     </div>
                                     <a
@@ -192,11 +198,7 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                 )}
                 <div className="flex items-center justify-end gap-0.5 mt-1 text-[10px] text-muted-foreground/80">
                     <span className="flex-shrink-0">
-                        {formatInTimeZone(
-                            new Date(sent_at),
-                            Intl.DateTimeFormat().resolvedOptions().timeZone,
-                            "HH:mm"
-                        )}
+                        {formatInTimeZone(new Date(message.sent_at), userTimezone, "HH:mm")}
                     </span>
                     {isOwn && (
                         <span className="flex items-center flex-shrink-0">

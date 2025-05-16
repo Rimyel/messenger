@@ -10,6 +10,9 @@ import {
 } from "@/types/company";
 import { toast } from "sonner";
 import { CompanyApi } from "@/services/api";
+import { joinRequestService } from "@/services/join-request";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/Components/ui/dialog";
+import { Textarea } from "@/Components/ui/textarea";
 
 interface SearchCompanyProps {
     onCreateClick: () => void;
@@ -20,6 +23,9 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
     const [companies, setCompanies] = useState<PaginatedCompanies | null>(null);
     const [loading, setLoading] = useState(false);
     const [joiningCompanyId, setJoiningCompanyId] = useState<number | null>(null);
+    const [isJoinDialogOpen, setIsJoinDialogOpen] = useState(false);
+    const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
+    const [joinMessage, setJoinMessage] = useState("");
 
     const searchCompanies = async (params: CompanySearchParams) => {
         try {
@@ -46,19 +52,27 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
         }
     };
 
-    const handleJoinCompany = async (company: Company) => {
+    const showJoinDialog = (company: Company) => {
+        setSelectedCompany(company);
+        setIsJoinDialogOpen(true);
+    };
+
+    const handleJoinCompany = async () => {
+        if (!selectedCompany) return;
+
         try {
-            setJoiningCompanyId(company.id);
-            await CompanyApi.join(company.id);
-            toast.success("Вы успешно присоединились к компании");
-            // Перезагружаем страницу для обновления состояния
-            window.location.reload();
+            setJoiningCompanyId(selectedCompany.id);
+            await joinRequestService.create(selectedCompany.id, { message: joinMessage });
+            toast.success("Запрос на вступление отправлен");
+            setIsJoinDialogOpen(false);
+            setJoinMessage("");
+            setSelectedCompany(null);
         } catch (error: any) {
             if (error.response?.status === 422) {
                 toast.error(error.response.data.message);
             } else {
-                toast.error("Не удалось присоединиться к компании");
-                console.error("Ошибка при присоединении к компании:", error);
+                toast.error("Не удалось отправить запрос на вступление");
+                console.error("Ошибка при отправке запроса:", error);
             }
         } finally {
             setJoiningCompanyId(null);
@@ -134,7 +148,7 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
                                     variant="outline"
                                     className="ml-4"
                                     disabled={joiningCompanyId === company.id}
-                                    onClick={() => handleJoinCompany(company)}
+                                    onClick={() => showJoinDialog(company)}
                                 >
                                     {joiningCompanyId === company.id ? (
                                         <>
@@ -182,6 +196,56 @@ const SearchCompany: React.FC<SearchCompanyProps> = ({ onCreateClick }) => {
                     </Button>
                 </div>
             )}
+
+            <Dialog open={isJoinDialogOpen} onOpenChange={setIsJoinDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Отправить запрос на вступление</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="flex items-center space-x-4">
+                            {selectedCompany?.logo_url ? (
+                                <img
+                                    src={selectedCompany.logo_url}
+                                    alt={selectedCompany.name}
+                                    className="w-12 h-12 rounded-full"
+                                />
+                            ) : (
+                                <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                                    {selectedCompany?.name.charAt(0).toUpperCase()}
+                                </div>
+                            )}
+                            <div>
+                                <h3 className="font-medium">{selectedCompany?.name}</h3>
+                                <p className="text-sm text-gray-500">Отправить запрос на вступление в компанию</p>
+                            </div>
+                        </div>
+                        <div>
+                            <Textarea
+                                value={joinMessage}
+                                onChange={(e) => setJoinMessage(e.target.value)}
+                                placeholder="Добавьте сообщение к вашему запросу (необязательно)"
+                                className="resize-none"
+                            />
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsJoinDialogOpen(false)}>
+                            Отмена
+                        </Button>
+                        <Button onClick={handleJoinCompany} disabled={joiningCompanyId === selectedCompany?.id}>
+                            {joiningCompanyId === selectedCompany?.id ? (
+                                <>
+                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                    Отправка...
+                                </>
+                            ) : (
+                                'Отправить запрос'
+                            )}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 };

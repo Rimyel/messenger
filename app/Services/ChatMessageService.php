@@ -19,7 +19,7 @@ class ChatMessageService
             'chat_id' => $chat->id,
             'sender_id' => $user->id,
             'content' => $request->content ?? '',
-            'sent_at' => now()->setTimezone('UTC'),
+            'sent_at' => now()->utc(),
             'status' => 'sent' // Initial status is 'sent' (one checkmark)
         ]);
 
@@ -58,10 +58,10 @@ class ChatMessageService
     {
         // Only mark as read if it's not the sender and message isn't read
         if ($message->sender_id !== $user->id && $message->status !== 'read') {
-            $message->update([
-                'status' => 'read', // Update to 'read' (two checkmarks)
-                'read_at' => now()->setTimezone('UTC')
-            ]);
+            // Update only status and read_at fields to prevent touching other timestamps
+            $message->status = 'read';
+            $message->read_at = now()->utc();
+            $message->save(['timestamps' => false]);
 
             broadcast(new MessageStatusUpdated($message));
         }

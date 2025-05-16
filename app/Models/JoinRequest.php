@@ -27,7 +27,7 @@ class JoinRequest extends Model
      */
     public function user(): BelongsTo
     {
-        return $this->belongsTo(User::class);
+        return $this->belongsTo(User::class, 'user_id');
     }
 
     /**
@@ -35,7 +35,7 @@ class JoinRequest extends Model
      */
     public function company(): BelongsTo
     {
-        return $this->belongsTo(Company::class);
+        return $this->belongsTo(Company::class, 'company_id');
     }
 
     /**
@@ -51,24 +51,48 @@ class JoinRequest extends Model
      */
     public function approve()
     {
+        // Загружаем отношения, если они еще не загружены
+        if (!$this->relationLoaded('user')) {
+            $this->load('user');
+        }
+        if (!$this->relationLoaded('company')) {
+            $this->load('company');
+        }
+
         $this->update([
             'status' => 'approved',
             'approved_at' => now(),
         ]);
 
-        // Добавляем пользователя в компанию с ролью member
-        $this->company->users()->attach($this->user_id, ['role' => 'member']);
+        // Обновляем company_id пользователя
+        $this->user->update(['company_id' => $this->company_id]);
+
+        // Перезагружаем модель для получения обновленных данных
+        $this->refresh();
+
+        // Отправляем событие об обновлении статуса
+        event(new \App\Events\JoinRequestStatusUpdated($this));
+
+        return $this;
     }
 
     /**
      * Reject the join request
      */
-    public function reject(string $reason = null)
+    public function reject(?string $reason = null)
     {
         $this->update([
             'status' => 'rejected',
             'rejection_reason' => $reason,
             'rejected_at' => now(),
         ]);
+
+        // Перезагружаем модель для получения обновленных данных
+        $this->refresh();
+
+        // Отправляем событие об обновлении статуса
+        event(new \App\Events\JoinRequestStatusUpdated($this));
+
+        return $this;
     }
 }

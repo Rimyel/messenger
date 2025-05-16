@@ -93,6 +93,10 @@ class ChatListService
         }
 
         $mappedMessages = $messages->map(function ($msg) {
+            $sent_at = $msg->sent_at instanceof \Carbon\Carbon
+                ? $msg->sent_at->timezone('UTC')
+                : \Carbon\Carbon::parse($msg->sent_at)->timezone('UTC');
+
             return [
                 'id' => $msg->id,
                 'content' => $msg->content,
@@ -101,7 +105,7 @@ class ChatListService
                     'name' => $msg->sender->name,
                     'avatar' => $msg->sender->avatar,
                 ],
-                'sent_at' => $msg->sent_at->toISOString(),
+                'sent_at' => $sent_at->toISOString(),
                 'status' => $msg->status,
                 'delivered_at' => $msg->delivered_at?->toISOString(),
                 'read_at' => $msg->read_at?->toISOString(),

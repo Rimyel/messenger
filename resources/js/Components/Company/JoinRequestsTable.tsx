@@ -1,11 +1,16 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Check, Clock, MoreHorizontal, X } from "lucide-react"
+import { joinRequestService } from "@/services/join-request"
+import { useAuthStore } from "@/stores/useAuthStore"
+import type { JoinRequest, JoinRequestEvent } from "@/types/join-request"
+import { toast } from "sonner"
 
 import { Badge } from "@/Components/ui/badge"
 import { Button } from "@/Components/ui/button"
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/Components/ui/dialog"
+import { Textarea } from "@/Components/ui/textarea"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -15,55 +20,11 @@ import {
 } from "@/Components/ui/dropdown-menu"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/Components/ui/table"
 
-// Типы данных
-type RequestStatus = "pending" | "approved" | "rejected"
-
-interface JoinRequest {
-  id: string
-  userId: string
-  name: string
-  email: string
-  requestDate: string
-  message: string
-  status: RequestStatus
-  avatar: string
+interface Props {
+  companyId: number
 }
 
-// Примеры данных запросов на вступление
-const REQUESTS_DATA: JoinRequest[] = [
-  {
-    id: "req1",
-    userId: "u1",
-    name: "Дмитрий Козлов",
-    email: "dmitry@example.com",
-    requestDate: "12.05.2024",
-    message: "Хочу присоединиться к вашей компании в качестве разработчика.",
-    status: "pending",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "req2",
-    userId: "u2",
-    name: "Елена Морозова",
-    email: "elena@example.com",
-    requestDate: "10.05.2024",
-    message: "Имею 5 лет опыта в маркетинге, хочу стать частью вашей команды.",
-    status: "pending",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-  {
-    id: "req3",
-    userId: "u3",
-    name: "Павел Соколов",
-    email: "pavel@example.com",
-    requestDate: "08.05.2024",
-    message: "Ищу работу в сфере дизайна, заинтересован в долгосрочном сотрудничестве.",
-    status: "pending",
-    avatar: "/placeholder.svg?height=40&width=40",
-  },
-]
-
-function StatusBadge({ status }: { status: RequestStatus }) {
+function StatusBadge({ status }: { status: JoinRequest["status"] }) {
   switch (status) {
     case "pending":
       return (
@@ -89,20 +50,73 @@ function StatusBadge({ status }: { status: RequestStatus }) {
   }
 }
 
-export function JoinRequestsTable() {
-  const [requests, setRequests] = useState<JoinRequest[]>(REQUESTS_DATA)
+export function JoinRequestsTable({ companyId }: Props) {
+  const [requests, setRequests] = useState<JoinRequest[]>([])
   const [selectedRequest, setSelectedRequest] = useState<JoinRequest | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [rejectionReason, setRejectionReason] = useState("")
+  const { user } = useAuthStore()
 
-  const approveRequest = (requestId: string) => {
-    setRequests(requests.map((request) => (request.id === requestId ? { ...request, status: "approved" } : request)))
+  useEffect(() => {
+    loadRequests()
+    subscribeToUpdates()
+
+    return () => {
+      joinRequestService.unsubscribeFromCompanyRequests(companyId)
+    }
+  }, [companyId])
+
+  const loadRequests = async () => {
+    try {
+      const requests = await joinRequestService.getCompanyRequests(companyId)
+      setRequests(requests)
+    } catch (error) {
+      console.error('Ошибка при загрузке запросов:', error)
+      toast.error('Не удалось загрузить запросы на вступление')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const rejectRequest = (requestId: string) => {
-    setRequests(requests.map((request) => (request.id === requestId ? { ...request, status: "rejected" } : request)))
+  const subscribeToUpdates = () => {
+    joinRequestService.subscribeToCompanyRequests(companyId, (event: JoinRequestEvent) => {
+      setRequests(prev =>
+        prev.map(request =>
+          request.id === event.id
+            ? { ...request, status: event.status, rejection_reason: event.rejection_reason }
+            : request
+        )
+      )
+    })
+  }
+
+  const approveRequest = async (requestId: number) => {
+    try {
+      await joinRequestService.updateStatus(companyId, requestId, { status: 'approved' })
+      toast.success('Запрос одобрен')
+    } catch (error) {
+      console.error('Ошибка при одобрении запроса:', error)
+      toast.error('Не удалось одобрить запрос')
+    }
+  }
+
+  const rejectRequest = async (requestId: number) => {
+    try {
+      await joinRequestService.updateStatus(companyId, requestId, {
+        status: 'rejected',
+        rejection_reason: rejectionReason
+      })
+      toast.success('Запрос отклонен')
+      setRejectionReason("")
+    } catch (error) {
+      console.error('Ошибка при отклонении запроса:', error)
+      toast.error('Не удалось отклонить запрос')
+    }
   }
 
   const showRequestDetails = (request: JoinRequest) => {
+    setRejectionReason(request.rejection_reason || "")
     setSelectedRequest(request)
     setIsDetailsDialogOpen(true)
   }
@@ -126,17 +140,17 @@ export function JoinRequestsTable() {
                   <TableCell>
                     <div className="flex items-center gap-3">
                       <img
-                        src={request.avatar || "/placeholder.svg"}
-                        alt={request.name}
+                        src={`https://www.gravatar.com/avatar/${request.user?.email}?d=mp`}
+                        alt={request.user?.name || 'User avatar'}
                         className="h-10 w-10 rounded-full"
                       />
                       <div>
-                        <div className="font-medium">{request.name}</div>
-                        <div className="text-sm text-muted-foreground">{request.email}</div>
+                        <div className="font-medium">{request.user?.name}</div>
+                        <div className="text-sm text-muted-foreground">{request.user?.email}</div>
                       </div>
                     </div>
                   </TableCell>
-                  <TableCell>{request.requestDate}</TableCell>
+                  <TableCell>{new Date(request.created_at).toLocaleDateString('ru-RU')}</TableCell>
                   <TableCell>
                     <StatusBadge status={request.status} />
                   </TableCell>
@@ -221,20 +235,27 @@ export function JoinRequestsTable() {
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={selectedRequest.avatar || "/placeholder.svg"}
-                  alt={selectedRequest.name}
+                  src={`https://www.gravatar.com/avatar/${selectedRequest.user?.email}?d=mp&s=96`}
+                  alt={selectedRequest.user?.name}
                   className="h-12 w-12 rounded-full"
                 />
                 <div>
-                  <div className="text-lg font-medium">{selectedRequest.name}</div>
-                  <div className="text-sm text-muted-foreground">{selectedRequest.email}</div>
+                  <div className="text-lg font-medium">{selectedRequest.user?.name}</div>
+                  <div className="text-sm text-muted-foreground">{selectedRequest.user?.email}</div>
                 </div>
               </div>
 
               <div>
                 <div className="mb-1 text-sm font-medium text-muted-foreground">Дата запроса</div>
-                <div>{selectedRequest.requestDate}</div>
+                <div>{new Date(selectedRequest.created_at).toLocaleDateString('ru-RU')}</div>
               </div>
+
+              {selectedRequest.status === 'rejected' && selectedRequest.rejection_reason && (
+                <div>
+                  <div className="mb-1 text-sm font-medium text-muted-foreground">Причина отказа</div>
+                  <div className="rounded-md bg-muted p-3">{selectedRequest.rejection_reason}</div>
+                </div>
+              )}
 
               <div>
                 <div className="mb-1 text-sm font-medium text-muted-foreground">Статус</div>
@@ -245,6 +266,18 @@ export function JoinRequestsTable() {
                 <div className="mb-1 text-sm font-medium text-muted-foreground">Сообщение</div>
                 <div className="rounded-md bg-muted p-3">{selectedRequest.message}</div>
               </div>
+
+              {selectedRequest.status === 'pending' && (
+                <div>
+                  <div className="mb-1 text-sm font-medium text-muted-foreground">Причина отказа</div>
+                  <Textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Укажите причину отказа..."
+                    className="resize-none"
+                  />
+                </div>
+              )}
             </div>
           )}
           <DialogFooter className="sm:justify-between">

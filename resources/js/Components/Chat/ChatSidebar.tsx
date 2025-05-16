@@ -25,7 +25,10 @@ interface ChatSidebarProps {
     selectedChat?: Chat;
     onSelectChat: (chat: Chat) => void;
     onCreatePrivateChat: (userId: number) => Promise<void>;
-    onCreateGroupChat: (name: string, participantIds: number[]) => Promise<void>;
+    onCreateGroupChat: (
+        name: string,
+        participantIds: number[]
+    ) => Promise<void>;
     currentUser?: ChatParticipant;
 }
 
@@ -43,7 +46,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     const [userSearchQuery, setUserSearchQuery] = useState("");
     const [groupSearchQuery, setGroupSearchQuery] = useState("");
     const [groupName, setGroupName] = useState("");
-    const [selectedParticipants, setSelectedParticipants] = useState<number[]>([]);
+    const [selectedParticipants, setSelectedParticipants] = useState<number[]>(
+        []
+    );
     const [isSelectUserDialogOpen, setIsSelectUserDialogOpen] = useState(false);
     const [companyUsers, setCompanyUsers] = useState<ChatParticipant[]>([]);
     const [isLoading, setIsLoading] = useState(false);
@@ -65,10 +70,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             fetchCompanyUsers();
         }
     }, [isSelectUserDialogOpen, isGroupChatDialogOpen]);
-
+    // в принципе можно и с 1 участником если это не вызовет проблем в реализации
     const handleCreateGroupChat = async () => {
         if (!groupName || selectedParticipants.length === 0) return;
-        
+
         try {
             await onCreateGroupChat(groupName, selectedParticipants);
             setGroupName("");
@@ -90,7 +95,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             const otherParticipant = chat.participants?.find(
                 (p) => p?.id !== currentUser?.id
             );
-            return otherParticipant?.name?.toLowerCase().includes(searchTerm) ?? false;
+            return (
+                otherParticipant?.name?.toLowerCase().includes(searchTerm) ??
+                false
+            );
         }
         return chat?.name?.toLowerCase().includes(searchTerm) ?? false;
     });
@@ -139,8 +147,12 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 <div className="flex flex-col py-2">
                     {filteredChats?.map((chat) => {
                         const isSelected = selectedChat?.id === chat?.id;
-                        const lastMessageDate = chat?.lastMessage?.sent_at 
-                            ? format(new Date(chat.lastMessage.sent_at), 'HH:mm')
+                        const lastMessageDate = chat?.lastMessage?.sent_at
+                            ? new Date(chat.lastMessage.sent_at).toLocaleTimeString('ru-RU', {
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                hour12: false
+                              })
                             : null;
 
                         return (
@@ -185,11 +197,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                     </div>
                                     {chat?.lastMessage && (
                                         <div className="flex gap-1 items-baseline">
-                                            {chat?.type === "group" && chat?.lastMessage?.sender?.id !== undefined && chat?.lastMessage?.sender?.id === currentUser?.id && (
-                                                <span className="text-xs text-primary font-medium shrink-0">
-                                                    Вы:
-                                                </span>
-                                            )}
+                                            {chat?.type === "group" &&
+                                                chat?.lastMessage?.sender
+                                                    ?.id !== undefined &&
+                                                chat?.lastMessage?.sender
+                                                    ?.id ===
+                                                    currentUser?.id && (
+                                                    <span className="text-xs text-primary font-medium shrink-0">
+                                                        Вы:
+                                                    </span>
+                                                )}
                                             <p className="text-sm text-muted-foreground truncate">
                                                 {chat?.lastMessage?.content}
                                             </p>
@@ -258,7 +275,9 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 <Input
                                     placeholder="Название группы"
                                     value={groupName}
-                                    onChange={(e) => setGroupName(e.target.value)}
+                                    onChange={(e) =>
+                                        setGroupName(e.target.value)
+                                    }
                                 />
                             </div>
                             <div className="relative mb-4">
@@ -267,14 +286,19 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                     placeholder="Поиск пользователей"
                                     className="pl-9"
                                     value={groupSearchQuery}
-                                    onChange={(e) => setGroupSearchQuery(e.target.value)}
+                                    onChange={(e) =>
+                                        setGroupSearchQuery(e.target.value)
+                                    }
                                 />
                             </div>
                             <ScrollArea className="h-[200px]">
                                 {isLoading ? (
                                     <div className="space-y-4 p-4">
                                         {[1, 2, 3].map((i) => (
-                                            <div key={i} className="flex items-center gap-4">
+                                            <div
+                                                key={i}
+                                                className="flex items-center gap-4"
+                                            >
                                                 <Skeleton className="h-10 w-10 rounded-full" />
                                                 <div className="space-y-2">
                                                     <Skeleton className="h-4 w-[200px]" />
@@ -284,20 +308,46 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                     </div>
                                 ) : (
                                     companyUsers
-                                        .filter(user =>
-                                            user?.name?.toLowerCase().includes(groupSearchQuery.toLowerCase())
+                                        .filter((user) =>
+                                            user?.name
+                                                ?.toLowerCase()
+                                                .includes(
+                                                    groupSearchQuery.toLowerCase()
+                                                )
                                         )
-                                        .map(user => (
-                                            <div key={user?.id} className="flex items-center gap-3 p-2 hover:bg-accent rounded-lg">
+                                        .map((user) => (
+                                            <div
+                                                key={user?.id}
+                                                className="flex items-center gap-3 p-2 hover:bg-accent rounded-lg"
+                                            >
                                                 <Checkbox
                                                     id={`participant-${user?.id}`}
-                                                    checked={selectedParticipants.includes(user?.id || 0)}
-                                                    onCheckedChange={(checked: boolean) => {
-                                                        if (user?.id === undefined) return;
+                                                    checked={selectedParticipants.includes(
+                                                        user?.id || 0
+                                                    )}
+                                                    onCheckedChange={(
+                                                        checked: boolean
+                                                    ) => {
+                                                        if (
+                                                            user?.id ===
+                                                            undefined
+                                                        )
+                                                            return;
                                                         if (checked) {
-                                                            setSelectedParticipants([...selectedParticipants, user.id]);
+                                                            setSelectedParticipants(
+                                                                [
+                                                                    ...selectedParticipants,
+                                                                    user.id,
+                                                                ]
+                                                            );
                                                         } else {
-                                                            setSelectedParticipants(selectedParticipants.filter(id => id !== user.id));
+                                                            setSelectedParticipants(
+                                                                selectedParticipants.filter(
+                                                                    (id) =>
+                                                                        id !==
+                                                                        user.id
+                                                                )
+                                                            );
                                                         }
                                                     }}
                                                 />
@@ -305,20 +355,34 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                                         {user?.avatar ? (
                                                             <img
-                                                                src={user.avatar}
-                                                                alt={user?.name || ''}
+                                                                src={
+                                                                    user.avatar
+                                                                }
+                                                                alt={
+                                                                    user?.name ||
+                                                                    ""
+                                                                }
                                                                 className="w-full h-full rounded-full object-cover"
                                                             />
                                                         ) : (
                                                             <span className="text-primary text-sm">
-                                                                {(user?.name || '')
+                                                                {(
+                                                                    user?.name ||
+                                                                    ""
+                                                                )
                                                                     .split(" ")
-                                                                    .map((n) => n?.[0])
+                                                                    .map(
+                                                                        (n) =>
+                                                                            n?.[0]
+                                                                    )
                                                                     .join("")}
                                                             </span>
                                                         )}
                                                     </div>
-                                                    <Label htmlFor={`participant-${user?.id}`} className="flex-1 cursor-pointer">
+                                                    <Label
+                                                        htmlFor={`participant-${user?.id}`}
+                                                        className="flex-1 cursor-pointer"
+                                                    >
                                                         {user?.name}
                                                     </Label>
                                                 </div>
@@ -328,12 +392,18 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                             </ScrollArea>
                         </div>
                         <DialogFooter>
-                            <Button onClick={() => setIsGroupChatDialogOpen(false)} variant="outline">
+                            <Button
+                                onClick={() => setIsGroupChatDialogOpen(false)}
+                                variant="outline"
+                            >
                                 Отмена
                             </Button>
                             <Button
                                 onClick={handleCreateGroupChat}
-                                disabled={!groupName || selectedParticipants.length === 0}
+                                disabled={
+                                    !groupName ||
+                                    selectedParticipants.length === 0
+                                }
                             >
                                 Создать группу
                             </Button>
@@ -366,7 +436,10 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         {isLoading ? (
                             <div className="space-y-4">
                                 {[1, 2, 3].map((i) => (
-                                    <div key={i} className="flex items-center gap-4">
+                                    <div
+                                        key={i}
+                                        className="flex items-center gap-4"
+                                    >
                                         <Skeleton className="h-10 w-10 rounded-full" />
                                         <div className="space-y-2">
                                             <Skeleton className="h-4 w-[200px]" />
@@ -377,32 +450,41 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                         ) : (
                             <div className="flex flex-col">
                                 {companyUsers
-                                    .filter(user =>
-                                        user?.name?.toLowerCase().includes(userSearchQuery.toLowerCase())
+                                    .filter((user) =>
+                                        user?.name
+                                            ?.toLowerCase()
+                                            .includes(
+                                                userSearchQuery.toLowerCase()
+                                            )
                                     )
-                                    .map(user => (
+                                    .map((user) => (
                                         <button
                                             key={user?.id}
-                                            onClick={() => user?.id !== undefined && handleCreatePrivateChat(user.id)}
+                                            onClick={() =>
+                                                user?.id !== undefined &&
+                                                handleCreatePrivateChat(user.id)
+                                            }
                                             className="flex items-center gap-3 p-3 hover:bg-accent transition-colors rounded-lg text-left -mx-4 px-4"
                                         >
                                             <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                                                 {user?.avatar ? (
                                                     <img
                                                         src={user.avatar}
-                                                        alt={user?.name || ''}
+                                                        alt={user?.name || ""}
                                                         className="w-full h-full rounded-full object-cover"
                                                     />
                                                 ) : (
                                                     <span className="text-primary text-sm">
-                                                        {(user?.name || '')
+                                                        {(user?.name || "")
                                                             .split(" ")
                                                             .map((n) => n?.[0])
                                                             .join("")}
                                                     </span>
                                                 )}
                                             </div>
-                                            <span className="font-medium">{user?.name}</span>
+                                            <span className="font-medium">
+                                                {user?.name}
+                                            </span>
                                         </button>
                                     ))}
                             </div>

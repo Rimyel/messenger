@@ -18,7 +18,7 @@ class ChatResource extends JsonResource
                 'id' => $this->id,
                 'type' => 'private',
                 'name' => $otherParticipant->name,
-                'lastMessage' => new MessageResource($this->lastMessage),
+                'lastMessage' => $this->lastMessage ? new MessageResource($this->lastMessage) : null,
                 'participants' => UserResource::collection($this->participants),
                 'updatedAt' => $this->updated_at,
                 'participantAvatar' => $otherParticipant->avatar
@@ -29,7 +29,7 @@ class ChatResource extends JsonResource
             'id' => $this->id,
             'type' => 'group',
             'name' => $this->name,
-            'lastMessage' => new MessageResource($this->lastMessage),
+            'lastMessage' => $this->lastMessage ? new MessageResource($this->lastMessage) : null,
             'participants' => UserResource::collection($this->participants),
             'updatedAt' => $this->updated_at
         ];

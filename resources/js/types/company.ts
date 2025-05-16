@@ -1,8 +1,20 @@
+import type { JoinRequest } from './join-request'
+
+export type CompanyRole = 'owner' | 'admin' | 'member'
+
+export interface CompanyUser {
+    id: number;
+    name: string;
+    email: string;
+    role: CompanyRole;
+    created_at: string;
+    updated_at: string;
+}
+
 export interface User {
     id: number;
     name: string;
     email: string;
-    role?: string;
 }
 
 export interface Company {
@@ -12,7 +24,8 @@ export interface Company {
     logo_url: string | null;
     created_at: string;
     updated_at: string;
-    users?: User[];
+    users?: CompanyUser[];
+    join_requests?: JoinRequest[];
 }
 
 export interface CreateCompanyDTO {
