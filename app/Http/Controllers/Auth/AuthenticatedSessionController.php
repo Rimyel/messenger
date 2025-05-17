@@ -40,10 +40,7 @@ class AuthenticatedSessionController extends Controller
                 return response()->json(['message' => 'Ошибка аутентификации'], 401);
             }
 
-            // Удаляем старые токены (опционально)
-            // $request->user()->tokens()->delete();
-
-            // Создаем новый токен с отладочной информацией
+            // Создаем новый токен
             $token = $request->user()->createToken('API Token')->plainTextToken;
 
             // Проверяем, что токен создан
@@ -52,49 +49,20 @@ class AuthenticatedSessionController extends Controller
                 return response()->json(['message' => 'Ошибка создания токена'], 500);
             }
 
-            // Логируем информацию о токене
-            Log::info('Создан токен для пользователя ' . $request->user()->id . ': ' . $token);
-
-            // Проверяем, что токен сохранен в базе данных
-            $tokenParts = explode('|', $token);
-            $tokenId = $tokenParts[0] ?? null;
-
-            if ($tokenId) {
-                $accessToken = \Laravel\Sanctum\PersonalAccessToken::find($tokenId);
-                if (!$accessToken) {
-                    Log::error('Токен не найден в базе данных после создания: ' . $tokenId);
-                } else {
-                    Log::info('Токен успешно сохранен в базе данных: ' . $tokenId);
-                }
-            }
-
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'token' => $token,
-                    'user' => $request->user(),
-                    'debug' => [
-                        'token_created' => !empty($token),
-                        'token_id' => $tokenId,
-                        'token_in_db' => isset($accessToken) && !empty($accessToken),
-                    ]
-                ]);
-            }
-
+            // Регенерируем сессию для веб-аутентификации
             $request->session()->regenerate();
             $request->session()->put('api_token', $token);
-            return redirect()->intended(route('dashboard', absolute: false));
+
+            return redirect()->route('dashboard');
         } catch (\Exception $e) {
             Log::error('Ошибка при создании токена: ' . $e->getMessage());
             Log::error($e->getTraceAsString());
 
-            if ($request->wantsJson()) {
-                return response()->json([
-                    'message' => 'Ошибка при создании токена',
-                    'error' => $e->getMessage(),
-                ], 500);
-            }
-
-            return back()->withErrors(['email' => 'Ошибка при входе в систему']);
+            return response()->json([
+                'success' => false,
+                'message' => 'Ошибка при входе в систему',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -108,6 +76,16 @@ class AuthenticatedSessionController extends Controller
         $request->session()->invalidate();
 
         $request->session()->regenerateToken();
+
+        try {
+            // Sanctum: отозвать токен текущего пользователя
+            if ($request->user()) {
+                $request->user()->currentAccessToken()->delete();
+            }
+
+        } catch (\Exception $e) {
+            \Log::error("Ошибка выхода: " . $e->getMessage());
+        };
 
         return redirect('/');
     }

@@ -59,7 +59,7 @@ class ChatListService
 
         if ($search) {
             $searchTerm = "%{$search}%";
-            
+
             // Сначала подсчитаем общее количество сообщений для поиска
             $totalCount = $query->where('content', 'like', $searchTerm)->count();
 
@@ -77,7 +77,7 @@ class ChatListService
                     $searchTerm // Частичное совпадение
                 ]);
         } else {
-            $query->orderBy('sent_at', 'desc');
+            $query->orderBy('id', 'desc');
         }
 
         if ($cursor) {

@@ -29,10 +29,12 @@ class HandleInertiaRequests extends Middleware
      */
     public function share(Request $request): array
     {
+        $token = $request->session()->get('api_token');
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $request->user(),
+                'token' => $token
             ],
         ];
     }

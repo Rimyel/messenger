@@ -97,8 +97,6 @@ const Dashboard: React.FC = () => {
     };
 
     const handleLogout = async () => {
-        if (!window.confirm("Вы действительно хотите выйти?")) return;
-
         try {
             await Inertia.post(
                 route("logout"),
@@ -108,8 +106,6 @@ const Dashboard: React.FC = () => {
                     only: [],
                 }
             );
-
-            await AuthService.logout();
 
             useAuthStore.getState().clearAuth();
 

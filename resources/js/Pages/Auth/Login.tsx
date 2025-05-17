@@ -3,6 +3,7 @@ import { FormEventHandler } from "react";
 import { motion } from "framer-motion";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { AuthService } from "@/services/auth";
+import { useAuthStore } from "@/stores/useAuthStore";
 
 export default function Login({
     status,
@@ -24,37 +25,22 @@ export default function Login({
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
-        // Используем стандартную веб-авторизацию через Inertia
         post(route("login"), {
-            // onSuccess: async () => {
-            //     try {
-            //         // После успешной веб-авторизации получаем API токен
-            //         const response = await fetch("/api/auth/login", {
-            //             method: "POST",
-            //             headers: {
-            //                 "Content-Type": "application/json",
-            //                 Accept: "application/json",
-            //             },
-            //             body: JSON.stringify({
-            //                 email: data.email,
-            //                 password: data.password,
-            //             }),
-            //         });
+            onSuccess: (response: any) => {
+                console.log(response?.props);
 
-            //         const result = await response.json();
+                // Сохраняем токен и пользователя в Zustand
+                useAuthStore.getState().setToken(response?.props?.auth?.token);
+                useAuthStore.getState().setUser(response?.props?.auth?.user);
 
-            //         if (result.token) {
-            //             // Сохраняем токен в хранилище
-            //             AuthService.login({
-            //                 email: data.email,
-            //                 password: data.password,
-            //             });
-            //             // console.log('Successfully logged in, token:', result.token);
-            //         }
-            //     } catch (error) {
-            //         console.error("API auth error:", error);
-            //     }
-            // },
+                console.log("Successfully logged in, data saved to store");
+
+                // Перенаправляем на dashboard
+                // window.location.href = "/dashboard";
+            },
+            onError: (errors) => {
+                console.error("Login errors:", errors);
+            },
             onFinish: () => reset("password"),
         });
     };

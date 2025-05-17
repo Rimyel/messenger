@@ -1,4 +1,6 @@
-import { FC, useState, useEffect, useCallback } from "react";
+"use client";
+
+import { type FC, useState, useEffect } from "react";
 import { chatService } from "@/services/chat";
 import ChatSidebar from "./ChatSidebar";
 import ChatMessages from "./ChatMessages";
@@ -43,6 +45,8 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             return;
         }
     }, []);
+
+    console.log(user);
 
     useEffect(() => {
         if (user) {
@@ -130,18 +134,21 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             });
 
             setMessages((prev) => {
+                let updatedMessages;
                 if (!cursor) {
-                    return newMessages;
+                    updatedMessages = newMessages;
+                } else {
+                    const newMessageIds = new Set(
+                        newMessages.map((msg) => msg.id)
+                    );
+                    const filteredPrev = prev.filter(
+                        (msg) => !newMessageIds.has(msg.id)
+                    );
+                    updatedMessages = [...filteredPrev, ...newMessages];
                 }
-
-                // Get array of IDs of new messages to avoid duplicates
-                const newMessageIds = new Set(newMessages.map((msg) => msg.id));
-                // Filter out any existing messages that we just loaded
-                const filteredPrev = prev.filter(
-                    (msg) => !newMessageIds.has(msg.id)
+                return updatedMessages.sort(
+                    (a, b) => Number(b.id) - Number(a.id)
                 );
-                // Combine filtered existing messages with new messages
-                return [...filteredPrev, ...newMessages];
             });
             setHasMore(hasMore);
             setNextCursor(nextCursor);
@@ -155,7 +162,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         if (!message) return;
 
         setMessages((prev) => {
-            // Find temporary message with matching content and sender
+            let updatedMessages;
             const tempMessage = prev.find(
                 (m) =>
                     m.status === "sending" &&
@@ -166,8 +173,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             );
 
             if (tempMessage) {
-                // Replace the temporary message with the server message
-                return prev.map((m) =>
+                updatedMessages = prev.map((m) =>
                     m === tempMessage
                         ? {
                               ...message,
@@ -183,13 +189,13 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                           }
                         : m
                 );
+            } else {
+                updatedMessages = [...prev, message];
             }
 
-            // If it's a new message from another sender
-            return [...prev, message];
+            return updatedMessages.sort((a, b) => Number(b.id) - Number(a.id));
         });
 
-        // Update chat list with latest message
         setChats((prevChats) =>
             prevChats.map((chat) =>
                 chat?.id === selectedChat?.id
@@ -206,9 +212,8 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         )
             return;
 
-        // Create temporary message with sending status
         const tempMessage: ChatMessage = {
-            id: Date.now(), // Temporary ID
+            id: Date.now(),
             content: content,
             sender: currentUser,
             sent_at: new Date().toISOString(),
@@ -225,13 +230,14 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             })),
         };
 
-        // Add message to UI immediately
-        setMessages((prev) => [...prev, tempMessage]);
+        setMessages((prev) => {
+            const updatedMessages = [...prev, tempMessage];
+            return updatedMessages.sort((a, b) => Number(b.id) - Number(a.id));
+        });
 
         try {
             await chatService.sendMessage(selectedChat.id, content, files);
         } catch (error) {
-            // Remove temporary message on error
             setMessages((prev) =>
                 prev.filter((msg) => msg.id !== tempMessage.id)
             );
@@ -397,10 +403,17 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                                                     search: searchQuery,
                                                 }
                                             );
-                                        setMessages((prev) => [
-                                            ...prev,
-                                            ...result.messages.reverse(),
-                                        ]);
+                                        setMessages((prev) => {
+                                            const combinedMessages = [
+                                                ...prev,
+                                                ...result.messages,
+                                            ];
+                                            // Sort by ID in reverse order (highest to lowest)
+                                            return combinedMessages.sort(
+                                                (a, b) =>
+                                                    Number(b.id) - Number(a.id)
+                                            );
+                                        });
                                         setHasMore(result.hasMore);
                                         setNextCursor(result.nextCursor);
                                     } catch (error) {

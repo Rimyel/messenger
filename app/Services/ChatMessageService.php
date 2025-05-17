@@ -60,8 +60,8 @@ class ChatMessageService
         if ($message->sender_id !== $user->id && $message->status !== 'read') {
             // Update only status and read_at fields to prevent touching other timestamps
             $message->status = 'read';
-            $message->read_at = now()->utc();
-            $message->save(['timestamps' => false]);
+            $message->read_at = now()->utc()->toDateTimeString();
+            $message->save();
 
             broadcast(new MessageStatusUpdated($message));
         }
