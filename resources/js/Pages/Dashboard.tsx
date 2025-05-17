@@ -40,19 +40,18 @@ const Dashboard: React.FC = () => {
     const { apiToken, userId, status, chats } = usePage().props as Props;
 
     useEffect(() => {
+        if (apiToken) {
+            setToken(apiToken);
+            setCurrentCompany(null);
+            checkUserCompany();
+        }
         const currentToken = AuthService.getCurrentToken();
         console.log("Current authentication status:", {
             isAuthenticated: AuthService.isAuthenticated(),
             token: currentToken,
             tokenLength: currentToken?.length,
         });
-
-        if (apiToken) {
-            setToken(apiToken);
-            setCurrentCompany(null);
-            checkUserCompany();
-        }
-    }, [apiToken]);
+    }, []);
 
     const checkUserCompany = async () => {
         if (!token) return;

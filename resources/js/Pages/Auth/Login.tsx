@@ -26,35 +26,35 @@ export default function Login({
 
         // Используем стандартную веб-авторизацию через Inertia
         post(route("login"), {
-            onSuccess: async () => {
-                try {
-                    // После успешной веб-авторизации получаем API токен
-                    const response = await fetch("/api/auth/login", {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json",
-                            Accept: "application/json",
-                        },
-                        body: JSON.stringify({
-                            email: data.email,
-                            password: data.password,
-                        }),
-                    });
+            // onSuccess: async () => {
+            //     try {
+            //         // После успешной веб-авторизации получаем API токен
+            //         const response = await fetch("/api/auth/login", {
+            //             method: "POST",
+            //             headers: {
+            //                 "Content-Type": "application/json",
+            //                 Accept: "application/json",
+            //             },
+            //             body: JSON.stringify({
+            //                 email: data.email,
+            //                 password: data.password,
+            //             }),
+            //         });
 
-                    const result = await response.json();
+            //         const result = await response.json();
 
-                    if (result.token) {
-                        // Сохраняем токен в хранилище
-                        AuthService.login({
-                            email: data.email,
-                            password: data.password,
-                        });
-                        // console.log('Successfully logged in, token:', result.token);
-                    }
-                } catch (error) {
-                    console.error("API auth error:", error);
-                }
-            },
+            //         if (result.token) {
+            //             // Сохраняем токен в хранилище
+            //             AuthService.login({
+            //                 email: data.email,
+            //                 password: data.password,
+            //             });
+            //             // console.log('Successfully logged in, token:', result.token);
+            //         }
+            //     } catch (error) {
+            //         console.error("API auth error:", error);
+            //     }
+            // },
             onFinish: () => reset("password"),
         });
     };

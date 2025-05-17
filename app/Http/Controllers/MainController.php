@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 
 class MainController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
         $userId = Auth::id();
 
@@ -46,9 +46,10 @@ class MainController extends Controller
                 return $data;
             });
 
+            $apiToken = $request->session()->get('api_token');
         return Inertia::render('Dashboard', [
             'userId' => $userId,
-
+            'apiToken' => $apiToken,
             'status' => session('status'),
             'chats' => $chats,
         ]);

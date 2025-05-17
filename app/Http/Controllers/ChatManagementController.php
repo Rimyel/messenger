@@ -23,11 +23,10 @@ class ChatManagementController extends Controller
         $this->chatListService = $chatListService;
     }
 
-    public function getCompanyUsers(): JsonResponse
+    public function getCompanyUsers(Request $request): JsonResponse
     {
         try {
-            $user = Auth::user();
-            $users = $this->chatListService->getCompanyUsers($user);
+            $users = $this->chatListService->getCompanyUsers($request->user());
             return response()->json(UserResource::collection($users));
         } catch (\Exception $e) {
             return response()->json(['error' => 'Failed to fetch users'], 500);
@@ -43,7 +42,7 @@ class ChatManagementController extends Controller
 
             $user = Auth::user();
             $chat = $this->chatCreationService->createPrivateChat($user, $request->userId);
-            
+
             return response()->json(new ChatResource($chat));
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 500);

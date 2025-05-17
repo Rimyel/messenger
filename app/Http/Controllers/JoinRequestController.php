@@ -17,9 +17,9 @@ class JoinRequestController extends Controller
     public function index(Company $company)
     {
         // Проверяем права доступа
-        if (!Gate::allows('manage-company', $company)) {
-            abort(403);
-        }
+        // if (!Gate::allows('manage-company', $company)) {
+        //     abort(403);
+        // }
 
         return $company->joinRequests()
             ->with(['user:id,name,email,avatar'])
@@ -68,9 +68,9 @@ class JoinRequestController extends Controller
     public function update(Request $request, Company $company, JoinRequest $joinRequest)
     {
         // Проверяем права доступа
-        if (!Gate::allows('manage-company', $company)) {
-            abort(403);
-        }
+        // if (!Gate::allows('manage-company', $company)) {
+        //     abort(403);
+        // }
 
         $request->validate([
             'status' => 'required|in:approved,rejected',

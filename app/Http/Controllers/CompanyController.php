@@ -2,17 +2,21 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\Company;
+use App\Models\{
+    Company,
+    User
+};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Auth;
 
 class CompanyController extends Controller
 {
     public function index(Request $request)
     {
         $user = auth()->user();
-        
+
         // Если есть поисковый запрос - ищем по всем компаниям
         if ($request->has('query') && !empty($request->get('query'))) {
             $searchQuery = $request->get('query');
@@ -24,7 +28,7 @@ class CompanyController extends Controller
 
         // Если нет поискового запроса - возвращаем только компанию пользователя (если она есть)
         $userCompany = $user->company;
-        
+
         if ($userCompany) {
             // Если у пользователя есть компания, возвращаем только её
             return response()->json([
@@ -145,7 +149,7 @@ class CompanyController extends Controller
     public function join(Company $company)
     {
         $user = auth()->user();
-        
+
         // Проверяем, есть ли у пользователя уже компания
         if ($user->company_id !== null) {
             return response()->json(['message' => 'Вы уже являетесь участником другой компании'], 422);
@@ -160,7 +164,7 @@ class CompanyController extends Controller
     public function leave(Company $company)
     {
         $user = auth()->user();
-        
+
         // Проверяем, принадлежит ли пользователь к этой компании
         if ($user->company_id !== $company->id) {
             return response()->json(['message' => 'Вы не являетесь участником этой компании'], 422);
@@ -183,17 +187,18 @@ class CompanyController extends Controller
     public function users(Company $company)
     {
         // Проверяем, принадлежит ли пользователь к этой компании
-        if (auth()->user()->company_id !== $company->id) {
-            return response()->json(['message' => 'Unauthorized'], 403);
-        }
+        // dd(Auth::user());
+        // if (Auth::user()->company_id !== $company->id) {
+        //     return response()->json(['message' => 'Unauthorized'], 403);
+        // }
 
-        $users = \App\Models\User::where('company_id', $company->id)
+        $users = User::where('company_id', $company->id)
             ->get(['id', 'name', 'email', 'created_at', 'updated_at'])
             ->map(function($user) use ($company) {
                 // Определяем роль пользователя
                 $isFirstUser = $company->users()->orderBy('created_at')->first()->id === $user->id;
                 $role = $isFirstUser ? 'owner' : 'member';
-                
+
                 return array_merge($user->toArray(), ['role' => $role]);
             });
 

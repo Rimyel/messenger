@@ -12,9 +12,9 @@ const api = axios.create({
     withCredentials: true,
 });
 
-// Объединенный перехватчик для добавления всех необходимых заголовков
+// // Объединенный перехватчик для добавления всех необходимых заголовков
 api.interceptors.request.use(
-    function (config) {
+    (config) => {
         // Добавляем CSRF токен
         const csrfToken = document
             .querySelector('meta[name="csrf-token"]')
@@ -24,34 +24,30 @@ api.interceptors.request.use(
         }
 
         // Добавляем авторизационный токен
-        const { token } = useAuthStore.getState();
+        const token = useAuthStore.getState().token;
         if (token) {
             config.headers["Authorization"] = `Bearer ${token}`;
         }
 
-        // Для FormData запросов удаляем Content-Type
-        if (config.data instanceof FormData) {
-            delete config.headers["Content-Type"];
-        }
-
         return config;
     },
-    function (error) {
-        return Promise.reject(error);
-    }
+    (error) => Promise.reject(error)
 );
 
 // Перехватчик для обработки ошибок
-api.interceptors.response.use(
-    (response) => response,
-    (error) => {
-        if (error.response?.status === 401) {
-            // Если ошибка авторизации, можно добавить логику для перенаправления
-            window.location.href = "/login";
-        }
-        return Promise.reject(error);
-    }
-);
+// api.interceptors.response.use(
+//     (response) => response,
+//     (error) => {
+//         console.error("API Error:", error.response?.data || error.message);
+
+//         if (error.response?.status === 401) {
+//             // Если ошибка авторизации, можно добавить логику для перенаправления
+//             window.location.href = "/login";
+//         }
+//         return Promise.reject(error);
+//     }
+// );
+
 export const CompanyApi = {
     // Получение списка компаний с поиском и пагинацией
     search: async (params: {
