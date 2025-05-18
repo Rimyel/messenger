@@ -32,9 +32,9 @@ class MainController extends Controller
                             'name' => $chat->lastMessage->sender->name,
                             'avatar' => $chat->lastMessage->sender->avatar,
                         ],
-                        'sent_at' => $chat->lastMessage->sent_at->toISOString(),
+                        'sent_at' => $chat->lastMessage->sent_at,
                     ] : null,
-                    'updatedAt' => $chat->updated_at->toISOString(),
+                    'updatedAt' => $chat->updated_at,
                 ];
 
                 if ($chat->type === 'private') {

@@ -58,8 +58,12 @@ class MessageSent implements ShouldBroadcast
                     : \Carbon\Carbon::parse($this->message->sent_at)->timezone('UTC')->toISOString(),
                 'chat_id' => $this->message->chat_id,
                 'status' => $this->message->status,
-                'delivered_at' => $this->message->delivered_at?->toISOString(),
-                'read_at' => $this->message->read_at?->toISOString(),
+                'delivered_at' => $this->message->delivered_at instanceof \Carbon\Carbon
+                    ? $this->message->delivered_at->timezone('UTC')->toISOString()
+                    : ($this->message->delivered_at ? \Carbon\Carbon::parse($this->message->delivered_at)->timezone('UTC')->toISOString() : null),
+                'read_at' => $this->message->read_at instanceof \Carbon\Carbon
+                    ? $this->message->read_at->timezone('UTC')->toISOString()
+                    : ($this->message->read_at ? \Carbon\Carbon::parse($this->message->read_at)->timezone('UTC')->toISOString() : null),
                 'media' => $this->message->media->map(function ($media) {
                     return [
                         'id' => $media->id,

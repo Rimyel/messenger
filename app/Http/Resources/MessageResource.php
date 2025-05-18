@@ -17,10 +17,10 @@ class MessageResource extends JsonResource
                 'name' => $this->sender->name,
                 'avatar' => $this->sender->avatar,
             ],
-            'sent_at' => $this->sent_at->toISOString(),
+            'sent_at' => $this->getOriginal('sent_at'),
             'status' => $this->status,
-            'delivered_at' => $this->delivered_at?->toISOString(),
-            'read_at' => $this->read_at?->toISOString(),
+            'delivered_at' => $this->getOriginal('delivered_at'),
+            'read_at' => $this->getOriginal('read_at'),
             'media' => $this->media->map(function ($media) {
                 return [
                     'id' => $media->id,

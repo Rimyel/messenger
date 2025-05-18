@@ -1,7 +1,8 @@
 <?php
 
 namespace App\Models;
-
+use Illuminate\Support\Facades\Log;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -21,14 +22,17 @@ class Message extends Model
     ];
 
     protected $casts = [
-        'sent_at' => 'datetime:UTC',
-        'delivered_at' => 'datetime:UTC',
-        'read_at' => 'datetime:UTC'
+        'sent_at' => 'string',
+        'delivered_at' => 'string',
+        'read_at' => 'string'
     ];
 
-    protected function serializeDate(\DateTimeInterface $date): string
+    // Отключаем автоматическую сериализацию дат
+    protected $dates = [];
+
+    public function fromDateTime($value)
     {
-        return $date->utc()->format('Y-m-d\TH:i:s.u\Z');
+        return $value;
     }
 
     public function chat(): BelongsTo
@@ -44,5 +48,20 @@ class Message extends Model
     public function media(): HasMany
     {
         return $this->hasMany(MessagesMedia::class);
+    }
+    // Отключаем автоматическое преобразование sent_at в Carbon
+    public function getSentAtAttribute($value)
+    {
+        return $value;
+    }
+
+    public function getReadAtAttribute($value)
+    {
+        return $value;
+    }
+
+    public function getDeliveredAtAttribute($value)
+    {
+        return $value;
     }
 }

@@ -1,21 +1,20 @@
-import { FC, useRef } from "react";
+import { FC } from "react";
 import type { ChatMessage, MessageMedia } from "@/types/chat";
 import HighlightedText from "./HighlightedText";
 import clsx from "clsx";
 import { Download, FileText, Video } from "lucide-react";
 import AudioPlayer from "./AudioPlayer";
 import { VideoPlayer } from "./VideoPlayer";
-import { formatInTimeZone } from "date-fns-tz";
-import React, { useMemo } from 'react';
+import { toZonedTime, format } from "date-fns-tz";
+import { ru } from "date-fns/locale/ru";
+import { cn } from "@/lib/utils";
 interface Props {
     message: ChatMessage;
     isOwn: boolean;
     searchQuery?: string;
 }
 
-import { Clock, Check } from "lucide-react";
-import { cn } from "@/lib/utils";
-const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+// Компонент статуса сообщения
 const MessageStatusIcon = ({
     status,
     isOwn,
@@ -32,21 +31,29 @@ const MessageStatusIcon = ({
 
     switch (status) {
         case "sending":
-            return <Clock className={cn("h-3 w-3 animate-pulse", textColor)} />;
+            return (
+                <span className={cn("h-3 w-3 animate-pulse", textColor)}>
+                    🕒
+                </span>
+            );
         case "sent":
-            return <Check className={cn("h-3 w-3", textColor)} />;
+            return <span className={cn("h-3 w-3", textColor)}>✔</span>;
         case "delivered":
             return (
                 <div className="relative inline-flex">
-                    <Check className={cn("h-3 w-3", textColor)} />
-                    <Check className={cn("h-3 w-3 -ml-[3px]", textColor)} />
+                    <span className={cn("h-3 w-3", textColor)}>✔</span>
+                    <span className={cn("h-3 w-3 -ml-[3px]", textColor)}>
+                        ✔
+                    </span>
                 </div>
             );
         case "read":
             return (
                 <div className="relative inline-flex">
-                    <Check className={cn("h-3 w-3", textColorRead)} />
-                    <Check className={cn("h-3 w-3 -ml-[3px]", textColorRead)} />
+                    <span className={cn("h-3 w-3", textColorRead)}>✔</span>
+                    <span className={cn("h-3 w-3 -ml-[3px]", textColorRead)}>
+                        ✔
+                    </span>
                 </div>
             );
         default:
@@ -56,7 +63,7 @@ const MessageStatusIcon = ({
 
 const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
     const { content, sender, sent_at, status, media } = message;
-    
+
     const renderMediaPreview = (media: MessageMedia[]) => {
         return (
             <div className="space-y-2 mb-2">
@@ -115,11 +122,10 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                                         <Video className="h-3.5 w-3.5" />
                                         <span>Video</span>
                                         <span className="opacity-70">
-                                            (
                                             {(file.size / 1024 / 1024).toFixed(
                                                 2
                                             )}{" "}
-                                            MB)
+                                            MB
                                         </span>
                                     </div>
                                     <a
@@ -166,6 +172,28 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
         );
     };
 
+    // Получаем часовой пояс пользователя один раз
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+
+    // Форматируем дату отправки с учетом локального времени пользователя
+    const formattedSentAt = sent_at
+        ? (() => {
+              try {
+                  const localTime = toZonedTime(
+                      new Date(sent_at),
+                      userTimezone
+                  );
+                  return format(localTime, "HH:mm", {
+                      locale: ru,
+                      timeZone: userTimezone,
+                  });
+              } catch (error) {
+                  console.error("Ошибка форматирования даты:", error);
+                  return "--:--";
+              }
+          })()
+        : "--:--";
+
     return (
         <div
             className={clsx("flex", {
@@ -187,7 +215,9 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                         {sender.name}
                     </div>
                 )}
+
                 {media && media.length > 0 && renderMediaPreview(media)}
+
                 {content && (
                     <div className="whitespace-pre-wrap break-words leading-relaxed">
                         <HighlightedText
@@ -196,10 +226,10 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                         />
                     </div>
                 )}
+
                 <div className="flex items-center justify-end gap-0.5 mt-1 text-[10px] text-muted-foreground/80">
-                    <span className="flex-shrink-0">
-                        {formatInTimeZone(new Date(message.sent_at), userTimezone, "HH:mm")}
-                    </span>
+                    <span className="flex-shrink-0">{formattedSentAt}</span>
+
                     {isOwn && (
                         <span className="flex items-center flex-shrink-0">
                             <MessageStatusIcon status={status} isOwn={isOwn} />

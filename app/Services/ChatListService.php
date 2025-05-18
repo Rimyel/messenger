@@ -105,10 +105,10 @@ class ChatListService
                     'name' => $msg->sender->name,
                     'avatar' => $msg->sender->avatar,
                 ],
-                'sent_at' => $sent_at->toISOString(),
+                'sent_at' => $sent_at,
                 'status' => $msg->status,
-                'delivered_at' => $msg->delivered_at?->toISOString(),
-                'read_at' => $msg->read_at?->toISOString(),
+                'delivered_at' => $msg->delivered_at,
+                'read_at' => $msg->read_at,
                 'media' => $msg->media->map(function ($media) {
                     return [
                         'id' => $media->id,
