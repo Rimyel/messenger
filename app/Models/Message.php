@@ -5,22 +5,21 @@ use Illuminate\Support\Facades\Log;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class Message extends Model
 {
     public $timestamps = false;
-    
+
     protected $fillable = [
         'chat_id',
         'sender_id',
         'content',
         'sent_at',
+        'type',
         'status',
-        'delivered_at',
         'read_at'
     ];
-
     protected $casts = [
         'sent_at' => 'string',
         'delivered_at' => 'string',
@@ -34,34 +33,37 @@ class Message extends Model
     {
         return $value;
     }
-
+    /**
+     * Чат, к которому принадлежит сообщение.
+     */
     public function chat(): BelongsTo
     {
         return $this->belongsTo(Chat::class);
     }
 
+    /**
+     * Пользователь, отправивший сообщение.
+     */
     public function sender(): BelongsTo
     {
         return $this->belongsTo(User::class, 'sender_id');
     }
 
-    public function media(): HasMany
+    /**
+     * Файлы, прикрепленные к сообщению.
+     */
+    public function files(): BelongsToMany
     {
-        return $this->hasMany(MessagesMedia::class);
-    }
-    // Отключаем автоматическое преобразование sent_at в Carbon
-    public function getSentAtAttribute($value)
-    {
-        return $value;
-    }
-
-    public function getReadAtAttribute($value)
-    {
-        return $value;
+        return $this->belongsToMany(File::class, 'message_files')
+            ->withTimestamps();
     }
 
-    public function getDeliveredAtAttribute($value)
+    /**
+     * Медиафайлы сообщения
+     */
+    public function media(): BelongsToMany
     {
-        return $value;
+        return $this->belongsToMany(Media::class, 'messages_media')
+            ->withTimestamps();
     }
 }

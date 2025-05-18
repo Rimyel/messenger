@@ -64,8 +64,15 @@ class JoinRequest extends Model
             'approved_at' => now(),
         ]);
 
-        // Обновляем company_id пользователя
-        $this->user->update(['company_id' => $this->company_id]);
+        
+        
+
+        // Создаем запись в company_users с ролью member
+        CompanyUser::create([
+            'company_id' => $this->company_id,
+            'user_id' => $this->user_id,
+            'role' => 'member'
+        ]);
 
         // Перезагружаем модель для получения обновленных данных
         $this->refresh();

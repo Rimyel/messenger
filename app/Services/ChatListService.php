@@ -10,9 +10,14 @@ class ChatListService
 {
     public function getCompanyUsers($user): Collection
     {
-        return User::where('company_id', $user->company_id)
-            ->where('id', '!=', $user->id)
-            ->select('id', 'name', 'avatar')
+        $company = $user->companies()->first();
+        if (!$company) {
+            return collect();
+        }
+
+        return $company->users()
+            ->where('users.id', '!=', $user->id)
+            ->select('users.id', 'users.name', 'users.avatar')
             ->get();
     }
 
@@ -22,26 +27,32 @@ class ChatListService
             ->with(['lastMessage', 'participants'])
             ->get()
             ->map(function ($chat) use ($user) {
+                $baseData = [
+                    'id' => $chat->id,
+                    'type' => $chat->type,
+                    'lastMessage' => $chat->lastMessage,
+                    'participants' => $chat->participants->map(function ($participant) use ($chat) {
+                        return [
+                            'id' => $participant->id,
+                            'name' => $participant->name,
+                            'avatar' => $participant->avatar,
+                            'role' => $chat->getUserRole($participant)
+                        ];
+                    }),
+                    'updatedAt' => $chat->updated_at,
+                    'userRole' => $chat->getUserRole($user)
+                ];
+
                 if ($chat->type === 'private') {
                     $otherParticipant = $chat->participants->where('id', '!=', $user->id)->first();
-                    return [
-                        'id' => $chat->id,
-                        'type' => 'private',
+                    return array_merge($baseData, [
                         'name' => $otherParticipant->name,
-                        'lastMessage' => $chat->lastMessage,
-                        'participants' => $chat->participants,
-                        'updatedAt' => $chat->updated_at,
                         'participantAvatar' => $otherParticipant->avatar
-                    ];
+                    ]);
                 } else {
-                    return [
-                        'id' => $chat->id,
-                        'type' => 'group',
-                        'name' => $chat->name,
-                        'lastMessage' => $chat->lastMessage,
-                        'participants' => $chat->participants,
-                        'updatedAt' => $chat->updated_at
-                    ];
+                    return array_merge($baseData, [
+                        'name' => $chat->name
+                    ]);
                 }
             });
     }
@@ -50,7 +61,7 @@ class ChatListService
     {
         $chat = Chat::findOrFail($chatId);
 
-        if (!$chat->participants()->where('user_id', $user->id)->exists()) {
+        if (!$chat->hasUser($user)) {
             throw new \Exception('Unauthorized');
         }
 

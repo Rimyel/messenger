@@ -11,6 +11,28 @@ interface CompanyDetailsProps {
     handleLeaveCompany: () => void;
 }
 
+const getRoleBadgeStyles = (role: string) => {
+    switch(role) {
+        case 'owner':
+            return 'bg-blue-100 text-blue-700';
+        case 'admin':
+            return 'bg-green-100 text-green-700';
+        default:
+            return 'bg-gray-100 text-gray-700';
+    }
+};
+
+const getRoleDisplayName = (role: string) => {
+    switch(role) {
+        case 'owner':
+            return 'Владелец';
+        case 'admin':
+            return 'Администратор';
+        default:
+            return 'Участник';
+    }
+};
+
 const MembersList: React.FC<{ users: User[] }> = ({ users }) => {
     return (
         <div className="mt-6">
@@ -29,13 +51,9 @@ const MembersList: React.FC<{ users: User[] }> = ({ users }) => {
                             <p className="text-sm text-gray-500">{user.email}</p>
                         </div>
                         <span
-                            className={`px-3 py-1 rounded-full text-sm ${
-                                user.role === "owner"
-                                    ? "bg-blue-100 text-blue-700"
-                                    : "bg-gray-100 text-gray-700"
-                            }`}
+                            className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeStyles(user.role)}`}
                         >
-                            {user.role === "owner" ? "Владелец" : "Участник"}
+                            {getRoleDisplayName(user.role)}
                         </span>
                     </div>
                 ))}
@@ -86,6 +104,7 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveC
     }
 
     const currentUserRole = company.users?.find(user => user.id === parseInt(localStorage.getItem('userId') || '0'))?.role;
+    const canLeaveCompany = currentUserRole !== 'owner'; // Владелец не может покинуть компанию
 
     return (
         <Card className="w-full max-w-4xl mx-auto">
@@ -111,13 +130,9 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveC
                             </CardTitle>
                             {currentUserRole && (
                                 <span
-                                    className={`px-3 py-1 rounded-full text-sm ${
-                                        currentUserRole === "owner"
-                                            ? "bg-blue-100 text-blue-700"
-                                            : "bg-gray-100 text-gray-700"
-                                    }`}
+                                    className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeStyles(currentUserRole)}`}
                                 >
-                                    {currentUserRole === "owner" ? "Владелец" : "Участник"}
+                                    {getRoleDisplayName(currentUserRole)}
                                 </span>
                             )}
                         </div>
@@ -141,16 +156,18 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveC
                         <MembersList users={company.users} />
                     )}
 
-                    <div className="mt-8">
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-center gap-2 text-red-600 hover:text-red-600 hover:bg-red-50"
-                            onClick={handleLeaveCompany}
-                        >
-                            <LogOut className="h-4 w-4" />
-                            <span>Выйти из компании</span>
-                        </Button>
-                    </div>
+                    {canLeaveCompany && (
+                        <div className="mt-8">
+                            <Button
+                                variant="ghost"
+                                className="w-full justify-center gap-2 text-red-600 hover:text-red-600 hover:bg-red-50"
+                                onClick={handleLeaveCompany}
+                            >
+                                <LogOut className="h-4 w-4" />
+                                <span>Выйти из компании</span>
+                            </Button>
+                        </div>
+                    )}
                 </div>
             </CardContent>
         </Card>

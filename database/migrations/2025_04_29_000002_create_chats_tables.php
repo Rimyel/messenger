@@ -19,6 +19,8 @@ return new class extends Migration
         Schema::create('chat_user', function (Blueprint $table) {
             $table->foreignId('chat_id')->constrained()->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            // Роль пользователя в чате: owner - создатель, admin - администратор, member - участник
+            $table->enum('role', ['owner', 'admin', 'member'])->default('member');
             $table->timestamps();
             
             $table->primary(['chat_id', 'user_id']);

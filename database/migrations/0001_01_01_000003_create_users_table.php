@@ -10,11 +10,11 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('company_id')->nullable()->constrained()->onDelete('cascade');
             $table->string('name');
             $table->string('email')->unique();
             $table->string('avatar')->nullable();
             $table->string('password');
+            $table->rememberToken();
             $table->timestamps();
         });
 
@@ -27,13 +27,10 @@ return new class extends Migration
             $table->integer('last_activity')->index();
         });
     }
-
-    /**
-     * Сессии необходимо оставить для работы с Laravel Sanctum и другими пакетами, которые используют сессии.
-     */
+    
     public function down(): void
     {
-        Schema::dropIfExists('sessions');
         Schema::dropIfExists('users');
+        Schema::dropIfExists('sessions');
     }
 };

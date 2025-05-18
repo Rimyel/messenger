@@ -26,21 +26,20 @@ class CompanyController extends Controller
             })->latest()->paginate($request->get('per_page', 5));
         }
 
-        // Если нет поискового запроса - возвращаем только компанию пользователя (если она есть)
-        $userCompany = $user->company;
+        // Если нет поискового запроса - возвращаем компании пользователя
+        $userCompanies = $user->companies()->with('users')->get();
 
-        if ($userCompany) {
-            // Если у пользователя есть компания, возвращаем только её
+        if ($userCompanies->isNotEmpty()) {
             return response()->json([
-                'data' => [$userCompany],
-                'total' => 1,
-                'per_page' => 1,
+                'data' => $userCompanies,
+                'total' => $userCompanies->count(),
+                'per_page' => $userCompanies->count(),
                 'current_page' => 1,
                 'last_page' => 1
             ]);
         }
 
-        // Если у пользователя нет компании и нет поискового запроса,
+        // Если у пользователя нет компаний и нет поискового запроса,
         // возвращаем пустой результат
         return response()->json([
             'data' => [],
@@ -63,11 +62,6 @@ class CompanyController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        // Проверяем, не состоит ли пользователь уже в компании
-        if (auth()->user()->company_id !== null) {
-            return response()->json(['message' => 'Вы уже состоите в компании'], 422);
-        }
-
         $data = $validator->validated();
 
         // Обработка загрузки логотипа
@@ -78,27 +72,30 @@ class CompanyController extends Controller
 
         $company = Company::create($data);
 
-        // Устанавливаем company_id для владельца компании
-        $user = auth()->user();
-        $user->update(['company_id' => $company->id]);
+        // Добавляем создателя как владельца компании
+        $company->users()->attach(auth()->id(), ['role' => 'owner']);
 
         return response()->json($company, 201);
     }
 
     public function show(Company $company)
     {
+        $user = auth()->user();
+        
         // Проверяем, принадлежит ли пользователь к этой компании
-        if (auth()->user()->company_id !== $company->id) {
+        if (!$user->belongsToCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json($company);
+        return response()->json($company->load('users'));
     }
 
     public function update(Request $request, Company $company)
     {
-        // Проверяем, является ли пользователь первым участником (создателем) компании
-        if ($company->id !== auth()->user()->company_id) {
+        $user = auth()->user();
+        
+        // Проверяем, может ли пользователь управлять компанией
+        if (!$user->canManageCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -131,8 +128,10 @@ class CompanyController extends Controller
 
     public function destroy(Company $company)
     {
-        // Проверяем, является ли пользователь первым участником (создателем) компании
-        if ($company->id !== auth()->user()->company_id) {
+        $user = auth()->user();
+        
+        // Проверяем, является ли пользователь владельцем компании
+        if (!$user->isOwnerOfCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
@@ -146,37 +145,43 @@ class CompanyController extends Controller
         return response()->json(null, 204);
     }
 
+    /**
+     * Присоединиться к компании
+     */
     public function join(Company $company)
     {
         $user = auth()->user();
 
-        // Проверяем, есть ли у пользователя уже компания
-        if ($user->company_id !== null) {
-            return response()->json(['message' => 'Вы уже являетесь участником другой компании'], 422);
+        // Проверяем, не состоит ли пользователь уже в этой компании
+        if ($user->belongsToCompany($company)) {
+            return response()->json(['message' => 'Вы уже являетесь участником этой компании'], 422);
         }
 
-        // Присоединяем пользователя к компании
-        $user->update(['company_id' => $company->id]);
+        // Добавляем пользователя в компанию как обычного участника
+        $company->addUser($user, 'member');
 
         return response()->json(['message' => 'Вы успешно присоединились к компании']);
     }
 
+    /**
+     * Покинуть компанию
+     */
     public function leave(Company $company)
     {
         $user = auth()->user();
 
-        // Проверяем, принадлежит ли пользователь к этой компании
-        if ($user->company_id !== $company->id) {
+        // Проверяем, состоит ли пользователь в компании
+        if (!$user->belongsToCompany($company)) {
             return response()->json(['message' => 'Вы не являетесь участником этой компании'], 422);
         }
 
-        // Проверяем, не является ли пользователь создателем компании
-        if ($company->users()->orderBy('created_at')->first()->id === $user->id) {
-            return response()->json(['message' => 'Вы не можете покинуть компанию, так как вы единственный владелец'], 422);
+        // Проверяем, не является ли пользователь владельцем компании
+        if ($user->isOwnerOfCompany($company)) {
+            return response()->json(['message' => 'Владелец компании не может покинуть её'], 422);
         }
 
-        // Отсоединяем пользователя от компании
-        $user->update(['company_id' => null]);
+        // Удаляем пользователя из компании
+        $company->removeUser($user);
 
         return response()->json(['message' => 'Вы успешно покинули компанию']);
     }
@@ -186,20 +191,24 @@ class CompanyController extends Controller
      */
     public function users(Company $company)
     {
+        $user = auth()->user();
+        
         // Проверяем, принадлежит ли пользователь к этой компании
-        // dd(Auth::user());
-        // if (Auth::user()->company_id !== $company->id) {
-        //     return response()->json(['message' => 'Unauthorized'], 403);
-        // }
+        if (!$user->belongsToCompany($company)) {
+            return response()->json(['message' => 'Unauthorized'], 403);
+        }
 
-        $users = User::where('company_id', $company->id)
-            ->get(['id', 'name', 'email', 'created_at', 'updated_at'])
-            ->map(function($user) use ($company) {
-                // Определяем роль пользователя
-                $isFirstUser = $company->users()->orderBy('created_at')->first()->id === $user->id;
-                $role = $isFirstUser ? 'owner' : 'member';
-
-                return array_merge($user->toArray(), ['role' => $role]);
+        $users = $company->users()
+            ->select('users.id', 'users.name', 'users.email', 'users.avatar', 'company_users.role')
+            ->get()
+            ->map(function($user) {
+                return [
+                    'id' => $user->id,
+                    'name' => $user->name,
+                    'email' => $user->email,
+                    'avatar' => $user->avatar,
+                    'role' => $user->role
+                ];
             });
 
         return response()->json($users);

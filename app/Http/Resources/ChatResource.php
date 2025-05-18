@@ -11,6 +11,7 @@ class ChatResource extends JsonResource
     public function toArray(Request $request): array
     {
         $user = Auth::user();
+        $userRole = $this->getUserRole($user);
 
         if ($this->type === 'private') {
             $otherParticipant = $this->participants->where('id', '!=', $user->id)->first();
@@ -19,9 +20,16 @@ class ChatResource extends JsonResource
                 'type' => 'private',
                 'name' => $otherParticipant->name,
                 'lastMessage' => $this->lastMessage ? new MessageResource($this->lastMessage) : null,
-                'participants' => UserResource::collection($this->participants),
+                'participants' => $this->participants->map(function ($participant) use ($request) {
+                    return array_merge(
+                        (new UserResource($participant))->toArray($request),
+                        ['role' => $this->getUserRole($participant)]
+                    );
+                }),
                 'updatedAt' => $this->updated_at,
-                'participantAvatar' => $otherParticipant->avatar
+                'participantAvatar' => $otherParticipant->avatar,
+                'userRole' => $userRole,
+                'canManage' => $this->canBeManageBy($user)
             ];
         }
 
@@ -30,8 +38,15 @@ class ChatResource extends JsonResource
             'type' => 'group',
             'name' => $this->name,
             'lastMessage' => $this->lastMessage ? new MessageResource($this->lastMessage) : null,
-            'participants' => UserResource::collection($this->participants),
-            'updatedAt' => $this->updated_at
+            'participants' => $this->participants->map(function ($participant) use ($request) {
+                return array_merge(
+                    (new UserResource($participant))->toArray($request),
+                    ['role' => $this->getUserRole($participant)]
+                );
+            }),
+            'updatedAt' => $this->updated_at,
+            'userRole' => $userRole,
+            'canManage' => $this->canBeManageBy($user)
         ];
     }
 }

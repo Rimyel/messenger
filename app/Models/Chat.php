@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Chat extends Model
 {
@@ -16,27 +15,138 @@ class Chat extends Model
         'name',
     ];
 
-    protected $casts = [
-        'type' => 'string',
-    ];
-
+    /**
+     * Компания, которой принадлежит чат.
+     */
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
     }
 
+    /**
+     * Пользователи в чате.
+     */
     public function participants(): BelongsToMany
     {
-        return $this->belongsToMany(User::class, 'chat_user');
+        return $this->belongsToMany(User::class, 'chat_user')
+            ->withPivot('role')
+            ->withTimestamps();
     }
 
+    /**
+     * Сообщения в чате.
+     */
     public function messages(): HasMany
     {
-        return $this->hasMany(Message::class);
+        return $this->hasMany(Message::class)->orderBy('created_at', 'desc');
     }
 
-    public function lastMessage(): HasOne
+    /**
+     * Последнее сообщение в чате.
+     */
+    public function lastMessage(): BelongsTo
     {
-        return $this->hasOne(Message::class)->latest('sent_at');
+        return $this->belongsTo(Message::class, 'last_message_id');
+    }
+
+    /**
+     * Добавить пользователя в чат с указанной ролью.
+     */
+    public function addUser(User $user, string $role = 'member'): bool
+    {
+        // Проверяем, принадлежит ли пользователь к компании
+        if (!$user->belongsToCompany($this->company)) {
+            return false;
+        }
+
+        if (!$this->hasUser($user)) {
+            $this->participants()->attach($user->id, ['role' => $role]);
+        }
+        return true;
+    }
+
+    /**
+     * Проверить, есть ли пользователь в чате.
+     */
+    public function hasUser(User $user): bool
+    {
+        return $this->participants()->where('users.id', $user->id)->exists();
+    }
+
+    /**
+     * Получить роль пользователя в чате.
+     */
+    public function getUserRole(User $user): ?string
+    {
+        if (!$this->hasUser($user)) {
+            return null;
+        }
+
+        return $this->participants()
+            ->where('users.id', $user->id)
+            ->first()
+            ->pivot
+            ->role;
+    }
+
+    /**
+     * Изменить роль пользователя в чате.
+     */
+    public function changeUserRole(User $user, string $role): bool
+    {
+        if (!$this->hasUser($user)) {
+            return false;
+        }
+
+        $this->participants()->updateExistingPivot($user->id, ['role' => $role]);
+        return true;
+    }
+
+    /**
+     * Удалить пользователя из чата.
+     */
+    public function removeUser(User $user): bool
+    {
+        if (!$this->hasUser($user)) {
+            return false;
+        }
+
+        $this->participants()->detach($user->id);
+        return true;
+    }
+
+    /**
+     * Получить владельца чата.
+     */
+    public function getOwner(): ?User
+    {
+        return $this->participants()
+            ->wherePivot('role', 'owner')
+            ->first();
+    }
+
+    /**
+     * Получить администраторов чата.
+     */
+    public function getAdmins()
+    {
+        return $this->participants()
+            ->wherePivot('role', 'admin')
+            ->get();
+    }
+
+    /**
+     * Может ли пользователь управлять чатом.
+     */
+    public function canBeManageBy(User $user): bool
+    {
+        // Владелец или администратор компании может управлять любым чатом
+        if ($user->canManageCompany($this->company)) {
+            return true;
+        }
+
+        // Проверяем роль пользователя в чате
+        $role = $this->getUserRole($user);
+        return in_array($role, ['owner', 'admin']);
     }
 }

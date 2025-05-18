@@ -80,56 +80,56 @@ export function NotificationButton() {
         []
     );
 
-    const loadUnreadMessages = async () => {
-        try {
-            const unreadMessages = await chatService.getUnreadMessages();
-            const formattedNotifications: Notification[] = unreadMessages.map(
-                (msg) => ({
-                    id: msg.lastMessage.id.toString(),
-                    chatId: msg.chatId,
-                    chatName: msg.chatName,
-                    chatType: msg.chatType,
-                    message:
-                        msg.count === 1
-                            ? "Новое сообщение"
-                            : `${msg.count} непрочитанных ${
-                                  msg.count < 5 ? "сообщения" : "сообщений"
-                              }`,
-                    time: formatDistanceToNow(
-                        new Date(msg.lastMessage.sent_at),
-                        {
-                            addSuffix: true,
-                            locale: ru,
-                        }
-                    ),
-                    sender: {
-                        name: msg.lastMessage.sender.name,
-                        avatar: msg.lastMessage.sender.avatar,
-                    },
-                    preview: msg.lastMessage.content,
-                    hasMedia: !!msg.lastMessage.media?.length,
-                    mediaType: msg.lastMessage.media?.[0]?.type,
-                })
-            );
-            setNotifications(formattedNotifications);
-        } catch (error) {
-            console.error("Error loading unread messages:", error);
-        }
-    };
+    // const loadUnreadMessages = async () => {
+    //     try {
+    //         const unreadMessages = await chatService.getUnreadMessages();
+    //         const formattedNotifications: Notification[] = unreadMessages.map(
+    //             (msg) => ({
+    //                 id: msg.lastMessage.id.toString(),
+    //                 chatId: msg.chatId,
+    //                 chatName: msg.chatName,
+    //                 chatType: msg.chatType,
+    //                 message:
+    //                     msg.count === 1
+    //                         ? "Новое сообщение"
+    //                         : `${msg.count} непрочитанных ${
+    //                               msg.count < 5 ? "сообщения" : "сообщений"
+    //                           }`,
+    //                 time: formatDistanceToNow(
+    //                     new Date(msg.lastMessage.sent_at),
+    //                     {
+    //                         addSuffix: true,
+    //                         locale: ru,
+    //                     }
+    //                 ),
+    //                 sender: {
+    //                     name: msg.lastMessage.sender.name,
+    //                     avatar: msg.lastMessage.sender.avatar,
+    //                 },
+    //                 preview: msg.lastMessage.content,
+    //                 hasMedia: !!msg.lastMessage.media?.length,
+    //                 mediaType: msg.lastMessage.media?.[0]?.type,
+    //             })
+    //         );
+    //         setNotifications(formattedNotifications);
+    //     } catch (error) {
+    //         console.error("Error loading unread messages:", error);
+    //     }
+    // };
 
-    useEffect(() => {
-        loadUnreadMessages();
+    // useEffect(() => {
+    //     loadUnreadMessages();
 
-        // Подписываемся на событие новых сообщений
-        const channel = window.Echo.private(`User.${window.userId}`);
-        channel.listen(".MessageSent", () => {
-            loadUnreadMessages();
-        });
+    //     // Подписываемся на событие новых сообщений
+    //     const channel = window.Echo.private(`User.${window.userId}`);
+    //     channel.listen(".MessageSent", () => {
+    //         loadUnreadMessages();
+    //     });
 
-        return () => {
-            channel.stopListening(".MessageSent");
-        };
-    }, []);
+    //     return () => {
+    //         channel.stopListening(".MessageSent");
+    //     };
+    // }, []);
 
     const unreadCount = notifications.length;
 

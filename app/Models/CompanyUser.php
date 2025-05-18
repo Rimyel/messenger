@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Relations\Pivot;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanyUser extends Pivot
 {
@@ -13,18 +14,47 @@ class CompanyUser extends Pivot
         'user_id',
         'role'
     ];
-
     protected $casts = [
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+    /**
+     * Компания
+     */
+    public function company(): BelongsTo
+    {
+        return $this->belongsTo(Company::class);
+    }
 
     /**
-     * Доступные роли пользователей в компании
+     * Пользователь
      */
-    public const ROLES = [
-        'owner' => 'Владелец',
-        'admin' => 'Администратор',
-        'member' => 'Участник'
-    ];
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Проверить, является ли пользователь владельцем
+     */
+    public function isOwner(): bool
+    {
+        return $this->role === 'owner';
+    }
+
+    /**
+     * Проверить, является ли пользователь администратором
+     */
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Проверить, может ли пользователь управлять компанией
+     */
+    public function canManageCompany(): bool
+    {
+        return in_array($this->role, ['owner', 'admin']);
+    }
 }

@@ -1,4 +1,4 @@
-root = true
+Settings Sync: Show Synced Dataroot = true
 
 [*]
 charset = utf-8
