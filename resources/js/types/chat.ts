@@ -8,6 +8,7 @@ export interface MessageMedia {
     name_file: string;
     mime_type: string;
     size: number;
+    path: string
 }
 
 export interface ChatMessage {

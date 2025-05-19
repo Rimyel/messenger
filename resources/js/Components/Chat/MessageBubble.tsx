@@ -62,7 +62,7 @@ const MessageStatusIcon = ({
 };
 
 const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
-    const { content, sender, sent_at, status, media } = message;
+    const { content, sender, sent_at, status, media } = message;    
 
     const renderMediaPreview = (media: MessageMedia[]) => {
         return (
@@ -107,7 +107,7 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                     if (file.type === "video") {
                         return (
                             <div key={index} className="max-w-sm sm:max-w-md">
-                                <VideoPlayer src={file.link} />
+                                <VideoPlayer src={file} />
                                 <div
                                     className={clsx(
                                         "flex items-center justify-between p-2 text-xs",

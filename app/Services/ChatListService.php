@@ -127,7 +127,8 @@ class ChatListService
                         'link' => asset('storage/' . $file->path),
                         'name_file' => $file->name,
                         'mime_type' => $file->mime_type,
-                        'size' => $file->size
+                        'size' => $file->size,
+                        'path' => $file->path,
                     ];
                 })->all()
             ];
