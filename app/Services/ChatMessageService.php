@@ -6,7 +6,7 @@ use App\Events\MessageSent;
 use App\Events\MessageStatusUpdated;
 use App\Models\Chat;
 use App\Models\Message;
-use App\Models\MessagesMedia;
+use App\Models\File;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
@@ -39,18 +39,21 @@ class ChatMessageService
             foreach ($request->file('files') as $file) {
                 $path = $file->store('chat-files', 'public');
 
-                MessagesMedia::create([
-                    'message_id' => $message->id,
+                // Создаем файл
+                $fileModel = File::create([
                     'type' => $this->getFileType($file->getMimeType()),
-                    'link' => $path,
-                    'name_file' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'name' => $file->getClientOriginalName(),
                     'mime_type' => $file->getMimeType(),
                     'size' => $file->getSize()
                 ]);
+
+                // Прикрепляем файл к сообщению
+                $message->files()->attach($fileModel->id);
             }
         }
 
-        $message->load('media');
+        $message->load('files');
 
         Log::info("Отправляем событие MessageSent для чата:", [
             'chat_id' => $chat->id,
@@ -61,7 +64,7 @@ class ChatMessageService
         broadcast(new MessageSent($message));
         Log::info("Событие MessageSent отправлено", ['event' => MessageSent::class]);
 
-        $message->load(['sender:id,name,avatar', 'media']);
+        $message->load(['sender:id,name,avatar', 'files']);
 
         return $message;
     }

@@ -12,10 +12,10 @@ return new class extends Migration {
         // Создаем связующую таблицу
         Schema::create('messages_media', function (Blueprint $table) {
             $table->foreignId('message_id')->constrained()->onDelete('cascade');
-            $table->foreignId('media_id')->constrained('media')->onDelete('cascade');
+            $table->foreignId('files_id')->constrained('files')->onDelete('cascade');
             $table->timestamps();
             
-            $table->primary(['message_id', 'media_id']);
+            $table->primary(['message_id', 'files_id']);
         });
     }
 

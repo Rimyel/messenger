@@ -66,7 +66,7 @@ class ChatListService
         }
 
         $query = $chat->messages()
-            ->with(['sender:id,name,avatar', 'media']);
+            ->with(['sender:id,name,avatar', 'files']);
 
         if ($search) {
             $searchTerm = "%{$search}%";
@@ -120,14 +120,14 @@ class ChatListService
                 'status' => $msg->status,
                 'delivered_at' => $msg->delivered_at,
                 'read_at' => $msg->read_at,
-                'media' => $msg->media->map(function ($media) {
+                'media' => $msg->files->map(function ($file) {
                     return [
-                        'id' => $media->id,
-                        'type' => $media->type,
-                        'link' => asset('storage/' . $media->link),
-                        'name_file' => $media->name_file,
-                        'mime_type' => $media->mime_type,
-                        'size' => $media->size
+                        'id' => $file->id,
+                        'type' => $file->type,
+                        'link' => asset('storage/' . $file->path),
+                        'name_file' => $file->name,
+                        'mime_type' => $file->mime_type,
+                        'size' => $file->size
                     ];
                 })->all()
             ];

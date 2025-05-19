@@ -20,7 +20,7 @@ class MessageSent implements ShouldBroadcast
 
     public function __construct(Message $message)
     {
-        $this->message = $message->load(['sender:id,name,avatar', 'media']);
+        $this->message = $message->load(['sender:id,name,avatar', 'files']);
         Log::info('Создано событие MessageSent', [
             'chat_id' => $message->chat_id,
             'message_id' => $message->id,
@@ -64,14 +64,14 @@ class MessageSent implements ShouldBroadcast
                 'read_at' => $this->message->read_at instanceof \Carbon\Carbon
                     ? $this->message->read_at->timezone('UTC')->toISOString()
                     : ($this->message->read_at ? \Carbon\Carbon::parse($this->message->read_at)->timezone('UTC')->toISOString() : null),
-                'media' => $this->message->media->map(function ($media) {
+                'media' => $this->message->files->map(function ($file) {
                     return [
-                        'id' => $media->id,
-                        'type' => $media->type,
-                        'link' => asset('storage/' . $media->link),
-                        'name_file' => $media->name_file,
-                        'mime_type' => $media->mime_type,
-                        'size' => $media->size
+                        'id' => $file->id,
+                        'type' => $file->type,
+                        'link' => asset('storage/' . $file->path),
+                        'name_file' => $file->name,
+                        'mime_type' => $file->mime_type,
+                        'size' => $file->size
                     ];
                 }),
             ],

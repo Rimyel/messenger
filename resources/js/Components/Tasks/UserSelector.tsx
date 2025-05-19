@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { forwardRef, useState } from "react"
 import { Check, ChevronsUpDown, X } from "lucide-react"
 
 import { Badge } from "@/Components/ui/badge"
@@ -29,7 +29,8 @@ interface UserSelectorProps {
   onSelectionChange: (selectedIds: string[]) => void
 }
 
-export function UserSelector({ users, selectedUserIds, onSelectionChange }: UserSelectorProps) {
+export const UserSelector = forwardRef<HTMLDivElement, UserSelectorProps>(
+  ({ users, selectedUserIds, onSelectionChange }, ref) => {
   const [open, setOpen] = useState(false)
 
   const toggleUser = (userId: string) => {
@@ -50,10 +51,12 @@ export function UserSelector({ users, selectedUserIds, onSelectionChange }: User
     <div className="flex flex-col gap-2">
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
-          <Button variant="outline" role="combobox" aria-expanded={open} className="justify-between">
-            Выбрать исполнителей
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-          </Button>
+          <div ref={ref}>
+            <Button variant="outline" role="combobox" aria-expanded={open} className="w-full justify-between">
+              Выбрать исполнителей
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            </Button>
+          </div>
         </PopoverTrigger>
         <PopoverContent className="w-[300px] p-0">
           <Command>
@@ -101,4 +104,7 @@ export function UserSelector({ users, selectedUserIds, onSelectionChange }: User
       )}
     </div>
   )
-}
+  }
+)
+
+UserSelector.displayName = "UserSelector"

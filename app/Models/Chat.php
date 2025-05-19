@@ -38,15 +38,15 @@ class Chat extends Model
      */
     public function messages(): HasMany
     {
-        return $this->hasMany(Message::class)->orderBy('created_at', 'desc');
+        return $this->hasMany(Message::class)->orderBy('sent_at', 'desc');
     }
 
     /**
-     * Последнее сообщение в чате.
+     * Последнее сообщение в чате
      */
-    public function lastMessage(): BelongsTo
+    public function lastMessage()
     {
-        return $this->belongsTo(Message::class, 'last_message_id');
+        return $this->hasOne(Message::class)->latest('sent_at');
     }
 
     /**

@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatManagementController;
 use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\CompanyUserController;
+use App\Http\Controllers\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -33,6 +34,14 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         // Маршруты аутентификации
         Route::post('/auth/logout', [ApiAuthController::class, 'logout'])->name('api.logout');
         Route::get('/auth/me', [ApiAuthController::class, 'me'])->name('api.me');
+
+        // Маршруты для работы с заданиями
+        Route::get('/tasks', [TaskController::class, 'index']);
+        Route::post('/tasks', [TaskController::class, 'store']);
+        Route::get('/tasks/{task}', [TaskController::class, 'show']);
+        Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus']);
+        Route::post('/tasks/assignments/{assignment}/response', [TaskController::class, 'submitResponse']);
+        Route::patch('/tasks/responses/{response}/review', [TaskController::class, 'reviewResponse']);
 
         // Маршруты для работы с компаниями
         Route::get('/companies', [CompanyController::class, 'index']);

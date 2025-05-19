@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { CalendarIcon, FileText, Plus, Search, Users } from "lucide-react"
 
 import { Badge } from "@/Components/ui/badge"
@@ -13,51 +13,33 @@ import { CreateTaskDialog } from "@/Components/Tasks/CreateTaskDialog"
 import { TaskDetailsDialog } from "@/Components/Tasks/TaskDetailsDialog"
 import { formatDate } from "@/lib/utils"
 import type { Task } from "@/types/task"
+import { TaskApi } from "@/services/task"
+import { toast } from "sonner"
 
-// В реальном приложении данные будут загружаться с сервера
-const TASKS_DATA: Task[] = [
-  {
-    id: "task1",
-    title: "Подготовка квартального отчета",
-    description:
-      "Необходимо подготовить финансовый отчет за третий квартал 2024 года. Отчет должен включать анализ доходов и расходов, сравнение с предыдущими периодами и прогноз на следующий квартал.",
-    files: [
-      {
-        id: "file1",
-        name: "Шаблон отчета.xlsx",
-        size: "245 KB",
-        type: "excel",
-        url: "#",
-      },
-    ],
-    startDate: "2024-05-15",
-    dueDate: "2024-05-25",
-    status: "in_progress",
-    createdBy: "Александр Иванов",
-    createdAt: "2024-05-14",
-    assignments: [
-      {
-        userId: "user1",
-        userName: "Мария Кузнецова",
-        userAvatar: "/placeholder.svg",
-        status: "in_progress",
-      },
-      {
-        userId: "user2",
-        userName: "Дмитрий Петров",
-        userAvatar: "/placeholder.svg",
-        status: "not_started",
-      },
-    ],
-  },
-]
-
-export function AdminTasksPage() {
-  const [tasks, setTasks] = useState<Task[]>(TASKS_DATA)
+export default function AdminTasksPage() {
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<Task | null>(null)
   const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false)
+
+  // Загрузка заданий
+  useEffect(() => {
+    loadTasks()
+  }, [])
+
+  const loadTasks = async () => {
+    try {
+      const data = await TaskApi.list()
+      setTasks(data.data)
+    } catch (error) {
+      console.error("Failed to load tasks:", error)
+      toast.error("Не удалось загрузить задания")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   // Фильтрация задач по поисковому запросу
   const filteredTasks = tasks.filter(
@@ -67,16 +49,31 @@ export function AdminTasksPage() {
   )
 
   // Обработчик создания нового задания
-  const handleCreateTask = (newTask: Task) => {
-    setTasks([newTask, ...tasks])
-    setIsCreateDialogOpen(false)
+  const handleCreateTask = async (formData: FormData): Promise<void> => {
+    try {
+      const newTask = await TaskApi.create(formData)
+      setTasks([newTask, ...tasks])
+      setIsCreateDialogOpen(false)
+      toast.success("Задание успешно создано")
+    } catch (error) {
+      console.error("Failed to create task:", error)
+      toast.error("Не удалось создать задание")
+      throw error // Пробрасываем ошибку дальше для обработки в компоненте CreateTaskDialog
+    }
   }
 
   // Обработчик обновления задания
-  const handleUpdateTask = (updatedTask: Task) => {
-    setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
-    setSelectedTask(null)
-    setIsDetailsDialogOpen(false)
+  const handleUpdateTask = async (updatedTask: Task) => {
+    try {
+      await TaskApi.updateStatus(updatedTask.id, updatedTask.status)
+      setTasks(tasks.map((task) => (task.id === updatedTask.id ? updatedTask : task)))
+      setSelectedTask(null)
+      setIsDetailsDialogOpen(false)
+      toast.success("Статус задания обновлен")
+    } catch (error) {
+      console.error("Failed to update task:", error)
+      toast.error("Не удалось обновить задание")
+    }
   }
 
   // Функция для получения текста статуса
@@ -127,6 +124,20 @@ export function AdminTasksPage() {
     return Math.round((completedAssignments / totalAssignments) * 100)
   }
 
+  // Фильтрация задач по вкладкам
+  const filterTasksByTab = (tasks: Task[], tab: string) => {
+    switch (tab) {
+      case "active":
+        return tasks.filter((task) => ["pending", "in_progress"].includes(task.status))
+      case "completed":
+        return tasks.filter((task) => task.status === "completed")
+      case "overdue":
+        return tasks.filter((task) => task.status === "overdue")
+      default:
+        return tasks
+    }
+  }
+
   return (
     <div className="container mx-auto py-6">
       <div className="mb-6 flex items-center justify-between">
@@ -158,86 +169,95 @@ export function AdminTasksPage() {
           </div>
         </div>
 
-        <TabsContent value="all" className="mt-0">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {filteredTasks.length > 0 ? (
-              filteredTasks.map((task) => (
-                <Card
-                  key={task.id}
-                  className="cursor-pointer transition-all hover:shadow-md"
-                  onClick={() => {
-                    setSelectedTask(task)
-                    setIsDetailsDialogOpen(true)
-                  }}
-                >
-                  <CardHeader className="pb-2">
-                    <div className="flex items-start justify-between">
-                      <h3 className="line-clamp-2 text-lg font-medium">{task.title}</h3>
-                      <Badge className={`flex items-center ${getTaskStatusColor(task.status)}`}>
-                        {getTaskStatusText(task.status)}
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pb-2">
-                    <p className="line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
-                    <div className="mt-4 flex items-center gap-2">
-                      <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Срок: {formatDate(task.dueDate)}</span>
-                    </div>
-                    <div className="mt-2 flex items-center gap-2">
-                      <Users className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm text-muted-foreground">Исполнители: {task.assignments.length}</span>
-                    </div>
-                    {task.files.length > 0 && (
+        {["all", "active", "completed", "overdue"].map((tab) => (
+          <TabsContent key={tab} value={tab} className="mt-0">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {isLoading ? (
+                <div className="col-span-full flex h-40 items-center justify-center">
+                  <div className="text-center">
+                    <div className="mb-2 h-10 w-10 animate-spin rounded-full border-4 border-primary border-t-transparent" />
+                    <p className="text-sm text-muted-foreground">Загрузка заданий...</p>
+                  </div>
+                </div>
+              ) : filterTasksByTab(filteredTasks, tab).length > 0 ? (
+                filterTasksByTab(filteredTasks, tab).map((task) => (
+                  <Card
+                    key={task.id}
+                    className="cursor-pointer transition-all hover:shadow-md"
+                    onClick={() => {
+                      setSelectedTask(task)
+                      setIsDetailsDialogOpen(true)
+                    }}
+                  >
+                    <CardHeader className="pb-2">
+                      <div className="flex items-start justify-between">
+                        <h3 className="line-clamp-2 text-lg font-medium">{task.title}</h3>
+                        <Badge className={`flex items-center ${getTaskStatusColor(task.status)}`}>
+                          {getTaskStatusText(task.status)}
+                        </Badge>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="pb-2">
+                      <p className="line-clamp-2 text-sm text-muted-foreground">{task.description}</p>
+                      <div className="mt-4 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">Срок: {formatDate(task.dueDate)}</span>
+                      </div>
                       <div className="mt-2 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">Файлы: {task.files.length}</span>
+                        <Users className="h-4 w-4 text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
+                          Исполнители: {task.assignments.length}
+                        </span>
                       </div>
-                    )}
-                    <div className="mt-4">
-                      <div className="mb-1 flex items-center justify-between">
-                        <span className="text-xs text-muted-foreground">Прогресс выполнения</span>
-                        <span className="text-xs font-medium">{calculateTaskProgress(task)}%</span>
-                      </div>
-                      <Progress value={calculateTaskProgress(task)} className="h-2" />
-                    </div>
-                  </CardContent>
-                  <CardFooter className="flex items-center justify-end pt-2">
-                    <div className="flex -space-x-2">
-                      {task.assignments.slice(0, 3).map((assignment) => (
-                        <img
-                          key={assignment.userId}
-                          src={assignment.userAvatar}
-                          alt={assignment.userName}
-                          className="h-6 w-6 rounded-full border-2 border-background"
-                        />
-                      ))}
-                      {task.assignments.length > 3 && (
-                        <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-xs">
-                          +{task.assignments.length - 3}
+                      {task.files.length > 0 && (
+                        <div className="mt-2 flex items-center gap-2">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm text-muted-foreground">Файлы: {task.files.length}</span>
                         </div>
                       )}
-                    </div>
-                  </CardFooter>
-                </Card>
-              ))
-            ) : (
-              <div className="col-span-full flex h-40 items-center justify-center rounded-lg border border-dashed">
-                <div className="flex flex-col items-center text-center">
-                  <FileText className="mb-2 h-10 w-10 text-muted-foreground" />
-                  <h3 className="text-lg font-medium">Нет заданий</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {searchQuery
-                      ? "По вашему запросу ничего не найдено"
-                      : "Создайте новое задание, нажав на кнопку выше"}
-                  </p>
+                      <div className="mt-4">
+                        <div className="mb-1 flex items-center justify-between">
+                          <span className="text-xs text-muted-foreground">Прогресс выполнения</span>
+                          <span className="text-xs font-medium">{calculateTaskProgress(task)}%</span>
+                        </div>
+                        <Progress value={calculateTaskProgress(task)} className="h-2" />
+                      </div>
+                    </CardContent>
+                    <CardFooter className="flex items-center justify-end pt-2">
+                      <div className="flex -space-x-2">
+                        {task.assignments.slice(0, 3).map((assignment) => (
+                          <img
+                            key={assignment.userId}
+                            src={assignment.userAvatar}
+                            alt={assignment.userName}
+                            className="h-6 w-6 rounded-full border-2 border-background"
+                          />
+                        ))}
+                        {task.assignments.length > 3 && (
+                          <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-xs">
+                            +{task.assignments.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    </CardFooter>
+                  </Card>
+                ))
+              ) : (
+                <div className="col-span-full flex h-40 items-center justify-center rounded-lg border border-dashed">
+                  <div className="flex flex-col items-center text-center">
+                    <FileText className="mb-2 h-10 w-10 text-muted-foreground" />
+                    <h3 className="text-lg font-medium">Нет заданий</h3>
+                    <p className="text-sm text-muted-foreground">
+                      {searchQuery
+                        ? "По вашему запросу ничего не найдено"
+                        : "Создайте новое задание, нажав на кнопку выше"}
+                    </p>
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
-        </TabsContent>
-
-        {/* Аналогичные TabsContent для других вкладок */}
+              )}
+            </div>
+          </TabsContent>
+        ))}
       </Tabs>
 
       {/* Диалог создания задания */}

@@ -21,14 +21,14 @@ class MessageResource extends JsonResource
             'status' => $this->status,
             'delivered_at' => $this->getOriginal('delivered_at'),
             'read_at' => $this->getOriginal('read_at'),
-            'media' => $this->media->map(function ($media) {
+            'media' => $this->files->map(function ($file) {
                 return [
-                    'id' => $media->id,
-                    'type' => $media->type,
-                    'link' => asset('storage/' . $media->link),
-                    'name_file' => $media->name_file,
-                    'mime_type' => $media->mime_type,
-                    'size' => $media->size
+                    'id' => $file->id,
+                    'type' => $file->type,
+                    'link' => asset('storage/' . $file->path),   // путь остается тем же
+                    'name_file' => $file->name,
+                    'mime_type' => $file->mime_type,
+                    'size' => $file->size
                 ];
             })->all()
         ];

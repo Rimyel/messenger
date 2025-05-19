@@ -50,20 +50,19 @@ class Message extends Model
     }
 
     /**
-     * Файлы, прикрепленные к сообщению.
-     */
-    public function files(): BelongsToMany
-    {
-        return $this->belongsToMany(File::class, 'message_files')
-            ->withTimestamps();
-    }
+    * Файлы, прикрепленные к сообщению
+    */
+   public function files(): BelongsToMany
+   {
+       return $this->belongsToMany(File::class, 'messages_media', 'message_id', 'files_id')
+           ->withTimestamps();
+   }
 
-    /**
-     * Медиафайлы сообщения
-     */
-    public function media(): BelongsToMany
-    {
-        return $this->belongsToMany(Media::class, 'messages_media')
-            ->withTimestamps();
-    }
+   /**
+    * Псевдоним для отношения files()
+    */
+   public function media(): BelongsToMany
+   {
+       return $this->files();
+   }
 }

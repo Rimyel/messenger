@@ -15,6 +15,7 @@ const ProfileContent = lazy(
     () => import("@/Components/Profile/ProfileContent")
 );
 const ChatComponent = lazy(() => import("@/Components/Chat/Chat"));
+const AdminTasksPage = lazy(() => import("@/Components/Tasks/AdminTasksPage"));
 
 interface MainContentProps {
     currentContent: string;
@@ -114,6 +115,15 @@ export const MainContent: React.FC<MainContentProps> = ({
                         <ChatComponent initialChats={chats} />
                     </Suspense>
                 );
+            case "tasks":
+                if (currentCompany) {
+                    return (
+                        <Suspense fallback={<LoadingSpinner />}>
+                            <AdminTasksPage />
+                        </Suspense>
+                    );
+                }
+                return <h1>Для работы с заданиями необходимо выбрать компанию</h1>;
             default:
                 return <h1>Dashboard Page</h1>;
         }

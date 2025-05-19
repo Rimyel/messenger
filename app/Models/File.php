@@ -2,14 +2,11 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class File extends Model
 {
-    use HasUuids;
-
     protected $fillable = [
         'name',
         'path',
@@ -23,7 +20,7 @@ class File extends Model
      */
     public function messages(): BelongsToMany
     {
-        return $this->belongsToMany(Message::class, 'message_files')
+        return $this->belongsToMany(Message::class, 'messages_media', 'files_id', 'message_id')
             ->withTimestamps();
     }
 
