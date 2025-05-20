@@ -60,7 +60,6 @@
         "tailwind-merge": "^3.2.0",
         "tailwindcss-animate": "^1.0.7",
         "uuid": "^11.1.0",
-        "vite-plugin-require": "^1.2.14",
         "zod": "^3.24.4",
         "zustand": "^5.0.3"
     }

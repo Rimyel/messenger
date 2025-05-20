@@ -138,7 +138,7 @@ export function TaskDetailsDialog({
             });
 
             const response = await TaskApi.submitResponse(
-                selectedAssignment.userId,
+                selectedAssignment.id,
                 formData
             );
 

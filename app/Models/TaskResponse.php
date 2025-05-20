@@ -2,14 +2,12 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 class TaskResponse extends Model
 {
-    use HasUuids;
 
     protected $fillable = [
         'assignment_id',
@@ -34,7 +32,7 @@ class TaskResponse extends Model
 
     public function files(): BelongsToMany
     {
-        return $this->belongsToMany(File::class, 'task_response_files')
+        return $this->belongsToMany(File::class, 'task_response_files', 'response_id', 'file_id')
             ->withTimestamps();
     }
 

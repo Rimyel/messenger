@@ -6,6 +6,7 @@ use App\Models\Task;
 use App\Models\File;
 use App\Models\TaskAssignment;
 use App\Models\TaskResponse;
+use App\Http\Resources\TaskResource;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -36,7 +37,7 @@ class TaskController extends Controller
 
         $tasks = $query->latest()->paginate(10);
 
-        return response()->json($tasks);
+        return TaskResource::collection($tasks);
     }
 
     /**
@@ -68,7 +69,6 @@ class TaskController extends Controller
         ]);
 
         $task = Task::create([
-            'id' => Str::uuid(),
             'company_id' => $company->id,
             'title' => $validated['title'],
             'description' => $validated['description'],
@@ -81,7 +81,6 @@ class TaskController extends Controller
         // Создаем назначения для пользователей
         foreach ($validated['user_ids'] as $userId) {
             TaskAssignment::create([
-                'id' => Str::uuid(),
                 'task_id' => $task->id,
                 'user_id' => $userId,
                 'status' => 'not_started',
@@ -119,9 +118,8 @@ class TaskController extends Controller
             return response()->json(['message' => 'Unauthorized'], 403);
         }
 
-        return response()->json(
-            $task->load(['creator', 'files', 'assignments.user', 'assignments.response.files'])
-        );
+        $task->load(['creator', 'files', 'assignments.user', 'assignments.response.files']);
+        return new TaskResource($task);
     }
 
     /**
@@ -162,7 +160,6 @@ class TaskController extends Controller
         ]);
 
         $response = TaskResponse::create([
-            'id' => Str::uuid(),
             'assignment_id' => $assignment->id,
             'text' => $validated['text'],
             'status' => 'submitted',

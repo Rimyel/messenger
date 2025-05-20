@@ -1,11 +1,16 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import react from '@vitejs/plugin-react';
-import vitePluginRequire from "vite-plugin-require";
+
+
+import path from 'path';
 
 export default defineConfig({
+    publicDir: 'public',
+    build: {
+        assetsInlineLimit: 0,
+    },
     plugins: [
-        vitePluginRequire.default(),
         laravel({
             input: 'resources/js/app.tsx',
             refresh: true,
@@ -16,5 +21,10 @@ export default defineConfig({
         'import.meta.env.VITE_PUSHER_APP_KEY': JSON.stringify(process.env.VITE_PUSHER_APP_KEY),
         'import.meta.env.VITE_PUSHER_APP_CLUSTER': JSON.stringify(process.env.VITE_PUSHER_APP_CLUSTER),
     },
-    
+    resolve: {
+        alias: {
+            '@': '/resources/js',
+            '@storage': '/storage/app/public'
+        }
+    }
 });

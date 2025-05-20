@@ -7,6 +7,19 @@ interface UpdateRoleData {
 
 export const CompanyUserApi = {
   /**
+   * Получение списка пользователей компании текущего пользователя
+   */
+  getCompanyUsers: async () => {
+    try {
+      const response = await api.get('/chats/users')
+      return response.data as CompanyUser[]
+    } catch (error) {
+      console.error('CompanyUserApi.getCompanyUsers error:', error)
+      throw error
+    }
+  },
+
+  /**
    * Выход из компании
    */
   leave: async (companyId: number) => {
@@ -23,13 +36,19 @@ export const CompanyUserApi = {
       data
     )
     return response.data
-  },
-
-  /**
+    },
+    /**
    * Получение списка пользователей компании
    */
   getUsers: async (companyId: number) => {
-    const response = await api.get(`/companies/${companyId}/users`)
-    return response.data as CompanyUser[]
+    console.log('CompanyUserApi.getUsers called with companyId:', companyId)
+    try {
+      const response = await api.get(`/companies/${companyId}/users`)
+      console.log('CompanyUserApi.getUsers response:', response.data)
+      return response.data as CompanyUser[]
+    } catch (error) {
+      console.error('CompanyUserApi.getUsers error:', error)
+      throw error
+    }
   }
 }

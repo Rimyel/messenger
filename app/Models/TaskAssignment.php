@@ -2,20 +2,22 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TaskAssignment extends Model
 {
-    use HasUuids;
 
     protected $fillable = [
         'task_id',
         'user_id',
         'status',
     ];
+
+    protected $hidden = ['updated_at', 'created_at'];
+
+    protected $with = ['user'];
 
     /**
      * Доступные статусы для назначения.

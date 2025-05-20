@@ -5,9 +5,13 @@ import { Maximize2, Minimize2, Pause, Play, Volume2, VolumeX } from "lucide-reac
 
 import { cn } from "@/lib/utils"
 import { Slider } from "@/Components/ui/slider"
-// import video from "../../../../storage/app/public/chat-files/4AS8x3VxDs9KQgnsEClSy3X5AgYqwfPNQpPygu0C.mp4"
-import { load } from 'react-require';
 import { MessageMedia } from "@/types/chat"
+
+const getVideoUrl = (path: string) => {
+  // Получаем публичный URL для файла из storage
+  const publicPath = path.replace('/storage/', '/storage/');
+  return `${publicPath}`;
+}
 
 interface VideoPlayerProps extends React.HTMLAttributes<HTMLDivElement> {
   src: MessageMedia
@@ -147,8 +151,6 @@ export function VideoPlayer({ src, poster, autoPlay = false, muted = false, clas
     }
   }, [isPlaying])
 
-  const videoFile = require(src.link);
-
   return (
     <div
       ref={containerRef}
@@ -165,7 +167,7 @@ export function VideoPlayer({ src, poster, autoPlay = false, muted = false, clas
     >
       <video
         ref={videoRef}
-        src={videoFile}
+        src={getVideoUrl(src.link)}
         poster={poster}
         autoPlay={autoPlay}
         muted={muted}

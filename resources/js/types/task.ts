@@ -20,6 +20,7 @@ export interface TaskResponse {
 }
 
 export interface TaskAssignment {
+  id: string
   userId: string
   userName: string
   userAvatar: string

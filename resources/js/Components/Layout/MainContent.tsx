@@ -5,8 +5,12 @@ import { ArrowLeft } from "lucide-react";
 import type { Chat as ChatType } from "@/types/chat";
 
 // Lazy load components
-const CreateCompanyForm = lazy(() => import("@/Components/Company/CreateCompanyForm"));
-const UserManagement = lazy(() => import("@/Components/Company/UserManagement"));
+const CreateCompanyForm = lazy(
+    () => import("@/Components/Company/CreateCompanyForm")
+);
+const UserManagement = lazy(
+    () => import("@/Components/Company/UserManagement")
+);
 const SearchCompany = lazy(() => import("@/Components/Company/SearchCompany"));
 const CompanyDetails = lazy(
     () => import("@/Components/Company/CompanyDetails")
@@ -16,6 +20,7 @@ const ProfileContent = lazy(
 );
 const ChatComponent = lazy(() => import("@/Components/Chat/Chat"));
 const AdminTasksPage = lazy(() => import("@/Components/Tasks/AdminTasksPage"));
+const UserTasksPage = lazy(() => import("@/Components/Tasks/UserTasksPage"));
 
 interface MainContentProps {
     currentContent: string;
@@ -60,8 +65,13 @@ export const MainContent: React.FC<MainContentProps> = ({
                         </Suspense>
                     );
                 }
-                
-                return <h1>Для управления пользователями необходимо выбрать компанию</h1>;
+
+                return (
+                    <h1>
+                        Для управления пользователями необходимо выбрать
+                        компанию
+                    </h1>
+                );
             case "company":
                 if (currentCompany) {
                     return (
@@ -115,7 +125,7 @@ export const MainContent: React.FC<MainContentProps> = ({
                         <ChatComponent initialChats={chats} />
                     </Suspense>
                 );
-            case "tasks":
+            case "admin-tasks":
                 if (currentCompany) {
                     return (
                         <Suspense fallback={<LoadingSpinner />}>
@@ -123,7 +133,22 @@ export const MainContent: React.FC<MainContentProps> = ({
                         </Suspense>
                     );
                 }
-                return <h1>Для работы с заданиями необходимо выбрать компанию</h1>;
+                return (
+                    <h1>
+                        Для управления заданиями необходимо выбрать компанию
+                    </h1>
+                );
+            case "user-tasks":
+                if (currentCompany) {
+                    return (
+                        <Suspense fallback={<LoadingSpinner />}>
+                            <UserTasksPage />
+                        </Suspense>
+                    );
+                }
+                return (
+                    <h1>Для просмотра заданий необходимо выбрать компанию</h1>
+                );
             default:
                 return <h1>Dashboard Page</h1>;
         }

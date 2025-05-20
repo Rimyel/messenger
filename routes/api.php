@@ -60,12 +60,12 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::patch('/companies/{company}/users/{user}/role', [CompanyUserController::class, 'updateRole']);
         Route::get('/companies/{company}/users', [CompanyController::class, 'users']);
 
-        // Маршруты управления чатами (ChatManagementController)
+        // Маршруты управления чатами 
         Route::get('/chats/users', [ChatManagementController::class, 'getCompanyUsers']);
         Route::post('/chats/private', [ChatManagementController::class, 'createPrivateChat']);
         Route::post('/chats/group', [ChatManagementController::class, 'createGroupChat']);
 
-        // Маршруты для работы с сообщениями (ChatController)
+        // Маршруты для работы с сообщениями 
         Route::get('/chats', [ChatController::class, 'index']);
         Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
         Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
