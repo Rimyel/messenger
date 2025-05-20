@@ -1,9 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/Components/ui/card";
 import { Button } from "@/Components/ui/button";
-import { Loader2, Users, LogOut } from "lucide-react";
-import { Company, User } from "@/types/company";
+import { Input } from "@/Components/ui/input";
+import { Textarea } from "@/Components/ui/textarea";
+import { Loader2, Pencil, Save, X, LogOut, Upload, Camera } from "lucide-react";
+import { Company, CompanyUser } from "@/types/company";
 import { CompanyApi } from "@/services/api";
+import { CompanyUserApi } from "@/services/company-user";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { toast } from "sonner";
 
 interface CompanyDetailsProps {
@@ -11,77 +15,109 @@ interface CompanyDetailsProps {
     handleLeaveCompany: () => void;
 }
 
-const getRoleBadgeStyles = (role: string) => {
-    switch(role) {
-        case 'owner':
-            return 'bg-blue-100 text-blue-700';
-        case 'admin':
-            return 'bg-green-100 text-green-700';
-        default:
-            return 'bg-gray-100 text-gray-700';
-    }
-};
-
-const getRoleDisplayName = (role: string) => {
-    switch(role) {
-        case 'owner':
-            return 'Владелец';
-        case 'admin':
-            return 'Администратор';
-        default:
-            return 'Участник';
-    }
-};
-
-const MembersList: React.FC<{ users: User[] }> = ({ users }) => {
-    return (
-        <div className="mt-6">
-            <h3 className="text-lg font-semibold mb-4 flex items-center">
-                <Users className="w-5 h-5 mr-2" />
-                Участники компании
-            </h3>
-            <div className="space-y-4">
-                {users.map((user) => (
-                    <div
-                        key={user.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
-                    >
-                        <div>
-                            <p className="font-medium">{user.name}</p>
-                            <p className="text-sm text-gray-500">{user.email}</p>
-                        </div>
-                        <span
-                            className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeStyles(user.role)}`}
-                        >
-                            {getRoleDisplayName(user.role)}
-                        </span>
-                    </div>
-                ))}
-            </div>
-        </div>
-    );
-};
-
-const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveCompany }) => {
+const CompanyDetails: React.FC<CompanyDetailsProps> = ({
+    companyId,
+    handleLeaveCompany,
+}) => {
     const [company, setCompany] = useState<Company | null>(null);
+    const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isEditing, setIsEditing] = useState(false);
+    const [editForm, setEditForm] = useState({
+        name: "",
+        description: "",
+    });
+    const [newLogo, setNewLogo] = useState<File | null>(null);
+    const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+    const handleLogoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (file) {
+            setNewLogo(file);
+            const url = URL.createObjectURL(file);
+            setPreviewUrl(url);
+        }
+    };
+
+    // Получаем текущего пользователя из store и определяем его роль
+    const authUser = useAuthStore(state => state.user);
+    const currentUser = companyUsers.find(user => user.id === authUser?.id);
+    const currentUserRole = currentUser?.role;
+    const canEditCompany = ["owner", "admin"].includes(currentUserRole || "");
+    const canLeaveCompany = currentUserRole !== "owner";
+
+    console.log('Auth user:', authUser);
+    console.log('Company users:', companyUsers);
+    console.log('Current user:', currentUser);
+    console.log('Current user role:', currentUserRole);
 
     useEffect(() => {
-        const fetchCompany = async () => {
+        const fetchData = async () => {
             try {
                 setLoading(true);
-                const data = await CompanyApi.get(companyId);
-                setCompany(data);
+                const [companyData, usersData] = await Promise.all([
+                    CompanyApi.get(companyId),
+                    CompanyUserApi.getUsers(companyId)
+                ]);
+                
+                console.log('Company Data:', companyData);
+                console.log('Users Data:', usersData);
+                console.log('Raw users data:', JSON.stringify(usersData, null, 2));
+                
+                setCompany(companyData);
+                setCompanyUsers(usersData);
+                setEditForm({
+                    name: companyData.name,
+                    description: companyData.description,
+                });
             } catch (error: any) {
                 toast.error("Не удалось загрузить информацию о компании");
-                console.error("Ошибка при загрузке компании:", error);
+                console.error("Ошибка при загрузке данных:", error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchCompany();
+        fetchData();
     }, [companyId]);
+
+    const handleSubmit = async () => {
+        if (!company) return;
+
+        try {
+            const formData = new FormData();
+            formData.append("name", editForm.name);
+            formData.append("description", editForm.description);
+            formData.append("_method", "PUT");
+            
+            if (newLogo) {
+                formData.append("logo", newLogo);
+            }
+
+            await CompanyApi.update(companyId, formData);
+            setCompany({
+                ...company,
+                name: editForm.name,
+                description: editForm.description,
+                logo_url: company.logo_url
+            });
+            setIsEditing(false);
+            toast.success("Информация о компании обновлена");
+        } catch (error) {
+            toast.error("Не удалось обновить информацию о компании");
+            console.error("Ошибка при обновлении компании:", error);
+        }
+    };
+
+    const handleCancel = () => {
+        setEditForm({
+            name: company?.name || "",
+            description: company?.description || "",
+        });
+        setIsEditing(false);
+        setNewLogo(null);
+        setPreviewUrl(null);
+    };
 
     if (loading) {
         return (
@@ -103,42 +139,76 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveC
         );
     }
 
-    const currentUserRole = company.users?.find(user => user.id === parseInt(localStorage.getItem('userId') || '0'))?.role;
-    const canLeaveCompany = currentUserRole !== 'owner'; // Владелец не может покинуть компанию
 
     return (
         <Card className="w-full max-w-4xl mx-auto">
             <CardHeader>
                 <div className="flex items-center space-x-4">
-                    {company.logo_url ? (
-                        <img
-                            src={company.logo_url}
-                            alt={company.name}
-                            className="w-24 h-24 rounded-lg object-cover"
-                        />
-                    ) : (
-                        <div className="w-24 h-24 rounded-lg bg-gray-200 flex items-center justify-center">
-                            <span className="text-4xl font-semibold text-gray-500">
-                                {company.name.charAt(0).toUpperCase()}
-                            </span>
+                    <div className="relative group">
+                        <div className={`relative ${isEditing ? 'ring-2 ring-blue-500 ring-offset-2' : ''} rounded-lg`}>
+                            {(previewUrl || company.logo_url) ? (
+                                <img
+                                    src={previewUrl || company.logo_url || ''}
+                                    alt={company.name}
+                                    className="w-24 h-24 rounded-lg object-cover"
+                                />
+                            ) : (
+                                <div className="w-24 h-24 rounded-lg bg-gray-200 flex items-center justify-center">
+                                    <span className="text-4xl font-semibold text-gray-500">
+                                        {company.name.charAt(0).toUpperCase()}
+                                    </span>
+                                </div>
+                            )}
+                            {canEditCompany && isEditing && (
+                                <label
+                                    className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-0 hover:bg-opacity-50 transition-all rounded-lg cursor-pointer group"
+                                >
+                                    <input
+                                        type="file"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleLogoChange}
+                                    />
+                                    <Camera className="h-8 w-8 text-white opacity-0 group-hover:opacity-100 transition-opacity"/>
+                                </label>
+                            )}
                         </div>
-                    )}
+                    </div>
                     <div className="flex-1">
                         <div className="flex items-center justify-between">
-                            <CardTitle className="text-2xl font-bold mb-2">
-                                {company.name}
-                            </CardTitle>
-                            {currentUserRole && (
-                                <span
-                                    className={`px-3 py-1 rounded-full text-sm ${getRoleBadgeStyles(currentUserRole)}`}
+                            {isEditing ? (
+                                <Input
+                                    value={editForm.name}
+                                    onChange={(e) =>
+                                        setEditForm((prev) => ({
+                                            ...prev,
+                                            name: e.target.value,
+                                        }))
+                                    }
+                                    className="text-2xl font-bold"
+                                    placeholder="Название компании"
+                                />
+                            ) : (
+                                <CardTitle className="text-2xl font-bold mb-2 group">
+                                    {company.name}
+                                </CardTitle>
+                            )}
+                            {canEditCompany && !isEditing && (
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    onClick={() => setIsEditing(true)}
+                                    className="opacity-0 group-hover:opacity-100 transition-opacity"
                                 >
-                                    {getRoleDisplayName(currentUserRole)}
-                                </span>
+                                    <Pencil className="h-4 w-4" />
+                                </Button>
                             )}
                         </div>
                         <p className="text-sm text-gray-500">
                             Дата создания:{" "}
-                            {new Date(company.created_at).toLocaleDateString("ru-RU")}
+                            {new Date(company.created_at).toLocaleDateString(
+                                "ru-RU"
+                            )}
                         </p>
                     </div>
                 </div>
@@ -146,17 +216,54 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({ companyId, handleLeaveC
             <CardContent className="p-6">
                 <div className="space-y-6">
                     <div>
-                        <h3 className="text-lg font-semibold mb-2">О компании</h3>
-                        <p className="text-gray-700 whitespace-pre-wrap">
-                            {company.description}
-                        </p>
+                        <h3 className="text-lg font-semibold mb-2">
+                            О компании
+                        </h3>
+                        {isEditing ? (
+                            <Textarea
+                                value={editForm.description}
+                                onChange={(e) =>
+                                    setEditForm((prev) => ({
+                                        ...prev,
+                                        description: e.target.value,
+                                    }))
+                                }
+                                className="min-h-[100px]"
+                                placeholder="Описание компании"
+                            />
+                        ) : (
+                            <div className="flex items-start justify-between gap-2 p-3 rounded-lg bg-gray-50">
+                                <p className="text-gray-700 whitespace-pre-wrap flex-1">
+                                    {company.description || "Описание отсутствует"}
+                                </p>
+                                {canEditCompany && !isEditing && (
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        onClick={() => setIsEditing(true)}
+                                        className="h-8 w-8 hover:bg-gray-200 shrink-0"
+                                    >
+                                        <Pencil className="h-4 w-4 text-gray-500" />
+                                    </Button>
+                                )}
+                            </div>
+                        )}
                     </div>
-                    
-                    {company.users && company.users.length > 0 && (
-                        <MembersList users={company.users} />
+
+                    {isEditing && (
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={handleCancel}>
+                                <X className="h-4 w-4 mr-2" />
+                                Отмена
+                            </Button>
+                            <Button onClick={handleSubmit}>
+                                <Save className="h-4 w-4 mr-2" />
+                                Сохранить
+                            </Button>
+                        </div>
                     )}
 
-                    {canLeaveCompany && (
+                    {canLeaveCompany && !isEditing && (
                         <div className="mt-8">
                             <Button
                                 variant="ghost"

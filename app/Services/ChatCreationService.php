@@ -84,10 +84,10 @@ class ChatCreationService
             'name' => $name,
         ]);
 
-        // Добавляем создателя как владельца
-        $chat->participants()->attach($user->id, ['role' => 'owner']);
+        // Добавляем создателя как creator
+        $chat->participants()->attach($user->id, ['role' => 'creator']);
 
-        // Добавляем остальных участников как обычных членов
+        // Добавляем остальных участников как обычных members
         $participantAttachments = [];
         foreach ($participantIds as $participantId) {
             if ($participantId != $user->id) {
@@ -100,6 +100,109 @@ class ChatCreationService
 
         $chat->load(['lastMessage', 'participants']);
 
+        return $chat;
+    }
+
+    public function addParticipantsToChat($chatId, array $participantIds, $user)
+    {
+        $chat = Chat::with('participants')->findOrFail($chatId);
+
+        // Проверяем, что это групповой чат
+        if ($chat->type !== 'group') {
+            throw new \Exception('Can only add participants to group chats');
+        }
+
+        // Проверяем права доступа
+        $userRole = $chat->participants()->where('user_id', $user->id)->value('role');
+        if (!in_array($userRole, ['creator', 'admin', 'owner'])) {
+            throw new \Exception('Only creators and admins can add participants');
+        }
+
+        // Получаем компанию чата
+        $company = $chat->company;
+
+        // Проверяем и добавляем новых участников
+        $newParticipants = User::whereIn('id', $participantIds)
+            ->whereNotIn('id', $chat->participants->pluck('id'))
+            ->get();
+
+        foreach ($newParticipants as $participant) {
+            if (!$participant->belongsToCompany($company)) {
+                throw new \Exception("User {$participant->name} is from a different company");
+            }
+        }
+
+        // Добавляем новых участников как обычных членов
+        $participantAttachments = [];
+        foreach ($newParticipants as $participant) {
+            $participantAttachments[$participant->id] = ['role' => 'member'];
+        }
+
+        if (!empty($participantAttachments)) {
+            $chat->participants()->attach($participantAttachments);
+        }
+
+        $chat->load(['lastMessage', 'participants']);
+        return $chat;
+    }
+
+    public function removeParticipantFromChat($chatId, $participantId, $user)
+    {
+        $chat = Chat::with('participants')->findOrFail($chatId);
+
+        // Проверяем, что это групповой чат
+        if ($chat->type !== 'group') {
+            throw new \Exception('Can only remove participants from group chats');
+        }
+
+        // Проверяем права доступа
+        $userRole = $chat->participants()->where('user_id', $user->id)->value('role');
+        if (!in_array($userRole, ['creator', 'admin', 'owner'])) {
+            throw new \Exception('Only creators and admins can remove participants');
+        }
+
+        // Нельзя удалить создателя чата
+        $participantRole = $chat->participants()->where('user_id', $participantId)->value('role');
+        if ($participantRole === 'creator' || $participantRole === 'owner') {
+            throw new \Exception('Cannot remove chat creator');
+        }
+
+        // Если админ пытается удалить админа
+        if ($userRole === 'admin' && $participantRole === 'admin') {
+            throw new \Exception('Admins cannot remove other admins');
+        }
+
+        $chat->participants()->detach($participantId);
+        
+        $chat->load(['lastMessage', 'participants']);
+        return $chat;
+    }
+
+    public function updateParticipantRole($chatId, $participantId, $newRole, $user)
+    {
+        $chat = Chat::with('participants')->findOrFail($chatId);
+
+        // Проверяем, что это групповой чат
+        if ($chat->type !== 'group') {
+            throw new \Exception('Can only update roles in group chats');
+        }
+
+        // Проверяем права доступа
+        $userRole = $chat->participants()->where('user_id', $user->id)->value('role');
+        if (!in_array($userRole, ['creator', 'owner'])) {
+            throw new \Exception('Only creator can change roles');
+        }
+
+        // Нельзя изменить роль создателя
+        $participantRole = $chat->participants()->where('user_id', $participantId)->value('role');
+        if ($participantRole === 'creator' || $participantRole === 'owner') {
+            throw new \Exception('Cannot change creator\'s role');
+        }
+
+        // Обновляем роль
+        $chat->participants()->updateExistingPivot($participantId, ['role' => $newRole]);
+        
+        $chat->load(['lastMessage', 'participants']);
         return $chat;
     }
 }

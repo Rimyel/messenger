@@ -70,4 +70,62 @@ class ChatManagementController extends Controller
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
+
+    public function addParticipants(Request $request, $chatId): JsonResponse
+    {
+        try {
+            $request->validate([
+                'participantIds' => 'required|array|min:1',
+                'participantIds.*' => 'exists:users,id',
+            ]);
+
+            $user = Auth::user();
+            $chat = $this->chatCreationService->addParticipantsToChat(
+                $chatId,
+                $request->participantIds,
+                $user
+            );
+
+            return response()->json(new ChatResource($chat));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function removeParticipant(Request $request, $chatId, $participantId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $chat = $this->chatCreationService->removeParticipantFromChat(
+                $chatId,
+                $participantId,
+                $user
+            );
+
+            return response()->json(new ChatResource($chat));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
+
+    public function updateParticipantRole(Request $request, $chatId, $participantId): JsonResponse
+    {
+        try {
+            $request->validate([
+                'role' => 'required|string|in:admin,member',
+            ]);
+
+            $user = Auth::user();
+            $chat = $this->chatCreationService->updateParticipantRole(
+                $chatId,
+                $participantId,
+                $request->role,
+                $user
+            );
+
+            return response()->json(new ChatResource($chat));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
+    }
 }

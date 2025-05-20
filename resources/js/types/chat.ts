@@ -8,7 +8,7 @@ export interface MessageMedia {
     name_file: string;
     mime_type: string;
     size: number;
-    path: string
+    path?: string; // Опциональное поле, так как при отправке файла путь еще не известен
 }
 
 export interface ChatMessage {
@@ -29,10 +29,13 @@ export interface ChatMessage {
     mediaType?: MediaType;
 }
 
+export type ChatRole = 'creator' | 'owner' | 'admin' | 'member';
+
 export interface ChatParticipant {
     id: number;
     name: string;
     avatar?: string;
+    role: ChatRole;
 }
 
 export interface Chat {
@@ -47,6 +50,22 @@ export interface Chat {
 export interface CreateGroupChatData {
     name: string;
     participantIds: number[];
+}
+
+export interface UpdateGroupChatParticipantsData {
+    chatId: number;
+    participantIds: number[];
+}
+
+export interface RemoveGroupChatParticipantData {
+    chatId: number;
+    participantId: number;
+}
+
+export interface UpdateParticipantRoleData {
+    chatId: number;
+    participantId: number;
+    role: ChatRole;
 }
 
 export interface CreatePrivateChatData {

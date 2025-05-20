@@ -1,11 +1,10 @@
-"use client";
-
 import { type FC, useState, useEffect } from "react";
+import { Head } from "@inertiajs/react";
 import { chatService } from "@/services/chat";
-import ChatSidebar from "./ChatSidebar";
-import ChatMessages from "./ChatMessages";
-import ChatInput from "./ChatInput";
-import ChatHeader from "./ChatHeader";
+import ChatSidebar from "@/Components/Chat/ChatSidebar";
+import ChatMessages from "@/Components/Chat/ChatMessages";
+import ChatInput from "@/Components/Chat/ChatInput";
+import ChatHeader from "@/Components/Chat/ChatHeader";
 import type { ChatMessage, Chat, ChatParticipant } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
 import { AuthService } from "@/services/auth";
@@ -14,12 +13,13 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { Sheet, SheetContent, SheetTrigger } from "@/Components/ui/sheet";
 import { Button } from "@/Components/ui/button";
 import { Menu } from "lucide-react";
+import MainLayout from "@/layouts/MainLayout";
 
 interface Props {
     initialChats?: Chat[];
 }
 
-const ChatComponent: FC<Props> = ({ initialChats }) => {
+const ChatPage: FC<Props> = ({ initialChats }) => {
     const [selectedChat, setSelectedChat] = useState<Chat | undefined>();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
@@ -45,8 +45,6 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             return;
         }
     }, []);
-
-    console.log(user);
 
     useEffect(() => {
         if (user) {
@@ -123,32 +121,25 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         search?: string
     ) => {
         try {
-            const {
-                messages: newMessages,
-                hasMore,
-                nextCursor,
-            } = await chatService.getMessages(chatId, {
-                limit: 20,
-                cursor,
-                search,
-            });
+            const { messages: newMessages, hasMore, nextCursor } = 
+                await chatService.getMessages(chatId, {
+                    limit: 20,
+                    cursor,
+                    search,
+                });
 
             setMessages((prev) => {
                 let updatedMessages;
                 if (!cursor) {
                     updatedMessages = newMessages;
                 } else {
-                    const newMessageIds = new Set(
-                        newMessages.map((msg) => msg.id)
-                    );
+                    const newMessageIds = new Set(newMessages.map((msg) => msg.id));
                     const filteredPrev = prev.filter(
                         (msg) => !newMessageIds.has(msg.id)
                     );
                     updatedMessages = [...filteredPrev, ...newMessages];
                 }
-                return updatedMessages.sort(
-                    (a, b) => Number(b.id) - Number(a.id)
-                );
+                return updatedMessages.sort((a, b) => Number(b.id) - Number(a.id));
             });
             setHasMore(hasMore);
             setNextCursor(nextCursor);
@@ -181,8 +172,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                                   ...media,
                                   link: media.link.startsWith("blob:")
                                       ? tempMessage.media?.find(
-                                            (m) =>
-                                                m.name_file === media.name_file
+                                            (m) => m.name_file === media.name_file
                                         )?.link || media.link
                                       : media.link,
                               })),
@@ -206,10 +196,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     };
 
     const handleSendMessage = async (content: string, files?: File[]) => {
-        if (
-            !selectedChat?.id ||
-            (!content.trim() && (!files || files.length === 0))
-        )
+        if (!selectedChat?.id || (!content.trim() && (!files || files.length === 0)))
             return;
 
         const tempMessage: ChatMessage = {
@@ -238,9 +225,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         try {
             await chatService.sendMessage(selectedChat.id, content, files);
         } catch (error) {
-            setMessages((prev) =>
-                prev.filter((msg) => msg.id !== tempMessage.id)
-            );
+            setMessages((prev) => prev.filter((msg) => msg.id !== tempMessage.id));
             console.error("Error sending message:", error);
         }
     };
@@ -253,9 +238,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             const newChat = await chatService.createPrivateChat({ userId });
 
             setChats((prev) => {
-                const existingChatIndex = prev.findIndex(
-                    (c) => c?.id === newChat?.id
-                );
+                const existingChatIndex = prev.findIndex((c) => c?.id === newChat?.id);
                 if (existingChatIndex !== -1) {
                     const updatedChats = [...prev];
                     updatedChats[existingChatIndex] = newChat;
@@ -268,18 +251,13 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             setSelectedChat(newChat);
         } catch (error: any) {
             console.error("Error creating private chat:", error);
-            alert(
-                error.response?.data?.error || "Failed to create private chat"
-            );
+            alert(error.response?.data?.error || "Failed to create private chat");
         } finally {
             setIsLoading(false);
         }
     };
 
-    const handleCreateGroupChat = async (
-        name: string,
-        participantIds: number[]
-    ) => {
+    const handleCreateGroupChat = async (name: string, participantIds: number[]) => {
         if (!name || !participantIds.length) return;
 
         setIsLoading(true);
@@ -302,7 +280,6 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         id: user?.id || 0,
         name: user?.name || "",
         avatar: user?.avatar || "",
-        role: 'member', // Роль будет обновляться при получении данных чата
     };
 
     const chatSidebar = (
@@ -316,7 +293,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         />
     );
 
-    return (
+    const content = (
         <div className="flex h-full bg-background relative">
             {isLoading && (
                 <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50 backdrop-blur-sm">
@@ -350,27 +327,18 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                         chat={selectedChat}
                         isSearchMode={isSearchMode}
                         searchQuery={searchQuery}
-                        onUpdateChat={(updatedChat) => {
-                            setChats(prevChats =>
-                                prevChats.map(chat =>
-                                    chat.id === updatedChat.id ? updatedChat : chat
-                                )
-                            );
-                            setSelectedChat(updatedChat);
-                        }}
                         onSearchQueryChange={async (query) => {
                             setSearchQuery(query);
                             setIsLoading(true);
                             try {
                                 if (query.trim()) {
-                                    const result =
-                                        await chatService.getMessages(
-                                            selectedChat.id,
-                                            {
-                                                limit: 50,
-                                                search: query,
-                                            }
-                                        );
+                                    const result = await chatService.getMessages(
+                                        selectedChat.id,
+                                        {
+                                            limit: 50,
+                                            search: query,
+                                        }
+                                    );
                                     setHasMore(result.hasMore);
                                     setNextCursor(result.nextCursor);
                                     setMessages(result.messages);
@@ -378,10 +346,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                                     await loadMessages(selectedChat.id);
                                 }
                             } catch (error) {
-                                console.error(
-                                    "Error searching messages:",
-                                    error
-                                );
+                                console.error("Error searching messages:", error);
                             } finally {
                                 setIsLoading(false);
                             }
@@ -403,24 +368,21 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                                 if (!isLoadingMore && hasMore && nextCursor) {
                                     setIsLoadingMore(true);
                                     try {
-                                        const result =
-                                            await chatService.getMessages(
-                                                selectedChat.id,
-                                                {
-                                                    limit: 50,
-                                                    cursor: nextCursor,
-                                                    search: searchQuery,
-                                                }
-                                            );
+                                        const result = await chatService.getMessages(
+                                            selectedChat.id,
+                                            {
+                                                limit: 50,
+                                                cursor: nextCursor,
+                                                search: searchQuery,
+                                            }
+                                        );
                                         setMessages((prev) => {
                                             const combinedMessages = [
                                                 ...prev,
                                                 ...result.messages,
                                             ];
-                                            // Sort by ID in reverse order (highest to lowest)
                                             return combinedMessages.sort(
-                                                (a, b) =>
-                                                    Number(b.id) - Number(a.id)
+                                                (a, b) => Number(b.id) - Number(a.id)
                                             );
                                         });
                                         setHasMore(result.hasMore);
@@ -434,17 +396,10 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                                         setIsLoadingMore(false);
                                     }
                                 }
-                            } else if (
-                                !isLoadingMore &&
-                                hasMore &&
-                                nextCursor
-                            ) {
+                            } else if (!isLoadingMore && hasMore && nextCursor) {
                                 setIsLoadingMore(true);
                                 try {
-                                    await loadMessages(
-                                        selectedChat.id,
-                                        nextCursor
-                                    );
+                                    await loadMessages(selectedChat.id, nextCursor);
                                 } finally {
                                     setIsLoadingMore(false);
                                 }
@@ -469,6 +424,15 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
             )}
         </div>
     );
+
+    return (
+        <>
+            <Head title="Чаты" />
+            <MainLayout>
+                {content}
+            </MainLayout>
+        </>
+    );
 };
 
-export default ChatComponent;
+export default ChatPage;

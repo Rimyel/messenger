@@ -72,5 +72,10 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
         Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
         Route::post('/chats/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
+
+        // Маршруты для управления участниками группового чата
+        Route::post('/chats/{chat}/participants', [ChatManagementController::class, 'addParticipants']);
+        Route::delete('/chats/{chat}/participants/{participant}', [ChatManagementController::class, 'removeParticipant']);
+        Route::put('/chats/{chat}/participants/{participant}/role', [ChatManagementController::class, 'updateParticipantRole']);
     });
 });

@@ -7,6 +7,7 @@ import type {
     ChatParticipant,
     MessagesResponse,
     GetMessagesParams,
+    ChatRole,
 } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
 import api from "./api";
@@ -193,6 +194,38 @@ class ChatService {
             return response.data;
         } catch (error) {
             console.error("Error fetching company users:", error);
+            throw error;
+        }
+    }
+
+    async addParticipants(chatId: number, participantIds: number[]): Promise<Chat> {
+        try {
+            const response = await api.post(`/chats/${chatId}/participants`, {
+                participantIds
+            });
+            return response.data;
+        } catch (error) {
+            console.error("Error adding participants:", error);
+            throw error;
+        }
+    }
+
+    async removeParticipant(chatId: number, participantId: number): Promise<void> {
+        try {
+            await api.delete(`/chats/${chatId}/participants/${participantId}`);
+        } catch (error) {
+            console.error("Error removing participant:", error);
+            throw error;
+        }
+    }
+
+    async updateParticipantRole(chatId: number, participantId: number, role: ChatRole): Promise<void> {
+        try {
+            await api.put(`/chats/${chatId}/participants/${participantId}/role`, {
+                role
+            });
+        } catch (error) {
+            console.error("Error updating participant role:", error);
             throw error;
         }
     }
