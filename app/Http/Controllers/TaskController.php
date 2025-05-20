@@ -16,6 +16,32 @@ class TaskController extends Controller
     /**
      * Получить список заданий для текущего пользователя или компании.
      */
+    /**
+     * Получить список назначенных пользователю заданий
+     */
+    public function userTasks(Request $request)
+    {
+        $user = $request->user();
+        $company = $user->companies()->first();
+        
+        if (!$company) {
+            return response()->json(['message' => 'User does not belong to any company'], 403);
+        }
+
+        // Получаем только задания, где пользователь является исполнителем
+        $query = Task::with(['creator', 'files', 'assignments.user', 'assignments.response.files'])
+            ->where('company_id', $company->id)
+            ->whereHas('assignments', function ($q) use ($user) {
+                $q->where('user_id', $user->id);
+            });
+
+        $tasks = $query->latest()->paginate(10);
+        return TaskResource::collection($tasks);
+    }
+
+    /**
+     * Получить список всех заданий компании (для администраторов)
+     */
     public function index(Request $request)
     {
         $user = $request->user();
@@ -25,15 +51,15 @@ class TaskController extends Controller
             return response()->json(['message' => 'User does not belong to any company'], 403);
         }
 
-        $query = Task::with(['creator', 'files', 'assignments.user', 'assignments.response.files'])
-            ->where('company_id', $company->id);
-
-        // Если пользователь не может управлять компанией, показываем только его задания
+        // Проверяем права на управление
         if (!$user->canManageCompany($company)) {
-            $query->whereHas('assignments', function ($q) use ($request) {
-                $q->where('user_id', $request->user()->id);
-            });
+            return response()->json(['message' => 'Unauthorized'], 403);
         }
+
+        // Получаем задания, созданные текущим пользователем
+        $query = Task::with(['creator', 'files', 'assignments.user', 'assignments.response.files'])
+            ->where('company_id', $company->id)
+            ->where('created_by', $user->id);
 
         $tasks = $query->latest()->paginate(10);
 
@@ -91,7 +117,7 @@ class TaskController extends Controller
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $uploadedFile) {
                 $path = $uploadedFile->store('tasks');
-                
+
                 $file = File::create([
                     'id' => Str::uuid(),
                     'name' => $uploadedFile->getClientOriginalName(),
@@ -169,7 +195,7 @@ class TaskController extends Controller
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $uploadedFile) {
                 $path = $uploadedFile->store('task-responses');
-                
+
                 $file = File::create([
                     'id' => Str::uuid(),
                     'name' => $uploadedFile->getClientOriginalName(),
@@ -184,6 +210,64 @@ class TaskController extends Controller
         }
 
         $assignment->update(['status' => 'submitted']);
+
+        return response()->json($response->load('files'));
+    }
+
+    /**
+     * Обновить существующий ответ на задание.
+     */
+    public function updateResponse(Request $request, TaskResponse $response)
+    {
+        // Проверяем, что пользователь является автором ответа
+        if ($response->assignment->user_id !== $request->user()->id) {
+            return response()->json(['message' => 'Unauthorized не ваш ответ, либо не видим кто ты'], 403);
+        }
+
+        // Проверяем, что ответ можно редактировать
+        if ($response->status === 'approved') {
+            return response()->json(['message' => 'Ответ нельзя отредактировать блин'], 403);
+        }
+
+        $validated = $request->validate([
+            'text' => 'required|string',
+            'files' => 'array',
+            'files.*' => 'file|max:10240',
+            'existing_files' => 'array',
+            'existing_files.*' => 'exists:files,id'
+        ]);
+
+        $response->update([
+            'text' => $validated['text'],
+            'status' => 'submitted'
+        ]);
+
+        // Обновляем связи с существующими файлами
+        $response->files()->detach();
+        if (isset($validated['existing_files'])) {
+            $response->files()->attach($validated['existing_files']);
+        }
+
+        // Сохраняем новые файлы
+        if ($request->hasFile('files')) {
+            foreach ($request->file('files') as $uploadedFile) {
+                $path = $uploadedFile->store('task-responses');
+
+                $file = File::create([
+                    'id' => Str::uuid(),
+                    'name' => $uploadedFile->getClientOriginalName(),
+                    'path' => $path,
+                    'type' => $uploadedFile->getClientOriginalExtension(),
+                    'mime_type' => $uploadedFile->getMimeType(),
+                    'size' => $uploadedFile->getSize(),
+                ]);
+
+                $response->files()->attach($file->id);
+            }
+        }
+
+        // Обновляем статус назначения
+        $response->assignment->update(['status' => 'submitted']);
 
         return response()->json($response->load('files'));
     }

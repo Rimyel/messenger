@@ -3,10 +3,18 @@ import type { Task, TaskAssignment, TaskResponse } from "@/types/task"
 
 export const TaskApi = {
   /**
-   * Получить список задач
+   * Получить список всех задач (для администраторов)
    */
   list: async () => {
     const { data } = await api.get("/tasks")
+    return data
+  },
+
+  /**
+   * Получить список заданий пользователя
+   */
+  listUserTasks: async () => {
+    const { data } = await api.get("/tasks/my")
     return data
   },
 
@@ -57,6 +65,17 @@ export const TaskApi = {
     const { data } = await api.patch(`/tasks/responses/${responseId}/review`, {
       status,
       revision_comment,
+    })
+    return data
+  },
+  /**
+   * Обновить существующий ответ на задачу
+   */
+  updateResponse: async (responseId: string, formData: FormData) => {
+    const { data } = await api.post(`/tasks/responses/${responseId}/update`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
     })
     return data
   },

@@ -36,11 +36,13 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::get('/auth/me', [ApiAuthController::class, 'me'])->name('api.me');
 
         // Маршруты для работы с заданиями
-        Route::get('/tasks', [TaskController::class, 'index']);
+        Route::get('/tasks/my', [TaskController::class, 'userTasks']); // Мои задания
+        Route::get('/tasks', [TaskController::class, 'index']); // Управление заданиями (для админов)
         Route::post('/tasks', [TaskController::class, 'store']);
         Route::get('/tasks/{task}', [TaskController::class, 'show']);
         Route::patch('/tasks/{task}/status', [TaskController::class, 'updateStatus']);
         Route::post('/tasks/assignments/{assignment}/response', [TaskController::class, 'submitResponse']);
+        Route::post('/tasks/responses/{response}/update', [TaskController::class, 'updateResponse']);
         Route::patch('/tasks/responses/{response}/review', [TaskController::class, 'reviewResponse']);
 
         // Маршруты для работы с компаниями
