@@ -15,29 +15,25 @@ class ChatMessageService
 {
     public function sendMessage(Chat $chat, Request $request, $user)
     {
-        // Логируем время до создания
-        $timeBeforeCreate = now()->utc()->format('Y-m-d H:i:s');
-        Log::info('Time before create:', ['time' => $timeBeforeCreate]);
 
         $message = Message::create([
             'chat_id' => $chat->id,
             'sender_id' => $user->id,
             'content' => $request->content ?? '',
             'sent_at' => now()->utc()->format('Y-m-d H:i:s'),
-            'status' => 'sent' // Initial status is 'sent' (one checkmark)
+            'status' => 'sent' 
         ]);
-
-        // Логируем время сразу после создания
-        Log::info('Message after create:', [
-            'id' => $message->id,
-            'sent_at' => $message->sent_at,
-            'sent_at_raw' => $message->getOriginal('sent_at'),
-            'timezone' => date_default_timezone_get()
-        ]);
-
+   
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $file) {
-                $path = $file->store('chat-files', 'public');
+                // Определяем тип файла
+                $fileType = $this->getFileType($file->getMimeType());
+                
+                // Выбираем директорию в зависимости от типа файла
+                $directory = $fileType === 'video' ? 'video' : 'chat-files';
+                
+                // Сохраняем файл
+                $path = $file->store($directory, 'public');
 
                 // Создаем файл
                 $fileModel = File::create([
@@ -54,12 +50,6 @@ class ChatMessageService
         }
 
         $message->load('files');
-
-        Log::info("Отправляем событие MessageSent для чата:", [
-            'chat_id' => $chat->id,
-            'message_id' => $message->id,
-            'sender_id' => $user->id
-        ]);
 
         broadcast(new MessageSent($message));
         Log::info("Событие MessageSent отправлено", ['event' => MessageSent::class]);
