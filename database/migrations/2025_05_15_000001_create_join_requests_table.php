@@ -22,7 +22,7 @@ return new class extends Migration
             $table->timestamp('rejected_at')->nullable();
             $table->timestamps();
 
-            // Пользователь может иметь только один активный запрос на вступление в конкретную компанию
+       
             $table->unique(['user_id', 'company_id', 'status']);
         });
     }

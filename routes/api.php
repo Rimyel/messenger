@@ -6,6 +6,7 @@ use App\Http\Controllers\ChatController;
 use App\Http\Controllers\ChatManagementController;
 use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\CompanyUserController;
+use App\Http\Controllers\MediaController;
 use App\Http\Controllers\TaskController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -32,7 +33,7 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
     // Защищенные маршруты API
     Route::middleware('auth:sanctum')->group(function () {
         // Маршруты аутентификации
-        Route::post('/auth/logout', [ApiAuthController::class, 'logout'])->name('api.logout');
+        // Route::post('/auth/logout', [ApiAuthController::class, 'logout'])->name('api.logout');
         Route::get('/auth/me', [ApiAuthController::class, 'me'])->name('api.me');
 
         // Маршруты для работы с заданиями
@@ -53,8 +54,7 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
 
         // Маршруты для запросов на вступление
-        Route::get('/companies/{company}/join-requests', [JoinRequestController::class, 'index']);
-        Route::post('/companies/{company}/join-requests', [JoinRequestController::class, 'store']);
+        Route::get('/companies/{company}/join-requests', [JoinRequestController::class, 'index']);Route::post('/companies/{company}/join-requests', [JoinRequestController::class, 'store']);
         Route::patch('/companies/{company}/join-requests/{joinRequest}', [JoinRequestController::class, 'update']);
 
         // Маршруты для управления участниками компании
@@ -72,6 +72,9 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
         Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
         Route::post('/chats/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
+
+        // Маршрут для стриминга медиафайлов
+        
 
         // Маршруты для управления участниками группового чата
         Route::post('/chats/{chat}/participants', [ChatManagementController::class, 'addParticipants']);

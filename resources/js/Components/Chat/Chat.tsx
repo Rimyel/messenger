@@ -46,7 +46,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
         }
     }, []);
 
-    console.log(user);
+
 
     useEffect(() => {
         if (user) {

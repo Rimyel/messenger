@@ -40,8 +40,12 @@ class AuthenticatedSessionController extends Controller
                 return response()->json(['message' => 'Ошибка аутентификации'], 401);
             }
 
+            // Отзываем старые токены (если есть)
+            $request->user()->tokens()->delete();
+
             // Создаем новый токен
-            $token = $request->user()->createToken('API Token')->plainTextToken;
+            $tokenResult = $request->user()->createToken('API Token');
+            $token = $tokenResult->plainTextToken;
 
             // Проверяем, что токен создан
             if (!$token) {
@@ -53,6 +57,7 @@ class AuthenticatedSessionController extends Controller
             $request->session()->regenerate();
             $request->session()->put('api_token', $token);
 
+            Log::info('Токен успешно создан для пользователя ID: ' . $request->user()->id);
             return redirect()->route('dashboard');
         } catch (\Exception $e) {
             Log::error('Ошибка при создании токена: ' . $e->getMessage());
@@ -71,22 +76,32 @@ class AuthenticatedSessionController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
-        Auth::guard('web')->logout();
-
-        $request->session()->invalidate();
-
-        $request->session()->regenerateToken();
-
+        
         try {
-            // Sanctum: отозвать токен текущего пользователя
-            if ($request->user()) {
-                $request->user()->currentAccessToken()->delete();
+            // Sanctum: отзыв токена только если пользователь существует и имеет активный токен
+            if ($request->user() && $request->user()->currentAccessToken()) {
+                try {
+                    $request->user()->currentAccessToken()->delete();
+                    Log::info('Токен успешно отозван для пользователя ID: ' . $request->user()->id);
+                } catch (\Exception $e) {
+                    Log::info('Не удалось отозвать токен: ' . $e->getMessage());
+                    // Продолжаем процесс выхода даже если не удалось удалить токен
+                }
             }
 
+            // Выход из web-сессии
+            Auth::guard('web')->logout();
+            
+            // Инвалидация и регенерация сессии
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            
+            Log::info('Пользователь успешно вышел из системы');
+            return redirect('/');
+            
         } catch (\Exception $e) {
-            \Log::error("Ошибка выхода: " . $e->getMessage());
-        };
-
-        return redirect('/');
+            Log::error('Критическая ошибка при выходе: ' . $e->getMessage());
+            throw $e; // Пробрасываем критические ошибки для обработки глобальным обработчиком
+        }
     }
 }

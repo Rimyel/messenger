@@ -32,7 +32,6 @@ class Chat extends Model
             ->withPivot('role')
             ->withTimestamps();
     }
-
     /**
      * Сообщения в чате.
      */

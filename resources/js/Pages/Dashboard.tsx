@@ -109,7 +109,7 @@ const Dashboard: React.FC = () => {
 
             useAuthStore.getState().clearAuth();
 
-            window.location.href = "/";
+
         } catch (error) {
             console.error("Ошибка при выходе:", error);
             toast.error("Произошла ошибка при выходе из системы");

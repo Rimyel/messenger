@@ -85,7 +85,7 @@ class ChatCreationService
         ]);
 
         // Добавляем создателя как creator
-        $chat->participants()->attach($user->id, ['role' => 'creator']);
+        $chat->participants()->attach($user->id, ['role' => 'owner']);
 
         // Добавляем остальных участников как обычных members
         $participantAttachments = [];
@@ -114,8 +114,8 @@ class ChatCreationService
 
         // Проверяем права доступа
         $userRole = $chat->participants()->where('user_id', $user->id)->value('role');
-        if (!in_array($userRole, ['creator', 'admin', 'owner'])) {
-            throw new \Exception('Only creators and admins can add participants');
+        if (!in_array($userRole, ['member', 'admin', 'owner'])) {
+            throw new \Exception('Only owner and admins can add participants');
         }
 
         // Получаем компанию чата
@@ -157,14 +157,14 @@ class ChatCreationService
 
         // Проверяем права доступа
         $userRole = $chat->participants()->where('user_id', $user->id)->value('role');
-        if (!in_array($userRole, ['creator', 'admin', 'owner'])) {
-            throw new \Exception('Only creators and admins can remove participants');
+        if (!in_array($userRole, ['member', 'admin', 'owner'])) {
+            throw new \Exception('Only owner and admins can remove participants');
         }
 
         // Нельзя удалить создателя чата
         $participantRole = $chat->participants()->where('user_id', $participantId)->value('role');
-        if ($participantRole === 'creator' || $participantRole === 'owner') {
-            throw new \Exception('Cannot remove chat creator');
+        if ($participantRole === 'owner' || $participantRole === 'owner') {
+            throw new \Exception('Cannot remove chat owner');
         }
 
         // Если админ пытается удалить админа
@@ -189,13 +189,13 @@ class ChatCreationService
 
         // Проверяем права доступа
         $userRole = $chat->participants()->where('user_id', $user->id)->value('role');
-        if (!in_array($userRole, ['creator', 'owner'])) {
-            throw new \Exception('Only creator can change roles');
+        if (!in_array($userRole, ['admin', 'owner'])) {
+            throw new \Exception('Only owner can change roles');
         }
 
         // Нельзя изменить роль создателя
         $participantRole = $chat->participants()->where('user_id', $participantId)->value('role');
-        if ($participantRole === 'creator' || $participantRole === 'owner') {
+        if ($participantRole === 'owner' || $participantRole === 'owner') {
             throw new \Exception('Cannot change creator\'s role');
         }
 

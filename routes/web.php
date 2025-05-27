@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\{ProfileController, MainController, ChatController};
 use App\Http\Controllers\CompanyController;
+use App\Http\Controllers\MediaController;
 use Illuminate\Foundation\Application;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
@@ -27,6 +28,9 @@ Route::get('/', function () {
     ]);
 });
 
+
+Route::get('/video/{filename}', [MediaController::class, 'streamVideo'])->name('video.stream');
+
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [MainController::class, 'index'])->name('dashboard');
 
@@ -36,25 +40,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::post('/email/verification-notification', [ProfileController::class, 'sendVerificationNotification'])
         ->name('verification.send');
 
-    // Company routes
-    Route::prefix('api')->group(function () {
-        Route::get('/companies', [CompanyController::class, 'index']);
-        Route::post('/companies', [CompanyController::class, 'store']);
-        Route::get('/companies/{company}', [CompanyController::class, 'show']);
-        Route::post('/companies/{company}', [CompanyController::class, 'update']);
-        Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
-        Route::post('/companies/{company}/join', [CompanyController::class, 'join']);
-        Route::post('/companies/{company}/leave', [CompanyController::class, 'leave']);
-    });
 
-    // Chat routes
-    Route::prefix('api/chats')->group(function () {
-        Route::get('/', [ChatController::class, 'index']);
-        Route::get('/{chat}/messages', [ChatController::class, 'messages']);
-        Route::post('/{chat}/messages', [ChatController::class, 'sendMessage']);
-        Route::post('/{chat}/messages/{message}/delivered', [ChatController::class, 'markMessageDelivered']);
-        Route::post('/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
-    });
 });
 
 Broadcast::routes(['middleware' => ['web', 'auth:sanctum']]);

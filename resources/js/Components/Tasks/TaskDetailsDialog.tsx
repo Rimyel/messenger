@@ -100,31 +100,24 @@ export function TaskDetailsDialog({
                 return;
             }
         }
-
         if (!currentAssignment) return;
-
         setIsSubmitting(true);
         try {
             const formData = new FormData();
             formData.append("text", responseText);
-            
             existingFiles.forEach(file => {
                 formData.append("existing_files[]", file.id);
             });
-            
             uploadedFiles.forEach((file) => {
                 formData.append("files[]", file);
             });
-
             let response;
             const existingResponse = currentAssignment.response;
-            
             if (existingResponse && existingResponse.status !== "approved") {
                 response = await TaskApi.updateResponse(existingResponse.id, formData);
             } else {
                 response = await TaskApi.submitResponse(currentAssignment.id, formData);
             }
-
             const responseData = {
                 id: response.id,
                 text: responseText,
@@ -144,13 +137,11 @@ export function TaskDetailsDialog({
                     } as TaskFile)),
                 ] as TaskFile[],
             };
-
             const updatedAssignment: TaskAssignment = {
                 ...currentAssignment,
                 status: currentAssignment.response ? currentAssignment.status : "submitted",
                 response: responseData,
             };
-
             const updatedTask: Task = {
                 ...task,
                 assignments: task.assignments.map((assignment) =>
@@ -159,7 +150,6 @@ export function TaskDetailsDialog({
                         : assignment
                 ),
             };
-
             onUpdateTask(updatedTask);
             setIsResponseDialogOpen(false);
             toast.success(currentAssignment.response ? "Изменения сохранены" : "Ответ успешно отправлен");
