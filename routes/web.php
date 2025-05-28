@@ -1,6 +1,6 @@
 <?php
 
-use App\Http\Controllers\{ProfileController, MainController, ChatController};
+use App\Http\Controllers\{ProfileController, MainController, ChatController, TaskReportController};
 use App\Http\Controllers\CompanyController;
 use App\Http\Controllers\MediaController;
 use Illuminate\Foundation\Application;
@@ -29,10 +29,14 @@ Route::get('/', function () {
 });
 
 
-Route::get('/video/{filename}', [MediaController::class, 'streamVideo'])->name('video.stream');
+Route::get('/storage/chat-files/{filename}', [MediaController::class, 'serveFile'])->name('file.serve');
 
+Route::get('/video/{filename}', [MediaController::class, 'streamVideo'])->name('video.stream');
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/dashboard', [MainController::class, 'index'])->name('dashboard');
+
+    // Tasks report route
+  
 
     // Profile routes
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');

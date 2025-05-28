@@ -48,6 +48,7 @@ const GroupChatInfo: FC<Props> = ({
     const [availableUsers, setAvailableUsers] = useState<ChatParticipant[]>([]);
     const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
     const [isAddingLoading, setIsAddingLoading] = useState(false);
+    const [localParticipants, setLocalParticipants] = useState(chat.participants || []);
     const initialParticipantsCount = 10;
     const loadMoreCount = 20;
 
@@ -57,6 +58,16 @@ const GroupChatInfo: FC<Props> = ({
         if (selectedUsers.length === 0) return;
 
         setIsAddingLoading(true);
+        
+        // Находим выбранных пользователей из доступных
+        const selectedParticipants = availableUsers.filter(user => selectedUsers.includes(user.id));
+        
+        // Обновляем локальное состояние
+        setLocalParticipants(prev => [...prev, ...selectedParticipants]);
+        
+        // Удаляем выбранных пользователей из списка доступных
+        setAvailableUsers(prev => prev.filter(user => !selectedUsers.includes(user.id)));
+
         try {
             const updatedChat = await chatService.addParticipants(
                 chat.id,
@@ -67,6 +78,9 @@ const GroupChatInfo: FC<Props> = ({
             setIsAddingParticipants(false);
         } catch (error) {
             console.error("Error adding participants:", error);
+            // Откатываем изменения при ошибке
+            setLocalParticipants(chat.participants || []);
+            setAvailableUsers(prev => [...prev, ...selectedParticipants]);
         } finally {
             setIsAddingLoading(false);
         }
@@ -89,7 +103,7 @@ const GroupChatInfo: FC<Props> = ({
             setAvailableUsers(
                 users.filter(
                     (user) =>
-                        !chat.participants?.some(
+                        !localParticipants.some(
                             (participant) => participant.id === user.id
                         )
                 )
@@ -98,20 +112,36 @@ const GroupChatInfo: FC<Props> = ({
         } catch (error) {
             console.error("Error fetching users:", error);
         }
-    }, [chat.participants]);
+    }, [localParticipants]);
 
     const handleRemoveParticipant = async (participantId: number) => {
+        // Находим удаляемого участника для добавления в доступные пользователи
+        const removedParticipant = localParticipants.find(p => p.id === participantId);
+        
+        // Сначала обновляем локально
+        const updatedParticipants = localParticipants.filter(
+            (p) => p.id !== participantId
+        );
+        setLocalParticipants(updatedParticipants);
+
+        // Добавляем удаленного участника в список доступных пользователей
+        if (removedParticipant) {
+            setAvailableUsers(prev => [...prev, removedParticipant]);
+        }
+
         try {
             await chatService.removeParticipant(chat.id, participantId);
-            const updatedParticipants = chat.participants?.filter(
-                (p) => p.id !== participantId
-            );
             onUpdateChat?.({
                 ...chat,
                 participants: updatedParticipants,
             });
         } catch (error) {
             console.error("Error removing participant:", error);
+            // Возвращаем предыдущее состояние при ошибке
+            setLocalParticipants(chat.participants || []);
+            if (removedParticipant) {
+                setAvailableUsers(prev => prev.filter(u => u.id !== removedParticipant.id));
+            }
         }
     };
 
@@ -119,14 +149,17 @@ const GroupChatInfo: FC<Props> = ({
         participantId: number,
         newRole: ChatRole
     ) => {
+        // Сначала обновляем локально
+        const updatedParticipants = localParticipants.map((p) =>
+            p.id === participantId ? { ...p, role: newRole } : p
+        );
+        setLocalParticipants(updatedParticipants);
+
         try {
             await chatService.updateParticipantRole(
                 chat.id,
                 participantId,
                 newRole
-            );
-            const updatedParticipants = chat.participants?.map((p) =>
-                p.id === participantId ? { ...p, role: newRole } : p
             );
             onUpdateChat?.({
                 ...chat,
@@ -134,6 +167,8 @@ const GroupChatInfo: FC<Props> = ({
             });
         } catch (error) {
             console.error("Error updating role:", error);
+            // Возвращаем предыдущее состояние при ошибке
+            setLocalParticipants(chat.participants || []);
         }
     };
 
@@ -180,7 +215,7 @@ const GroupChatInfo: FC<Props> = ({
 
                     <ScrollArea className="h-[300px] pr-4">
                         <div className="space-y-4">
-                            {displayedParticipants?.map((participant) => (
+                            {(showAllParticipants ? localParticipants : localParticipants.slice(0, initialParticipantsCount))?.map((participant) => (
                                 <div key={participant.id} className="flex items-center gap-3">
                                     <Avatar className="h-8 w-8">
                                         <AvatarImage src={participant.avatar} />

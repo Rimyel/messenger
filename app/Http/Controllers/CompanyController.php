@@ -199,7 +199,7 @@ class CompanyController extends Controller
         }
 
         $users = $company->users()
-            ->select('users.id', 'users.name', 'users.email', 'users.avatar', 'company_users.role')
+            ->select('users.id', 'users.name', 'users.email', 'users.avatar', 'company_users.role', 'company_users.created_at')
             ->get()
             ->map(function($user) {
                 return [
@@ -207,7 +207,8 @@ class CompanyController extends Controller
                     'name' => $user->name,
                     'email' => $user->email,
                     'avatar' => $user->avatar,
-                    'role' => $user->role
+                    'role' => $user->role,
+                    'created_at' => $user->created_at
                 ];
             });
 

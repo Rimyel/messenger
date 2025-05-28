@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { CalendarIcon, FileText, Plus, Search, Users } from "lucide-react"
+import { CalendarIcon, Download, FileText, Plus, Search, Users } from "lucide-react"
 
 import { Badge } from "@/Components/ui/badge"
 import { Button } from "@/Components/ui/button"
@@ -142,10 +142,24 @@ export default function AdminTasksPage() {
     <div className="container mx-auto py-6">
       <div className="mb-6 flex items-center justify-between">
         <h1 className="text-3xl font-bold">Задания</h1>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Создать задание
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" onClick={async () => {
+            try {
+              await TaskApi.exportToExcel()
+              toast.success("Отчет успешно скачан")
+            } catch (error) {
+              console.error("Failed to export tasks:", error)
+              toast.error("Не удалось скачать отчет")
+            }
+          }}>
+            <Download className="mr-2 h-4 w-4" />
+            Экспорт в Excel
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="mr-2 h-4 w-4" />
+            Создать задание
+          </Button>
+        </div>
       </div>
 
       <Tabs defaultValue="all" className="w-full">

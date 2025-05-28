@@ -31,13 +31,22 @@ const LoadingSpinner = () => (
 );
 
 const Dashboard: React.FC = () => {
-    const { token, setToken, clearAuth } = useAuthStore();
+    const { token, setToken, clearAuth, user } = useAuthStore();
     const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
     const [currentContent, setCurrentContent] = useState<string>("dashboard");
     const [isCreatingCompany, setIsCreatingCompany] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
+    const [selectedChat, setSelectedChat] = useState<Chat | undefined>();
+    const [chatSidebarOpen, setChatSidebarOpen] = useState(false);
 
     const { apiToken, userId, status, chats } = usePage().props as Props;
+
+    const currentUser = user ? {
+        id: user.id,
+        name: user.name,
+        avatar: user.avatar,
+        role: 'member'
+    } : null;
 
     useEffect(() => {
         if (apiToken) {
@@ -137,7 +146,15 @@ const Dashboard: React.FC = () => {
 
                 <div className="flex-1 flex flex-col w-full">
                     <Suspense fallback={<LoadingSpinner />}>
-                        <Navbar currentContent={currentContent} />
+                        <Navbar
+                            currentContent={currentContent}
+                            selectedChat={selectedChat}
+                            onSelectChat={setSelectedChat}
+                            chatSidebarOpen={chatSidebarOpen}
+                            onChatSidebarOpenChange={setChatSidebarOpen}
+                            chats={chats}
+                            setCurrentContent={setCurrentContent}
+                        />
                     </Suspense>
 
                     <Suspense fallback={<LoadingSpinner />}>
@@ -149,6 +166,10 @@ const Dashboard: React.FC = () => {
                             isLoading={isLoading}
                             status={status}
                             chats={chats}
+                            selectedChat={selectedChat}
+                            onSelectChat={setSelectedChat}
+                            chatSidebarOpen={chatSidebarOpen}
+                            onChatSidebarOpenChange={setChatSidebarOpen}
                             handleLogout={handleLogout}
                             handleLeaveCompany={handleLeaveCompany}
                         />

@@ -124,7 +124,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
     };
 
     return (
-        <aside className="w-[320px] border-r h-full flex flex-col bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <aside className="w-[320px] max-w-[320px] border-r h-full flex flex-col bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
             <div className="p-4 border-b flex items-center gap-2">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -144,14 +144,16 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                 </Button>
             </div>
             <ScrollArea className="flex-1">
-                <div className="flex flex-col py-2">
+                <div className="flex flex-col py-2 max-w-[320px] overflow-x-hidden">
                     {filteredChats?.map((chat) => {
                         const isSelected = selectedChat?.id === chat?.id;
                         const lastMessageDate = chat?.lastMessage?.sent_at
-                            ? new Date(chat.lastMessage.sent_at).toLocaleTimeString('ru-RU', {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                                hour12: false
+                            ? new Date(
+                                  chat.lastMessage.sent_at
+                              ).toLocaleTimeString("ru-RU", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  hour12: false,
                               })
                             : null;
 
@@ -162,7 +164,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
                                 className={cn(
                                     "flex items-center p-3 gap-3 hover:bg-accent transition-colors relative",
                                     "focus:outline-none focus:bg-accent",
-                                    "mx-2 rounded-lg",
+                                    "mx-2 rounded-lg w-[304px]",
                                     isSelected && "bg-accent"
                                 )}
                             >

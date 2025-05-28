@@ -45,6 +45,8 @@ export const CompanyUserApi = {
     try {
       const response = await api.get(`/companies/${companyId}/users`)
       console.log('CompanyUserApi.getUsers response:', response.data)
+      // Добавляем логирование конкретного поля created_at
+      console.log('Sample user created_at:', response.data[0]?.created_at)
       return response.data as CompanyUser[]
     } catch (error) {
       console.error('CompanyUserApi.getUsers error:', error)

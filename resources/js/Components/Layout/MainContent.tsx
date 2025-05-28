@@ -1,4 +1,5 @@
 import React, { Suspense, lazy } from "react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { Company } from "@/types/company";
 import { Button } from "@/Components/ui/button";
 import { ArrowLeft } from "lucide-react";
@@ -30,6 +31,10 @@ interface MainContentProps {
     isLoading: boolean;
     status?: string;
     chats?: ChatType[];
+    selectedChat?: ChatType;
+    onSelectChat?: (chat: ChatType) => void;
+    chatSidebarOpen?: boolean;
+    onChatSidebarOpenChange?: (open: boolean) => void;
     handleLogout: () => void;
     handleLeaveCompany: () => void;
 }
@@ -48,6 +53,10 @@ export const MainContent: React.FC<MainContentProps> = ({
     isLoading,
     status,
     chats,
+    selectedChat,
+    onSelectChat,
+    chatSidebarOpen,
+    onChatSidebarOpenChange,
     handleLogout,
     handleLeaveCompany,
 }) => {
@@ -122,7 +131,13 @@ export const MainContent: React.FC<MainContentProps> = ({
             case "chat":
                 return (
                     <Suspense fallback={<LoadingSpinner />}>
-                        <ChatComponent initialChats={chats} />
+                        <ChatComponent
+                            initialChats={chats}
+                            selectedChat={selectedChat}
+                            onSelectChat={onSelectChat}
+                            sidebarOpen={chatSidebarOpen}
+                            onSidebarOpenChange={onChatSidebarOpenChange}
+                        />
                     </Suspense>
                 );
             case "admin-tasks":
@@ -154,8 +169,10 @@ export const MainContent: React.FC<MainContentProps> = ({
         }
     };
 
+    const isMobile = useIsMobile();
+
     return (
-        <main className="flex-1 w-full overflow-auto p-6">
+        <main className={`flex-1 w-full overflow-auto ${isMobile ? '' : 'p-6'}`}>
             {renderContent()}
         </main>
     );

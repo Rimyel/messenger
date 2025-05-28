@@ -8,10 +8,12 @@ use App\Http\Controllers\JoinRequestController;
 use App\Http\Controllers\CompanyUserController;
 use App\Http\Controllers\MediaController;
 use App\Http\Controllers\TaskController;
+use App\Http\Controllers\TaskReportController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Broadcast;
 use App\Http\Middleware\AuthenticateByToken;
+
 
 Route::middleware([AuthenticateByToken::class])->group(function () {
     // Тестовый маршрут для проверки аутентификации
@@ -37,6 +39,7 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::get('/auth/me', [ApiAuthController::class, 'me'])->name('api.me');
 
         // Маршруты для работы с заданиями
+        Route::get('/tasks/export', [TaskReportController::class, 'exportToExcel']); // Экспорт в Excel
         Route::get('/tasks/my', [TaskController::class, 'userTasks']); // Мои задания
         Route::get('/tasks', [TaskController::class, 'index']); // Управление заданиями (для админов)
         Route::post('/tasks', [TaskController::class, 'store']);
@@ -46,7 +49,7 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::post('/tasks/responses/{response}/update', [TaskController::class, 'updateResponse']);
         Route::patch('/tasks/responses/{response}/review', [TaskController::class, 'reviewResponse']);
 
-        // Маршруты для работы с компаниями
+        // Маршруты для работы с компаниЯями
         Route::get('/companies', [CompanyController::class, 'index']);
         Route::post('/companies', [CompanyController::class, 'store']);
         Route::get('/companies/{company}', [CompanyController::class, 'show']);
@@ -72,9 +75,6 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::get('/chats/{chatId}/messages', [ChatController::class, 'messages']);
         Route::post('/chats/{chat}/messages', [ChatController::class, 'sendMessage']);
         Route::post('/chats/{chat}/messages/{message}/read', [ChatController::class, 'markMessageRead']);
-
-        // Маршрут для стриминга медиафайлов
-        
 
         // Маршруты для управления участниками группового чата
         Route::post('/chats/{chat}/participants', [ChatManagementController::class, 'addParticipants']);

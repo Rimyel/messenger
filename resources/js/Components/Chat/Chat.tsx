@@ -17,10 +17,20 @@ import { Menu } from "lucide-react";
 
 interface Props {
     initialChats?: Chat[];
+    selectedChat?: Chat;
+    onSelectChat?: (chat: Chat) => void;
+    sidebarOpen?: boolean;
+    onSidebarOpenChange?: (open: boolean) => void;
 }
 
-const ChatComponent: FC<Props> = ({ initialChats }) => {
-    const [selectedChat, setSelectedChat] = useState<Chat | undefined>();
+const ChatComponent: FC<Props> = ({
+    initialChats,
+    selectedChat: externalSelectedChat,
+    onSelectChat: externalOnSelectChat,
+    sidebarOpen: externalSidebarOpen,
+    onSidebarOpenChange: externalOnSidebarOpenChange
+}) => {
+    const [localSelectedChat, setLocalSelectedChat] = useState<Chat | undefined>();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
     const [isLoading, setIsLoading] = useState(false);
@@ -31,7 +41,12 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
     const [nextCursor, setNextCursor] = useState<string>();
     const { user, token } = useAuthStore((state) => state);
     const isMobile = useIsMobile();
-    const [sidebarOpen, setSidebarOpen] = useState(!isMobile);
+    const [localSidebarOpen, setLocalSidebarOpen] = useState(!isMobile);
+
+    const selectedChat = externalSelectedChat ?? localSelectedChat;
+    const setSelectedChat = externalOnSelectChat ?? setLocalSelectedChat;
+    const sidebarOpen = externalSidebarOpen ?? localSidebarOpen;
+    const setSidebarOpen = externalOnSidebarOpenChange ?? setLocalSidebarOpen;
 
     useEffect(() => {
         if (!isMobile) {
@@ -324,25 +339,7 @@ const ChatComponent: FC<Props> = ({ initialChats }) => {
                 </div>
             )}
 
-            {isMobile ? (
-                <Sheet open={sidebarOpen} onOpenChange={setSidebarOpen}>
-                    <SheetTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="absolute left-4 top-4 z-30 md:hidden"
-                        >
-                            <Menu className="h-5 w-5" />
-                            <span className="sr-only">Toggle Sidebar</span>
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="p-0 w-[320px]">
-                        {chatSidebar}
-                    </SheetContent>
-                </Sheet>
-            ) : (
-                chatSidebar
-            )}
+            {!isMobile && chatSidebar}
 
             {selectedChat ? (
                 <div className="flex-1 flex flex-col h-full">

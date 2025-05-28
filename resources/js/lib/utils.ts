@@ -5,13 +5,27 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: string | Date): string {
-  const dateObj = date instanceof Date ? date : new Date(date);
-  return dateObj.toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  })
+export function formatDate(date: string | Date | null): string {
+  if (!date) return '-';
+  
+  try {
+    const dateObj = date instanceof Date ? date : new Date(date);
+    
+    // Проверка на валидность даты
+    if (isNaN(dateObj.getTime())) {
+      console.error('Invalid date:', date);
+      return '-';
+    }
+    
+    return dateObj.toLocaleDateString('ru-RU', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric'
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return '-';
+  }
 }
 
 export function formatFileSize(bytes: number): string {
