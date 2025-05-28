@@ -3,6 +3,7 @@ import { Textarea } from "@/Components/ui/textarea";
 import { Button } from "@/Components/ui/button";
 import { Send, Paperclip, Smile, X, Music } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 import {
     Tooltip,
     TooltipContent,
@@ -68,6 +69,11 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
         
+        if (selectedFiles.length + files.length > 10) {
+            toast.error('Нельзя прикрепить более 10 файлов к одному сообщению');
+            return;
+        }
+
         const newPreviews = files.map(file => ({
             file,
             preview: URL.createObjectURL(file)

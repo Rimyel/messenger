@@ -174,19 +174,18 @@ export function CreateTaskDialog({
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+            <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-4 sm:p-6">
                 <DialogHeader>
-                    <DialogTitle>Создание нового задания</DialogTitle>
-                    <DialogDescription>
-                        Заполните форму для создания нового задания. Вы можете
-                        назначить задание одному или нескольким пользователям.
+                    <DialogTitle className="text-xl sm:text-2xl">Создание задания</DialogTitle>
+                    <DialogDescription className="text-sm sm:text-base">
+                        Заполните необходимые поля для создания нового задания
                     </DialogDescription>
                 </DialogHeader>
 
                 <Form {...form}>
                     <form
                         onSubmit={form.handleSubmit(onSubmit)}
-                        className="space-y-4"
+                        className="space-y-4 mt-4"
                     >
                         <div className="grid gap-4 py-4">
                             <FormField
@@ -224,7 +223,7 @@ export function CreateTaskDialog({
                                 )}
                             />
 
-                            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <div className="flex flex-col gap-4">
                                 <FormField
                                     control={form.control}
                                     name="startDate"
@@ -257,7 +256,8 @@ export function CreateTaskDialog({
                                                 </PopoverTrigger>
                                                 <PopoverContent
                                                     className="w-auto p-0"
-                                                    align="start"
+                                                    align="center"
+                                                    side="bottom"
                                                 >
                                                     <Calendar
                                                         mode="single"
@@ -319,7 +319,8 @@ export function CreateTaskDialog({
                                                 </PopoverTrigger>
                                                 <PopoverContent
                                                     className="w-auto p-0"
-                                                    align="start"
+                                                    align="center"
+                                                    side="bottom"
                                                 >
                                                     <Calendar
                                                         mode="single"
@@ -360,9 +361,9 @@ export function CreateTaskDialog({
                                     />
                                     <label
                                         htmlFor="file-upload"
-                                        className="cursor-pointer"
+                                        className="cursor-pointer w-full sm:w-auto"
                                     >
-                                        <div className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background hover:bg-accent hover:text-accent-foreground">
+                                        <div className="flex h-10 items-center justify-center rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background hover:bg-accent hover:text-accent-foreground w-full sm:w-auto">
                                             <Upload className="mr-2 h-4 w-4" />
                                             Загрузить файлы
                                         </div>
@@ -427,7 +428,7 @@ export function CreateTaskDialog({
                             />
                         </div>
 
-                        <DialogFooter>
+                        <DialogFooter className="flex flex-col-reverse sm:flex-row gap-2 sm:gap-0 mt-6">
                             <Button
                                 type="button"
                                 variant="outline"

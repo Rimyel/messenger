@@ -8,6 +8,8 @@ import { VideoPlayer } from "./VideoPlayer";
 import { toZonedTime, format } from "date-fns-tz";
 import { ru } from "date-fns/locale/ru";
 import { cn } from "@/lib/utils";
+import PhotoGroup from "./PhotoGroup";
+
 interface Props {
     message: ChatMessage;
     isOwn: boolean;
@@ -62,36 +64,27 @@ const MessageStatusIcon = ({
 };
 
 const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
-    const { content, sender, sent_at, status, media } = message;    
+    const { content, sender, sent_at, status, media } = message;
 
     const renderMediaPreview = (media: MessageMedia[]) => {
+        // Разделяем медиа на изображения и другие файлы
+        const images = media.filter((file) => file.type === "image");
+        const otherFiles = media.filter((file) => file.type !== "image");
+
         return (
             <div className="space-y-2 mb-2">
-                {media.map((file, index) => {
-                    if (file.type === "image") {
-                        return (
-                            <div
-                                key={index}
-                                className="rounded-lg overflow-hidden"
-                            >
-                                <img
-                                    src={file.link}
-                                    alt={file.name_file}
-                                    className="max-h-[200px] w-full object-cover"
-                                />
-                            </div>
-                        );
-                    }
+                {/* Отображаем группу изображений, если они есть */}
+                {images.length > 0 && (
+                    <PhotoGroup
+                        photos={images.map((img) => ({
+                            url: img.link,
+                            id: img.id || Math.random(),
+                        }))}
+                    />
+                )}
 
-                    const getIcon = () => {
-                        switch (file.type) {
-                            case "video":
-                                return <Video className="h-5 w-5" />;
-                            default:
-                                return <FileText className="h-5 w-5" />;
-                        }
-                    };
-
+                {/* Отображаем остальные файлы */}
+                {otherFiles.map((file, index) => {
                     if (file.type === "audio") {
                         return (
                             <AudioPlayer
@@ -140,6 +133,15 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
                             </div>
                         );
                     }
+
+                    const getIcon = () => {
+                        switch (file.type) {
+                            case "video":
+                                return <Video className="h-5 w-5" />;
+                            default:
+                                return <FileText className="h-5 w-5" />;
+                        }
+                    };
 
                     return (
                         <a
@@ -203,7 +205,7 @@ const MessageBubble: FC<Props> = ({ message, isOwn, searchQuery }) => {
         >
             <div
                 className={clsx(
-                    "rounded-2xl px-3 py-2 max-w-[320px] text-sm shadow-sm",
+                    "rounded-2xl px-3 py-2 max-w-[80%] text-sm shadow-sm",
                     {
                         "bg-primary text-primary-foreground": isOwn,
                         "bg-muted/50 text-foreground": !isOwn,

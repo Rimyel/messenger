@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { CalendarIcon, FileText } from "lucide-react";
+import { CalendarIcon, FileText, ChevronRight } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
@@ -130,9 +131,12 @@ export function UserTasksPage() {
     };
 
     // Компонент карточки задания
-    const TaskCard = ({ task }: { task: Task }) => (
-        <Card key={task.id} className="overflow-hidden">
-            <CardHeader className="pb-2">
+    const TaskCard = ({ task }: { task: Task }) => {
+        const isMobile = useIsMobile();
+        
+        return (
+            <Card key={task.id} className="overflow-hidden">
+            <CardHeader className={`pb-2 ${isMobile ? 'px-4' : ''}`}>
                 <div className="flex items-start justify-between">
                     <h3 className="line-clamp-2 text-lg font-medium">
                         {task.title}
@@ -146,7 +150,7 @@ export function UserTasksPage() {
                     </Badge>
                 </div>
             </CardHeader>
-            <CardContent className="pb-2">
+            <CardContent className={`pb-2 ${isMobile ? 'px-4' : ''}`}>
                 <p className="line-clamp-2 text-sm text-muted-foreground">
                     {task.description}
                 </p>
@@ -165,7 +169,7 @@ export function UserTasksPage() {
                     </div>
                 )}
             </CardContent>
-            <CardFooter className="flex items-center justify-end gap-2 pt-2">
+            <CardFooter className={`flex items-center justify-end gap-2 pt-2 ${isMobile ? 'px-4' : ''}`}>
                 <Button
                     variant="outline"
                     size="sm"
@@ -174,11 +178,19 @@ export function UserTasksPage() {
                         setIsDetailsDialogOpen(true);
                     }}
                 >
-                    Просмотреть
+                    {isMobile ? (
+                        <div className="flex items-center">
+                            Далее
+                            <ChevronRight className="ml-1 h-4 w-4" />
+                        </div>
+                    ) : (
+                        "Просмотреть"
+                    )}
                 </Button>
             </CardFooter>
-        </Card>
-    );
+            </Card>
+        );
+    };
 
     if (isLoading) {
         return (
@@ -215,24 +227,24 @@ export function UserTasksPage() {
     }
 
     return (
-        <div className="container mx-auto py-6">
-            <div className="mb-6">
-                <h1 className="text-3xl font-bold">Мои задания</h1>
-                <p className="mt-2 text-muted-foreground">
+        <div className="container mx-auto py-4 sm:py-6">
+            <div className="mb-4 sm:mb-6 px-4 sm:px-0">
+                <h1 className="text-2xl sm:text-3xl font-bold">Мои задания</h1>
+                <p className="mt-1 sm:mt-2 text-sm sm:text-base text-muted-foreground">
                     Список заданий, назначенных вам
                 </p>
             </div>
 
             <Tabs defaultValue="all" className="w-full">
-                <TabsList>
-                    <TabsTrigger value="all">Все задания</TabsTrigger>
-                    <TabsTrigger value="active">Активные</TabsTrigger>
-                    <TabsTrigger value="completed">Завершенные</TabsTrigger>
-                    <TabsTrigger value="revision">На доработке</TabsTrigger>
+                <TabsList className="overflow-x-auto w-full flex no-scrollbar">
+                    <TabsTrigger value="all" className="flex-shrink-0">Все задания</TabsTrigger>
+                    <TabsTrigger value="active" className="flex-shrink-0">Активные</TabsTrigger>
+                    <TabsTrigger value="completed" className="flex-shrink-0">Завершенные</TabsTrigger>
+                    <TabsTrigger value="revision" className="flex-shrink-0">На доработке</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="all" className="mt-6">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                         {Array.isArray(tasks) && tasks.length > 0 ? (
                             tasks.map((task) => (
                                 <TaskCard key={task.id} task={task} />
@@ -254,7 +266,7 @@ export function UserTasksPage() {
                 </TabsContent>
 
                 <TabsContent value="active" className="mt-6">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                         {tasks
                             .filter((task) => {
                                 const status = getUserTaskStatus(task);
@@ -270,7 +282,7 @@ export function UserTasksPage() {
                 </TabsContent>
 
                 <TabsContent value="completed" className="mt-6">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                         {tasks
                             .filter((task) => {
                                 const status = getUserTaskStatus(task);
@@ -285,7 +297,7 @@ export function UserTasksPage() {
                 </TabsContent>
 
                 <TabsContent value="revision" className="mt-6">
-                    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
                         {tasks
                             .filter((task) => {
                                 const status = getUserTaskStatus(task);
@@ -304,7 +316,7 @@ export function UserTasksPage() {
                 <TaskDetailsDialog
                     open={isDetailsDialogOpen}
                     onOpenChange={setIsDetailsDialogOpen}
-                    task={selectedTask}
+                    task={selectedTask as Task}
                     isUserTaskView={true}
                     onUpdateTask={async (updatedTask) => {
                         // Перезагружаем все задания для получения актуальных данных

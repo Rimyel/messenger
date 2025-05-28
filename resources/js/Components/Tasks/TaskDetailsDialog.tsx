@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Button } from "@/Components/ui/button";
+import { ChevronRight } from "lucide-react";
 import { Badge } from "@/Components/ui/badge";
 import {
     Dialog,
@@ -43,6 +45,7 @@ export function TaskDetailsDialog({
     onUpdateTask,
     isUserTaskView = false,
 }: TaskDetailsDialogProps) {
+    const isMobile = useIsMobile();
     const { user } = useAuthStore();
     const [selectedAssignment, setSelectedAssignment] = useState<TaskAssignment | null>(null);
     const [isResponseDialogOpen, setIsResponseDialogOpen] = useState(false);
@@ -228,7 +231,10 @@ export function TaskDetailsDialog({
     return (
         <>
             <Dialog open={open} onOpenChange={onOpenChange}>
-                <DialogContent className="max-h-[90vh] max-w-4xl overflow-y-auto">
+                <DialogContent className={`
+                    ${isMobile ? 'w-screen h-screen max-w-none p-4' : 'max-h-[90vh] max-w-4xl p-6'}
+                    overflow-y-auto
+                `}>
                     <TaskDetailsContent task={task} />
 
                     {isUserTaskView ? (
@@ -255,15 +261,24 @@ export function TaskDetailsDialog({
 
                             <TabsContent value="assignments" className="mt-4">
                                 <div className="rounded-md border">
-                                    <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-4 font-medium">
-                                        <div>Исполнитель</div>
-                                        <div>Статус</div>
-                                        <div></div>
-                                    </div>
-                                    <Separator />
+                                    {!isMobile && (
+                                        <>
+                                            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-4 font-medium">
+                                                <div>Исполнитель</div>
+                                                <div>Статус</div>
+                                                <div></div>
+                                            </div>
+                                            <Separator />
+                                        </>
+                                    )}
                                     {task.assignments.map((assignment) => (
                                         <div key={assignment.userId}>
-                                            <div className="grid grid-cols-[1fr_auto_auto] items-center gap-4 p-4">
+                                            <div className={`
+                                                ${isMobile
+                                                    ? 'flex flex-col gap-3 p-3'
+                                                    : 'grid grid-cols-[1fr_auto_auto] items-center gap-4 p-4'
+                                                }
+                                            `}>
                                                 <div className="flex items-center gap-3">
                                                     <img
                                                         src={assignment.userAvatar || "/placeholder.svg"}
@@ -284,18 +299,25 @@ export function TaskDetailsDialog({
                                                     {getStatusIcon(assignment.status)}
                                                     {getStatusText(assignment.status)}
                                                 </Badge>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => {
-                                                        setSelectedAssignment(assignment);
-                                                        setIsResponseDialogOpen(true);
-                                                    }}
-                                                >
-                                                    {assignment.status === "not_started"
-                                                        ? "Детали"
-                                                        : "Просмотреть ответ"}
-                                                </Button>
+                                                <div className="flex justify-end">
+                                                    <Button
+                                                        variant="outline"
+                                                        size="sm"
+                                                        onClick={() => {
+                                                            setSelectedAssignment(assignment);
+                                                            setIsResponseDialogOpen(true);
+                                                        }}
+                                                    >
+                                                        {isMobile ? (
+                                                            <div className="flex items-center">
+                                                                {assignment.status === "not_started" ? "Детали" : "Просмотр"}
+                                                                <ChevronRight className="ml-1 h-4 w-4" />
+                                                            </div>
+                                                        ) : (
+                                                            assignment.status === "not_started" ? "Детали" : "Просмотреть ответ"
+                                                        )}
+                                                    </Button>
+                                                </div>
                                             </div>
                                             <Separator />
                                         </div>
@@ -315,7 +337,10 @@ export function TaskDetailsDialog({
 
             {selectedAssignment && (
                 <Dialog open={isResponseDialogOpen} onOpenChange={setIsResponseDialogOpen}>
-                    <DialogContent className="max-h-[90vh] max-w-3xl overflow-y-auto">
+                    <DialogContent className={`
+                        ${isMobile ? 'w-screen h-screen max-w-none p-4' : 'max-h-[90vh] max-w-3xl p-6'}
+                        overflow-y-auto
+                    `}>
                         <DialogHeader>
                             <DialogTitle>
                                 Ответ пользователя: {selectedAssignment.userName}

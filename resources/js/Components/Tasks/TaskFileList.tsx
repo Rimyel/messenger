@@ -1,5 +1,6 @@
 import { Button } from "@/Components/ui/button";
 import { FileText, Download, X } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 import type { TaskFile } from "@/types/task";
 
 interface TaskFileListProps {
@@ -17,23 +18,24 @@ const formatFileSize = (bytes: number): string => {
     return `${Number.parseFloat((bytes / Math.pow(k, i)).toFixed(2))} ${sizes[i]}`;
 };
 
-export function TaskFileList({ 
-    files, 
+export function TaskFileList({
+    files,
     onRemove,
     showDownload = true,
-    showRemove = false 
+    showRemove = false
 }: TaskFileListProps) {
+    const isMobile = useIsMobile();
     return (
         <div className="space-y-2">
             {files.map((file) => (
                 <div
                     key={file.id}
-                    className="flex items-center justify-between rounded-md border p-2"
+                    className="flex items-center justify-between rounded-md border p-2 sm:p-3"
                 >
                     <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4" />
                         <div>
-                            <div className="text-sm font-medium">
+                            <div className="text-xs sm:text-sm font-medium line-clamp-1">
                                 {file.name}
                             </div>
                             {file.size && (
@@ -49,8 +51,8 @@ export function TaskFileList({
                                 variant="ghost"
                                 size="sm"
                             >
-                                <Download className="mr-2 h-4 w-4" />
-                                Скачать
+                                <Download className={`h-4 w-4 ${!isMobile && 'mr-2'}`} />
+                                {!isMobile && 'Скачать'}
                             </Button>
                         )}
                         {showRemove && onRemove && (

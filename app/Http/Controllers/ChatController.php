@@ -55,7 +55,7 @@ class ChatController extends Controller
         try {
             $request->validate([
                 'content' => 'required_without:files|string|nullable',
-                'files' => 'required_without:content|array|nullable',
+                'files' => 'required_without:content|array|nullable|max:10', // Максимум 10 файлов
                 'files.*' => 'required|file|max:10240', // Max 10MB per file
             ]);
 
