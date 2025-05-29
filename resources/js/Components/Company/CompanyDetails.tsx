@@ -46,10 +46,7 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({
     const canEditCompany = ["owner", "admin"].includes(currentUserRole || "");
     const canLeaveCompany = currentUserRole !== "owner";
 
-    console.log('Auth user:', authUser);
-    console.log('Company users:', companyUsers);
-    console.log('Current user:', currentUser);
-    console.log('Current user role:', currentUserRole);
+
 
     useEffect(() => {
         const fetchData = async () => {
@@ -60,9 +57,7 @@ const CompanyDetails: React.FC<CompanyDetailsProps> = ({
                     CompanyUserApi.getUsers(companyId)
                 ]);
                 
-                console.log('Company Data:', companyData);
-                console.log('Users Data:', usersData);
-                console.log('Raw users data:', JSON.stringify(usersData, null, 2));
+
                 
                 setCompany(companyData);
                 setCompanyUsers(usersData);

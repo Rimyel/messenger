@@ -16,6 +16,21 @@ class Chat extends Model
     ];
 
     /**
+     * Scope для фильтрации чатов по текущей компании пользователя
+     */
+    public function scopeForUser($query, User $user)
+    {
+        $userCompanyIds = $user->companies()->pluck('companies.id');
+        return $query->where(function($query) use ($userCompanyIds) {
+            $query->where('type', 'private')
+                  ->orWhere(function($q) use ($userCompanyIds) {
+                      $q->where('type', 'group')
+                        ->whereIn('chats.company_id', $userCompanyIds);
+                  });
+        });
+    }
+
+    /**
      * Компания, которой принадлежит чат.
      */
     public function company(): BelongsTo
@@ -69,6 +84,16 @@ class Chat extends Model
      */
     public function hasUser(User $user): bool
     {
+        // Для личных чатов проверяем только участие в чате
+        if ($this->type === 'private') {
+            return $this->participants()->where('users.id', $user->id)->exists();
+        }
+
+        // Для групповых чатов проверяем членство в компании и участие в чате
+        if (!$this->company->users()->where('user_id', $user->id)->exists()) {
+            return false;
+        }
+        
         return $this->participants()->where('users.id', $user->id)->exists();
     }
 

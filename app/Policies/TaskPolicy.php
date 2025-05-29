@@ -18,6 +18,11 @@ class TaskPolicy
         // Получаем компанию задания
         $company = $task->company;
 
+        // Проверяем, является ли пользователь членом компании
+        if (!$company->users()->where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
         // Администратор или владелец компании может просматривать все задания компании
         if ($user->canManageCompany($company)) {
             return true;

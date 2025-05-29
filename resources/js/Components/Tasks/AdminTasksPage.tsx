@@ -11,6 +11,8 @@ import {
     ChevronRight,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { format } from "date-fns";
+import { ru } from "date-fns/locale";
 
 import { Badge } from "@/Components/ui/badge";
 import { Button } from "@/Components/ui/button";
@@ -25,7 +27,6 @@ import { Progress } from "@/Components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/Components/ui/tabs";
 import { CreateTaskDialog } from "@/Components/Tasks/CreateTaskDialog";
 import { TaskDetailsDialog } from "@/Components/Tasks/TaskDetailsDialog";
-import { formatDate } from "@/lib/utils";
 import type { Task } from "@/types/task";
 import { TaskApi } from "@/services/task";
 import { toast } from "sonner";
@@ -38,6 +39,17 @@ export default function AdminTasksPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+
+    // Функция форматирования даты
+    const formatTaskDate = (date: string | null): string => {
+        if (!date) return '-';
+        try {
+            return format(new Date(date), 'dd.MM.yyyy', { locale: ru });
+        } catch (error) {
+            console.error('Error formatting date:', error);
+            return '-';
+        }
+    };
 
     // Загрузка заданий
     useEffect(() => {
@@ -66,14 +78,15 @@ export default function AdminTasksPage() {
     // Обработчик создания нового задания
     const handleCreateTask = async (formData: FormData): Promise<void> => {
         try {
-            const newTask = await TaskApi.create(formData);
-            setTasks([newTask, ...tasks]);
+            await TaskApi.create(formData);
+            // После успешного создания перезагружаем список заданий
+            await loadTasks();
             setIsCreateDialogOpen(false);
             toast.success("Задание успешно создано");
         } catch (error) {
             console.error("Failed to create task:", error);
             toast.error("Не удалось создать задание");
-            throw error; // Пробрасываем ошибку дальше для обработки в компоненте CreateTaskDialog
+            throw error;
         }
     };
 
@@ -81,11 +94,8 @@ export default function AdminTasksPage() {
     const handleUpdateTask = async (updatedTask: Task) => {
         try {
             await TaskApi.updateStatus(updatedTask.id, updatedTask.status);
-            setTasks(
-                tasks.map((task) =>
-                    task.id === updatedTask.id ? updatedTask : task
-                )
-            );
+            // После обновления перезагружаем список заданий
+            await loadTasks();
             setSelectedTask(null);
             setIsDetailsDialogOpen(false);
             toast.success("Статус задания обновлен");
@@ -173,15 +183,30 @@ export default function AdminTasksPage() {
                         onClick={async () => {
                             try {
                                 await TaskApi.exportToExcel();
-                                toast.success("Отчет успешно скачан");
+                                toast.success("Отчет Excel успешно скачан");
                             } catch (error) {
                                 console.error("Failed to export tasks:", error);
-                                toast.error("Не удалось скачать отчет");
+                                toast.error("Не удалось скачать отчет Excel");
                             }
                         }}
                     >
                         <Download className="mr-2 h-4 w-4" />
-                        Экспорт в Excel
+                        Excel
+                    </Button>
+                    <Button
+                        variant="outline"
+                        onClick={async () => {
+                            try {
+                                await TaskApi.exportToPDF();
+                                toast.success("Отчет PDF успешно скачан");
+                            } catch (error) {
+                                console.error("Failed to export tasks:", error);
+                                toast.error("Не удалось скачать отчет PDF");
+                            }
+                        }}
+                    >
+                        <Download className="mr-2 h-4 w-4" />
+                        PDF
                     </Button>
                     <Button onClick={() => setIsCreateDialogOpen(true)}>
                         <Plus className="mr-2 h-4 w-4" />
@@ -267,9 +292,7 @@ export default function AdminTasksPage() {
                                                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                                     <span className="text-sm text-muted-foreground">
                                                         Срок:{" "}
-                                                        {formatDate(
-                                                            task.dueDate
-                                                        )}
+                                                        {formatTaskDate(task.dueDate)}
                                                     </span>
                                                 </div>
                                                 <div className="mt-2 flex items-center gap-2">

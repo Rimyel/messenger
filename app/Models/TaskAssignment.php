@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class TaskAssignment extends Model
 {
+    
 
     protected $fillable = [
         'task_id',

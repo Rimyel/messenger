@@ -1,5 +1,5 @@
 import { Head, Link, useForm } from "@inertiajs/react";
-import { FormEventHandler } from "react";
+import { FormEventHandler, useState } from "react";
 import { motion } from "framer-motion";
 import GuestLayout from "@/Layouts/GuestLayout";
 import { AuthService } from "@/services/auth";
@@ -12,6 +12,11 @@ export default function Login({
     status?: string;
     canResetPassword: boolean;
 }) {
+    const [validationErrors, setValidationErrors] = useState<{
+        email?: string;
+        password?: string;
+    }>({});
+
     const { data, setData, post, processing, errors, reset } = useForm<{
         email: string;
         password: string;
@@ -22,8 +27,31 @@ export default function Login({
         remember: false,
     });
 
+    const validateForm = () => {
+        const newErrors: typeof validationErrors = {};
+        
+        if (!data.email) {
+            newErrors.email = "Email обязателен";
+        } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(data.email)) {
+            newErrors.email = "Некорректный email адрес";
+        }
+
+        if (!data.password) {
+            newErrors.password = "Пароль обязателен";
+        } else if (data.password.length < 8) {
+            newErrors.password = "Пароль должен быть не менее 8 символов";
+        }
+
+        setValidationErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
+        
+        if (!validateForm()) {
+            return;
+        }
 
         post(route("login"), {
             onSuccess: (response: any) => {
@@ -38,8 +66,12 @@ export default function Login({
                 // Перенаправляем на dashboard
                 // window.location.href = "/dashboard";
             },
-            onError: (errors) => {
-                console.error("Login errors:", errors);
+            onError: (errors: any) => {
+                // Обновляем стейт с валидационными ошибками
+                setValidationErrors({
+                    email: errors.email,
+                    password: errors.password,
+                });
             },
             onFinish: () => reset("password"),
         });
@@ -78,9 +110,9 @@ export default function Login({
                             autoFocus
                             onChange={(e) => setData("email", e.target.value)}
                         />
-                        {errors.email && (
-                            <p className="mt-2 text-sm text-red-400">
-                                {errors.email}
+                        {(errors.email || validationErrors.email) && (
+                            <p className="mt-2 text-sm text-red-500 font-medium">
+                                {errors.email || validationErrors.email}
                             </p>
                         )}
                     </div>
@@ -103,9 +135,9 @@ export default function Login({
                                 setData("password", e.target.value)
                             }
                         />
-                        {errors.password && (
-                            <p className="mt-2 text-sm text-red-400">
-                                {errors.password}
+                        {(errors.password || validationErrors.password) && (
+                            <p className="mt-2 text-sm text-red-500 font-medium">
+                                {errors.password || validationErrors.password}
                             </p>
                         )}
                     </div>

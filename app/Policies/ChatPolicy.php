@@ -15,7 +15,16 @@ class ChatPolicy
      */
     public function view(User $user, Chat $chat): bool
     {
-        // Проверяем, является ли пользователь участником чата
+        // Для личных чатов проверяем только участие в чате
+        if ($chat->type === 'private') {
+            return $chat->hasUser($user);
+        }
+
+        // Для групповых чатов проверяем членство в компании
+        if (!$chat->company->users()->where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
         return $chat->hasUser($user);
     }
 
@@ -101,6 +110,16 @@ class ChatPolicy
      */
     public function sendMessage(User $user, Chat $chat): bool
     {
+        // Для личных чатов проверяем только участие в чате
+        if ($chat->type === 'private') {
+            return $chat->hasUser($user);
+        }
+
+        // Для групповых чатов проверяем членство в компании
+        if (!$chat->company->users()->where('user_id', $user->id)->exists()) {
+            return false;
+        }
+
         return $chat->hasUser($user);
     }
 }

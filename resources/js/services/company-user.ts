@@ -7,6 +7,14 @@ interface UpdateRoleData {
 
 export const CompanyUserApi = {
   /**
+   * Исключение пользователя из компании
+   */
+  removeUser: async (companyId: number, userId: number) => {
+    const response = await api.delete(`/companies/${companyId}/users/${userId}`)
+    return response.data
+  },
+
+  /**
    * Получение списка пользователей компании текущего пользователя
    */
   getCompanyUsers: async () => {
@@ -52,5 +60,16 @@ export const CompanyUserApi = {
       console.error('CompanyUserApi.getUsers error:', error)
       throw error
     }
+  },
+
+  /**
+   * Передача прав владельца другому пользователю
+   */
+  transferOwnership: async (companyId: number, userId: number, password: string) => {
+    const response = await api.post(
+      `/companies/${companyId}/users/${userId}/transfer-ownership`,
+      { password }
+    )
+    return response.data
   }
 }

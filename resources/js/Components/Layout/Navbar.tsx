@@ -92,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </SheetContent>
                     </Sheet>
                 )}
-                <NotificationButton />
+               
             </div>
         </nav>
     );

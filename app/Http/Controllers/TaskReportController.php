@@ -10,6 +10,7 @@ use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class TaskReportController extends Controller
 {
@@ -17,7 +18,7 @@ class TaskReportController extends Controller
     {
         $user = $request->user();
         $company = $user->companies()->first();
-        
+
         if (!$company) {
             return response()->json(['message' => 'Пользователь не принадлежит ни к одной компании'], 403);
         }
@@ -31,7 +32,7 @@ class TaskReportController extends Controller
         // Создаем новый Excel документ
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
-        
+
         // Устанавливаем заголовки
         $sheet->setCellValue('A1', 'Название задачи');
         $sheet->setCellValue('B1', 'Описание');
@@ -59,14 +60,14 @@ class TaskReportController extends Controller
                 'vertical' => Alignment::VERTICAL_CENTER
             ]
         ];
-        
+
         $sheet->getStyle('A1:H1')->applyFromArray($headerStyle);
 
         // Заполняем данные
         $row = 2;
         foreach ($tasks as $task) {
             $isFirstAssignment = true;
-            
+
             foreach ($task->assignments as $assignment) {
                 if ($isFirstAssignment) {
                     // Основная информация о задаче
@@ -90,12 +91,11 @@ class TaskReportController extends Controller
                 // Информация о назначении
                 $sheet->setCellValue('G' . $row, $assignment->user->name);
                 $sheet->setCellValue('H' . $row, $this->translateAssignmentStatus($assignment->status));
-                
+
                 $row++;
             }
 
-            // Добавляем пустую строку между задачами
-            $row++;
+
         }
 
         // Автоматическая ширина столбцов
@@ -113,6 +113,104 @@ class TaskReportController extends Controller
 
         // Возвращаем файл для скачивания
         return response()->download($filePath)->deleteFileAfterSend();
+    }
+
+    public function exportToPDF(Request $request)
+    {
+        $user = $request->user();
+        $company = $user->companies()->first();
+
+        if (!$company) {
+            return response()->json(['message' => 'Пользователь не принадлежит ни к одной компании'], 403);
+        }
+
+        // Получаем все задачи компании с необходимыми связями
+        $tasks = Task::with(['creator', 'assignments.user', 'assignments.response'])
+            ->where('company_id', $company->id)
+            ->latest()
+            ->get();
+
+        // Формируем HTML для PDF
+        $html = '<html><head>';
+        $html .= '<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>';
+        $html .= '<style>
+            body {
+                font-family: DejaVu Sans, sans-serif;
+                font-size: 10px;
+                margin: 10px;
+            }
+            table {
+                width: 100%;
+                border-collapse: collapse;
+                margin: 5px 0;
+            }
+            th, td {
+                border: 1px solid #ddd;
+                padding: 3px;
+                text-align: left;
+                word-break: break-word;
+            }
+            th {
+                background-color: #f5f5f5;
+                font-size: 10px;
+            }
+            .header {
+                text-align: center;
+                margin-bottom: 10px;
+            }
+            .header h2 {
+                font-size: 14px;
+                margin: 5px 0;
+            }
+            .header p {
+                font-size: 11px;
+                margin: 3px 0;
+            }
+        </style>';
+        $html .= '</head><body>';
+
+        // Заголовок отчета
+        $html .= '<div class="header">';
+        $html .= '<h2>Отчет по задачам</h2>';
+        $html .= '<p>Компания: ' . $company->name . '</p>';
+        $html .= '<p>Дата формирования: ' . Carbon::now()->format('d.m.Y') . '</p>';
+        $html .= '</div>';
+
+        // Таблица с задачами
+        $html .= '<table>';
+        $html .= '<tr>
+            <th>Название задачи</th>
+            <th>Описание</th>
+            <th>Дата начала</th>
+            <th>Дата окончания</th>
+            <th>Статус</th>
+            <th>Создатель</th>
+            <th>Исполнители</th>
+        </tr>';
+
+        foreach ($tasks as $task) {
+            $executors = $task->assignments->map(function ($assignment) {
+                return $assignment->user->name;
+            })->implode(", ");
+
+            $html .= '<tr>';
+            $html .= '<td>' . $task->title . '</td>';
+            $html .= '<td>' . $task->description . '</td>';
+            $html .= '<td>' . Carbon::parse($task->start_date)->format('d.m.Y') . '</td>';
+            $html .= '<td>' . Carbon::parse($task->due_date)->format('d.m.Y') . '</td>';
+            $html .= '<td>' . $this->translateStatus($task->status) . '</td>';
+            $html .= '<td>' . $task->creator->name . '</td>';
+            $html .= '<td>' . $executors . '</td>';
+            $html .= '</tr>';
+        }
+
+        $html .= '</table></body></html>';
+
+        // Создаем PDF из HTML с альбомной ориентацией
+        $pdf = PDF::loadHTML($html)->setPaper('a4', 'landscape');
+
+        // Возвращаем PDF для скачивания
+        return $pdf->download('tasks_report_' . date('Y-m-d_H-i-s') . '.pdf');
     }
 
     /**

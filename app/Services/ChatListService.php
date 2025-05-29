@@ -23,7 +23,15 @@ class ChatListService
 
     public function getUserChats($user): Collection
     {
-        return $user->chats()
+        if (!$user->companies()->exists()) {
+            return collect();
+        }
+
+        return Chat::query()
+            ->forUser($user)
+            ->whereHas('participants', function($query) use ($user) {
+                $query->where('users.id', $user->id);
+            })
             ->with(['lastMessage', 'participants'])
             ->get()
             ->map(function ($chat) use ($user) {

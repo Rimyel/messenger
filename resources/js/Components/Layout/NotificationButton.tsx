@@ -162,7 +162,7 @@ export function NotificationButton() {
           notifications.filter((n) => n.id !== notification.id)
         );
 
-        console.log('Dispatching setContent event');
+
         // Сначала переключаем на чат
 
 

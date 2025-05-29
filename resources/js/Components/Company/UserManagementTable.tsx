@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, FormEvent } from "react";
+import { useAuthStore } from "@/stores/useAuthStore";
 import {
     MoreHorizontal,
     Shield,
     ShieldAlert,
     ShieldCheck,
     UserX,
+    Crown,
 } from "lucide-react";
 import { CompanyUserApi } from "@/services/company-user";
 import { formatDate } from "@/lib/utils";
@@ -86,6 +88,10 @@ export function UserManagementTable({
     const [isLoading, setIsLoading] = useState(true);
     const [userToRemove, setUserToRemove] = useState<CompanyUser | null>(null);
     const [isRemoveDialogOpen, setIsRemoveDialogOpen] = useState(false);
+    const [isTransferDialogOpen, setIsTransferDialogOpen] = useState(false);
+    const [userToTransfer, setUserToTransfer] = useState<CompanyUser | null>(null);
+    const [password, setPassword] = useState("");
+    const [isTransferring, setIsTransferring] = useState(false);
 
     // Фильтрация пользователей по поисковому запросу
     const filteredUsers = users.filter(
@@ -137,7 +143,7 @@ export function UserManagementTable({
         if (!userToRemove) return;
 
         try {
-            await CompanyUserApi.leave(companyId);
+            await CompanyUserApi.removeUser(companyId, userToRemove.id);
             setUsers(users.filter((user) => user.id !== userToRemove.id));
             toast.success("Пользователь исключен из компании");
             setIsRemoveDialogOpen(false);
@@ -145,6 +151,38 @@ export function UserManagementTable({
         } catch (error) {
             console.error("Ошибка при исключении пользователя:", error);
             toast.error("Не удалось исключить пользователя из компании");
+        }
+    };
+
+    // Передача прав владельца
+    const transferOwnership = async (e: FormEvent) => {
+        e.preventDefault();
+        if (!userToTransfer) return;
+
+        try {
+            setIsTransferring(true);
+            await CompanyUserApi.transferOwnership(companyId, userToTransfer.id, password);
+            
+            // Обновляем роли в локальном состоянии
+            setUsers(users.map(user => {
+                if (user.id === userToTransfer.id) {
+                    return { ...user, role: "owner" };
+                }
+                if (user.role === "owner") {
+                    return { ...user, role: "admin" };
+                }
+                return user;
+            }));
+
+            toast.success("Права владельца успешно переданы");
+            setIsTransferDialogOpen(false);
+            setUserToTransfer(null);
+            setPassword("");
+        } catch (error: any) {
+            console.error("Ошибка при передаче прав владельца:", error);
+            toast.error(error.response?.data?.message || "Не удалось передать права владельца");
+        } finally {
+            setIsTransferring(false);
         }
     };
 
@@ -184,43 +222,58 @@ export function UserManagementTable({
                                         </div>
                                     </TableCell>
                                     <TableCell>
-                                        <Select
-                                            defaultValue={user.role}
-                                            onValueChange={(
-                                                value: Exclude<
-                                                    CompanyRole,
-                                                    "owner"
-                                                >
-                                            ) => changeUserRole(user.id, value)}
-                                        >
-                                            <SelectTrigger className="w-[180px]">
-                                                <SelectValue>
-                                                    <RoleBadge
-                                                        role={user.role}
-                                                    />
-                                                </SelectValue>
-                                            </SelectTrigger>
-                                            <SelectContent>
-                                                <SelectItem value="admin">
-                                                    <div className="flex items-center">
-                                                        <ShieldCheck className="mr-2 h-4 w-4 text-blue-600" />
-                                                        Администратор
-                                                    </div>
-                                                </SelectItem>
-                                                <SelectItem value="member">
-                                                    <div className="flex items-center">
-                                                        <Shield className="mr-2 h-4 w-4 text-gray-600" />
-                                                        Участник
-                                                    </div>
-                                                </SelectItem>
-                                            </SelectContent>
-                                        </Select>
+                                        {user.role === "owner" ? (
+                                            <RoleBadge role={user.role} />
+                                        ) : (
+                                            <Select
+                                                defaultValue={user.role}
+                                                onValueChange={(
+                                                    value: Exclude<
+                                                        CompanyRole,
+                                                        "owner"
+                                                    >
+                                                ) => {
+                                                    const currentUser = useAuthStore.getState().user;
+                                                    // Проверка, не пытается ли пользователь изменить свою роль
+                                                    if (currentUser && currentUser.id === user.id) {
+                                                        toast.error("Вы не можете изменить свою собственную роль");
+                                                        return;
+                                                    }
+                                                    changeUserRole(user.id, value);
+                                                }}
+                                            >
+                                                <SelectTrigger className="w-[180px]">
+                                                    <SelectValue>
+                                                        <RoleBadge
+                                                            role={user.role}
+                                                        />
+                                                    </SelectValue>
+                                                </SelectTrigger>
+                                                <SelectContent>
+                                                    {/* Показывать опцию admin только для владельца компании */}
+                                                    {users.find(u => u.role === "owner")?.id === useAuthStore.getState().user?.id && (
+                                                        <SelectItem value="admin">
+                                                            <div className="flex items-center">
+                                                                <ShieldCheck className="mr-2 h-4 w-4 text-blue-600" />
+                                                                Администратор
+                                                            </div>
+                                                        </SelectItem>
+                                                    )}
+                                                    <SelectItem value="member">
+                                                        <div className="flex items-center">
+                                                            <Shield className="mr-2 h-4 w-4 text-gray-600" />
+                                                            Участник
+                                                        </div>
+                                                    </SelectItem>
+                                                </SelectContent>
+                                            </Select>
+                                        )}
                                     </TableCell>
                                     <TableCell>
                                         {formatDate(user.created_at)}
                                     </TableCell>
                                     <TableCell>
-                                        {user.role !== "owner" && (
+                                        {user.role !== "owner" && useAuthStore.getState().user?.id !== user.id && (
                                             <DropdownMenu>
                                                 <DropdownMenuTrigger asChild>
                                                     <Button
@@ -234,22 +287,25 @@ export function UserManagementTable({
                                                     </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                    <DropdownMenuItem>
-                                                        Просмотреть профиль
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuItem>
-                                                        Отправить сообщение
-                                                    </DropdownMenuItem>
-                                                    <DropdownMenuSeparator />
+                                                    {users.find(u => u.role === "owner")?.id === useAuthStore.getState().user?.id && (
+                                                        <>
+                                                            <DropdownMenuItem
+                                                                onClick={() => {
+                                                                    setUserToTransfer(user);
+                                                                    setIsTransferDialogOpen(true);
+                                                                }}
+                                                            >
+                                                                <Crown className="mr-2 h-4 w-4" />
+                                                                Передать права владельца
+                                                            </DropdownMenuItem>
+                                                            <DropdownMenuSeparator />
+                                                        </>
+                                                    )}
                                                     <DropdownMenuItem
                                                         className="text-destructive focus:text-destructive"
                                                         onClick={() => {
-                                                            setUserToRemove(
-                                                                user
-                                                            );
-                                                            setIsRemoveDialogOpen(
-                                                                true
-                                                            );
+                                                            setUserToRemove(user);
+                                                            setIsRemoveDialogOpen(true);
                                                         }}
                                                     >
                                                         <UserX className="mr-2 h-4 w-4" />
@@ -302,6 +358,63 @@ export function UserManagementTable({
                             Исключить
                         </Button>
                     </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Диалог передачи прав владельца */}
+            <Dialog
+                open={isTransferDialogOpen}
+                onOpenChange={(open) => {
+                    setIsTransferDialogOpen(open);
+                    if (!open) {
+                        setPassword("");
+                        setUserToTransfer(null);
+                    }
+                }}
+            >
+                <DialogContent>
+                    <form onSubmit={transferOwnership}>
+                        <DialogHeader>
+                            <DialogTitle>
+                                Передача прав владельца компании
+                            </DialogTitle>
+                            <DialogDescription>
+                                Вы собираетесь передать права владельца пользователю{" "}
+                                <strong>{userToTransfer?.name}</strong>. После передачи прав
+                                вы станете администратором компании. Для подтверждения
+                                введите ваш пароль.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <div className="my-4">
+                            <label htmlFor="password" className="text-sm font-medium text-gray-700 dark:text-gray-200">
+                                Пароль
+                            </label>
+                            <input
+                                type="password"
+                                id="password"
+                                value={password}
+                                onChange={(e) => setPassword(e.target.value)}
+                                className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 dark:border-gray-600 dark:bg-gray-700"
+                                required
+                            />
+                        </div>
+                        <DialogFooter>
+                            <Button
+                                variant="outline"
+                                type="button"
+                                onClick={() => setIsTransferDialogOpen(false)}
+                                disabled={isTransferring}
+                            >
+                                Отмена
+                            </Button>
+                            <Button
+                                type="submit"
+                                disabled={!password || isTransferring}
+                            >
+                                {isTransferring ? "Передача прав..." : "Передать права"}
+                            </Button>
+                        </DialogFooter>
+                    </form>
                 </DialogContent>
             </Dialog>
         </>

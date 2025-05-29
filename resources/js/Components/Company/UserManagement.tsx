@@ -50,10 +50,7 @@ export default function UserManagement({ company }: Props) {
                 </Button>
               )}
             </div>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Пригласить пользователя
-            </Button>
+            
           </div>
           <UserManagementTable searchQuery={searchQuery} companyId={company.id} />
         </TabsContent> 

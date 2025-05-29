@@ -1,10 +1,17 @@
 import { Head, Link, useForm } from '@inertiajs/react';
-import { FormEventHandler } from 'react';
+import { FormEventHandler, useState } from 'react';
 import { motion } from "framer-motion";
 import GuestLayout from '@/Layouts/GuestLayout';
 import { AuthService } from '@/services/auth';
 
 export default function Register() {
+    const [validationErrors, setValidationErrors] = useState<{
+        name?: string;
+        email?: string;
+        password?: string;
+        password_confirmation?: string;
+    }>({});
+
     const { data, setData, post, processing, errors, reset } = useForm({
         name: '',
         email: '',
@@ -12,10 +19,54 @@ export default function Register() {
         password_confirmation: '',
     });
 
+    const validateForm = () => {
+        const newErrors: typeof validationErrors = {};
+        
+        if (!data.name) {
+            newErrors.name = "Имя обязательно";
+        } else if (data.name.length < 3) {
+            newErrors.name = "Имя должно быть не менее 3 символов";
+        }
+
+        if (!data.email) {
+            newErrors.email = "Email обязателен";
+        } else if (!/^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i.test(data.email)) {
+            newErrors.email = "Некорректный email адрес";
+        }
+
+        if (!data.password) {
+            newErrors.password = "Пароль обязателен";
+        } else if (data.password.length < 8) {
+            newErrors.password = "Пароль должен быть не менее 8 символов";
+        }
+
+        if (!data.password_confirmation) {
+            newErrors.password_confirmation = "Подтверждение пароля обязательно";
+        } else if (data.password !== data.password_confirmation) {
+            newErrors.password_confirmation = "Пароли не совпадают";
+        }
+
+        setValidationErrors(newErrors);
+        return Object.keys(newErrors).length === 0;
+    };
+
     const submit: FormEventHandler = (e) => {
         e.preventDefault();
 
+        if (!validateForm()) {
+            return;
+        }
+
         post(route('register'), {
+            onError: (errors: any) => {
+                // Обновляем стейт с валидационными ошибками
+                setValidationErrors({
+                    name: errors.name,
+                    email: errors.email,
+                    password: errors.password,
+                    password_confirmation: errors.password_confirmation
+                });
+            },
             onSuccess: async () => {
                 try {
                     // После успешной регистрации получаем API токен
@@ -74,8 +125,10 @@ export default function Register() {
                             onChange={(e) => setData('name', e.target.value)}
                             required
                         />
-                        {errors.name && (
-                            <p className="mt-2 text-sm text-red-400">{errors.name}</p>
+                        {(errors.name || validationErrors.name) && (
+                            <p className="mt-2 text-sm text-red-500 font-medium">
+                                {errors.name || validationErrors.name}
+                            </p>
                         )}
                     </div>
 
@@ -93,8 +146,10 @@ export default function Register() {
                             onChange={(e) => setData('email', e.target.value)}
                             required
                         />
-                        {errors.email && (
-                            <p className="mt-2 text-sm text-red-400">{errors.email}</p>
+                        {(errors.email || validationErrors.email) && (
+                            <p className="mt-2 text-sm text-red-500 font-medium">
+                                {errors.email || validationErrors.email}
+                            </p>
                         )}
                     </div>
 
@@ -112,8 +167,10 @@ export default function Register() {
                             onChange={(e) => setData('password', e.target.value)}
                             required
                         />
-                        {errors.password && (
-                            <p className="mt-2 text-sm text-red-400">{errors.password}</p>
+                        {(errors.password || validationErrors.password) && (
+                            <p className="mt-2 text-sm text-red-500 font-medium">
+                                {errors.password || validationErrors.password}
+                            </p>
                         )}
                     </div>
 
@@ -131,8 +188,10 @@ export default function Register() {
                             onChange={(e) => setData('password_confirmation', e.target.value)}
                             required
                         />
-                        {errors.password_confirmation && (
-                            <p className="mt-2 text-sm text-red-400">{errors.password_confirmation}</p>
+                        {(errors.password_confirmation || validationErrors.password_confirmation) && (
+                            <p className="mt-2 text-sm text-red-500 font-medium">
+                                {errors.password_confirmation || validationErrors.password_confirmation}
+                            </p>
                         )}
                     </div>
 

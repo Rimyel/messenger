@@ -39,7 +39,8 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::get('/auth/me', [ApiAuthController::class, 'me'])->name('api.me');
 
         // Маршруты для работы с заданиями
-        Route::get('/tasks/export', [TaskReportController::class, 'exportToExcel']); // Экспорт в Excel
+        Route::get('/tasks/export', [TaskReportController::class, 'exportToExcel']);
+        Route::get('/tasks/export-pdf', [TaskReportController::class, 'exportToPDF']); // Экспорт в Excel
         Route::get('/tasks/my', [TaskController::class, 'userTasks']); // Мои задания
         Route::get('/tasks', [TaskController::class, 'index']); // Управление заданиями (для админов)
         Route::post('/tasks', [TaskController::class, 'store']);
@@ -57,12 +58,15 @@ Route::middleware([AuthenticateByToken::class])->group(function () {
         Route::delete('/companies/{company}', [CompanyController::class, 'destroy']);
 
         // Маршруты для запросов на вступление
-        Route::get('/companies/{company}/join-requests', [JoinRequestController::class, 'index']);Route::post('/companies/{company}/join-requests', [JoinRequestController::class, 'store']);
+        Route::get('/companies/{company}/join-requests', [JoinRequestController::class, 'index']);
+        Route::post('/companies/{company}/join-requests', [JoinRequestController::class, 'store']);
         Route::patch('/companies/{company}/join-requests/{joinRequest}', [JoinRequestController::class, 'update']);
 
         // Маршруты для управления участниками компании
         Route::post('/companies/{company}/leave', [CompanyUserController::class, 'leave']);
         Route::patch('/companies/{company}/users/{user}/role', [CompanyUserController::class, 'updateRole']);
+        Route::post('/companies/{company}/users/{user}/transfer-ownership', [CompanyUserController::class, 'transferOwnership']);
+        Route::delete('/companies/{company}/users/{user}', [CompanyUserController::class, 'remove']);
         Route::get('/companies/{company}/users', [CompanyController::class, 'users']);
 
         // Маршруты управления чатами 

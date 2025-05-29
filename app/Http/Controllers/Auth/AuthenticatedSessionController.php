@@ -36,8 +36,9 @@ class AuthenticatedSessionController extends Controller
 
             // Проверяем, что пользователь действительно аутентифицирован
             if (!$request->user()) {
-                Log::error('Пользователь не аутентифицирован после authenticate()');
-                return response()->json(['message' => 'Ошибка аутентификации'], 401);
+                return back()->withErrors([
+                    'email' => trans('auth.failed'),
+                ])->onlyInput('email');
             }
 
             // Отзываем старые токены (если есть)
@@ -59,15 +60,14 @@ class AuthenticatedSessionController extends Controller
 
             Log::info('Токен успешно создан для пользователя ID: ' . $request->user()->id);
             return redirect()->route('dashboard');
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return back()->withErrors([
+                'email' => $e->getMessage(),
+            ])->onlyInput('email');
         } catch (\Exception $e) {
-            Log::error('Ошибка при создании токена: ' . $e->getMessage());
-            Log::error($e->getTraceAsString());
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Ошибка при входе в систему',
-                'error' => $e->getMessage()
-            ], 500);
+            return back()->withErrors([
+                'email' => trans('auth.failed'),
+            ])->onlyInput('email');
         }
     }
 
