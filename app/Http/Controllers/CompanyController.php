@@ -20,9 +20,9 @@ class CompanyController extends Controller
         // Если есть поисковый запрос - ищем по всем компаниям
         if ($request->has('query') && !empty($request->get('query'))) {
             $searchQuery = $request->get('query');
-            return Company::where(function($q) use ($searchQuery) {
+            return Company::where(function ($q) use ($searchQuery) {
                 $q->where('companies.id', 'like', "%{$searchQuery}%")
-                  ->orWhere('companies.name', 'like', "%{$searchQuery}%");
+                    ->orWhere('companies.name', 'like', "%{$searchQuery}%");
             })->latest()->paginate($request->get('per_page', 5));
         }
 
@@ -81,7 +81,7 @@ class CompanyController extends Controller
     public function show(Company $company)
     {
         $user = auth()->user();
-        
+
         // Проверяем, принадлежит ли пользователь к этой компании
         if (!$user->belongsToCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -93,7 +93,7 @@ class CompanyController extends Controller
     public function update(Request $request, Company $company)
     {
         $user = auth()->user();
-        
+
         // Проверяем, может ли пользователь управлять компанией
         if (!$user->canManageCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -129,7 +129,7 @@ class CompanyController extends Controller
     public function destroy(Company $company)
     {
         $user = auth()->user();
-        
+
         // Проверяем, является ли пользователь владельцем компании
         if (!$user->isOwnerOfCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -192,7 +192,7 @@ class CompanyController extends Controller
     public function users(Company $company)
     {
         $user = auth()->user();
-        
+
         // Проверяем, принадлежит ли пользователь к этой компании
         if (!$user->belongsToCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
@@ -201,7 +201,7 @@ class CompanyController extends Controller
         $users = $company->users()
             ->select('users.id', 'users.name', 'users.email', 'users.avatar', 'company_users.role', 'company_users.created_at')
             ->get()
-            ->map(function($user) {
+            ->map(function ($user) {
                 return [
                     'id' => $user->id,
                     'name' => $user->name,

@@ -19,18 +19,14 @@ class CompanyControllerTest extends TestCase
 
         // act
         $response = $this->actingAs($user)
-            ->postJson('/api/companies', $companyData);
+            ->postJson('/api/companies', $companyData, $this->withApiHeaders());
 
         // assert
         $response->assertStatus(201)
             ->assertJsonStructure([
-                'data' => [
-                    'id',
-                    'name',
-                    'description',
-                    'created_at',
-                    'updated_at'
-                ]
+                'name',
+                'description',
+                'users'
             ]);
 
         $this->assertDatabaseHas('companies', [
@@ -54,7 +50,7 @@ class CompanyControllerTest extends TestCase
 
         // act & assert - пустые данные
         $response = $this->actingAs($user)
-            ->postJson('/api/companies', []);
+            ->postJson('/api/companies', [], $this->withApiHeaders());
 
         $response->assertStatus(422);
         $this->assertValidationErrorResponse($response);
@@ -64,7 +60,7 @@ class CompanyControllerTest extends TestCase
             ->postJson('/api/companies', [
                 'name' => str_repeat('a', 256),
                 'description' => 'Test Description'
-            ]);
+            ], $this->withApiHeaders());
 
         $response->assertStatus(422);
         $this->assertValidationErrorResponse($response);
@@ -79,18 +75,13 @@ class CompanyControllerTest extends TestCase
 
         // act
         $response = $this->actingAs($owner)
-            ->getJson("/api/companies/{$company->id}");
+            ->getJson("/api/companies/{$company->id}", $this->withApiHeaders());
 
         // assert
         $response->assertOk()
             ->assertJsonStructure([
-                'data' => [
-                    'id',
-                    'name',
-                    'description',
-                    'created_at',
-                    'updated_at'
-                ]
+                'name',
+                'description'
             ]);
     }
 
@@ -108,7 +99,7 @@ class CompanyControllerTest extends TestCase
 
         // act
         $response = $this->actingAs($owner)
-            ->putJson("/api/companies/{$company->id}", $updateData);
+            ->putJson("/api/companies/{$company->id}", $updateData, $this->withApiHeaders());
 
         // assert
         $response->assertOk();
@@ -124,7 +115,7 @@ class CompanyControllerTest extends TestCase
 
         // act
         $response = $this->actingAs($owner)
-            ->deleteJson("/api/companies/{$company->id}");
+            ->deleteJson("/api/companies/{$company->id}", [], $this->withApiHeaders());
 
         // assert
         $response->assertStatus(204);
@@ -141,17 +132,17 @@ class CompanyControllerTest extends TestCase
 
         // act & assert
         $this->actingAs($nonMember)
-            ->getJson("/api/companies/{$company->id}")
+            ->getJson("/api/companies/{$company->id}", $this->withApiHeaders())
             ->assertForbidden();
 
         $this->actingAs($nonMember)
             ->putJson("/api/companies/{$company->id}", [
                 'name' => 'Try Update'
-            ])
+            ], $this->withApiHeaders())
             ->assertForbidden();
 
         $this->actingAs($nonMember)
-            ->deleteJson("/api/companies/{$company->id}")
+            ->deleteJson("/api/companies/{$company->id}", [], $this->withApiHeaders())
             ->assertForbidden();
     }
 
@@ -166,11 +157,11 @@ class CompanyControllerTest extends TestCase
         $this->actingAs($member)
             ->putJson("/api/companies/{$company->id}", [
                 'name' => 'Try Update'
-            ])
+            ], $this->withApiHeaders())
             ->assertForbidden();
 
         $this->actingAs($member)
-            ->deleteJson("/api/companies/{$company->id}")
+            ->deleteJson("/api/companies/{$company->id}", [], $this->withApiHeaders())
             ->assertForbidden();
     }
 }

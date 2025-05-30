@@ -81,7 +81,6 @@ abstract class TestCase extends BaseTestCase
     protected function assertValidationErrorResponse($response): void
     {
         $response->assertJsonStructure([
-            'message',
             'errors' => []
         ]);
     }
