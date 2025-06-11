@@ -14,9 +14,12 @@ class MainController extends Controller
     {
         $userId = Auth::id();
 
-        $chats = Chat::whereHas('participants', function ($query) use ($userId) {
-            $query->where('user_id', $userId);
-        })
+        $user = Auth::user();
+        $chats = Chat::query()
+            ->forUser($user)
+            ->whereHas('participants', function ($query) use ($userId) {
+                $query->where('user_id', $userId);
+            })
             ->with(['lastMessage', 'participants'])
             ->get()
             ->map(function ($chat) use ($userId) {
@@ -24,6 +27,14 @@ class MainController extends Controller
                     'id' => $chat->id,
                     'type' => $chat->type,
                     'name' => $chat->name,
+                    'participants' => $chat->participants->map(function ($participant) {
+                        return [
+                            'id' => $participant->id,
+                            'name' => $participant->name,
+                            'avatar' => $participant->avatar,
+                            'role' => $participant->pivot->role
+                        ];
+                    }),
                     'lastMessage' => $chat->lastMessage ? [
                         'id' => $chat->lastMessage->id,
                         'content' => $chat->lastMessage->content,
@@ -46,7 +57,7 @@ class MainController extends Controller
                 return $data;
             });
 
-            $apiToken = $request->session()->get('api_token');
+        $apiToken = $request->session()->get('api_token');
         return Inertia::render('Company', [
             'userId' => $userId,
             'apiToken' => $apiToken,

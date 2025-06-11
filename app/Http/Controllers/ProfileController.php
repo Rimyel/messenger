@@ -13,16 +13,9 @@ use Inertia\Response;
 
 class ProfileController extends Controller
 {
-    /**
-     * Update the user's profile information.
-     */
     public function update(ProfileUpdateRequest $request): JsonResponse
     {
         $request->user()->fill($request->validated());
-
-        if ($request->user()->isDirty('email')) {
-            $request->user()->email_verified_at = null;
-        }
 
         $request->user()->save();
 
@@ -32,9 +25,6 @@ class ProfileController extends Controller
         ]);
     }
 
-    /**
-     * Delete the user's account.
-     */
     public function destroy(Request $request): JsonResponse
     {
         $request->validate([
@@ -55,5 +45,4 @@ class ProfileController extends Controller
         ]);
     }
 
-    // email verification Не будет
 }

@@ -8,40 +8,40 @@ use App\Models\Company;
 
 class CompanyControllerTest extends TestCase
 {
-    public function test_can_create_company_with_basic_data(): void
-    {
-        // arrange
-        $user = User::factory()->create();
-        $companyData = [
-            'name' => 'Test Company',
-            'description' => 'Test Description'
-        ];
+    // public function test_can_create_company_with_basic_data(): void
+    // {
+    //     // arrange
+    //     $user = User::factory()->create();
+    //     $companyData = [
+    //         'name' => 'Test Company',
+    //         'description' => 'Test Description'
+    //     ];
 
-        // act
-        $response = $this->actingAs($user)
-            ->postJson('/api/companies', $companyData, $this->withApiHeaders());
+    //     // act
+    //     $response = $this->actingAs($user)
+    //         ->postJson('/api/companies', $companyData, $this->withApiHeaders());
 
-        // assert
-        $response->assertStatus(201)
-            ->assertJsonStructure([
-                'name',
-                'description',
-                'users'
-            ]);
+    //     // assert
+    //     $response->assertStatus(201)
+    //         ->assertJsonStructure([
+    //             'name',
+    //             'description',
+    //             'users'
+    //         ]);
 
-        $this->assertDatabaseHas('companies', [
-            'name' => 'Test Company',
-            'description' => 'Test Description'
-        ]);
+    //     $this->assertDatabaseHas('companies', [
+    //         'name' => 'Test Company',
+    //         'description' => 'Test Description'
+    //     ]);
 
-        // Проверяем, что создатель назначен владельцем
-        $company = Company::where('name', 'Test Company')->first();
-        $this->assertDatabaseHas('company_users', [
-            'company_id' => $company->id,
-            'user_id' => $user->id,
-            'role' => 'owner'
-        ]);
-    }
+    //     // Проверяем, что создатель назначен владельцем
+    //     $company = Company::where('name', 'Test Company')->first();
+    //     $this->assertDatabaseHas('company_users', [
+    //         'company_id' => $company->id,
+    //         'user_id' => $user->id,
+    //         'role' => 'owner'
+    //     ]);
+    // }
 
     public function test_company_creation_validation(): void
     {

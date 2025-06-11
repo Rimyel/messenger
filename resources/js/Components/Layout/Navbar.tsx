@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { SidebarTrigger } from "@/Components/ui/sidebar";
 import { NotificationButton } from "./NotificationButton";
 import { Sheet, SheetContent, SheetTrigger } from "@/Components/ui/sheet";
@@ -8,6 +8,7 @@ import { MessageSquare } from "lucide-react";
 import ChatSidebar from "@/Components/Chat/ChatSidebar";
 import type { Chat, ChatParticipant } from "@/types/chat";
 import { useAuthStore } from "@/stores/useAuthStore";
+import { chatService } from "@/services/chat";
 
 interface NavbarProps {
     currentContent: string;
@@ -23,7 +24,7 @@ const contentTitles: { [key: string]: string } = {
     dashboard: "Главная",
     company: "Моя компания",
     chat: "Чаты",
-    profile: "Личный кабинет"
+    profile: "Личный кабинет",
 };
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -33,33 +34,83 @@ export const Navbar: React.FC<NavbarProps> = ({
     chatSidebarOpen,
     onChatSidebarOpenChange,
     chats = [],
-    setCurrentContent
+    setCurrentContent,
 }) => {
     const isMobile = useIsMobile();
     const { user } = useAuthStore();
 
-    const currentUser: ChatParticipant = user ? {
-        id: user.id,
-        name: user.name,
-        avatar: user.avatar,
-        role: 'member'
-    } : {
-        id: 0,
-        name: '',
-        avatar: '',
-        role: 'member'
-    };
+    const currentUser: ChatParticipant = user
+        ? {
+              id: user.id,
+              name: user.name,
+              avatar: user.avatar,
+              role: "member",
+          }
+        : {
+              id: 0,
+              name: "",
+              avatar: "",
+              role: "member",
+          };
+
+    const [isLoading, setIsLoading] = useState(false);
 
     const handleCreatePrivateChat = async (userId: number) => {
-        // Заглушка для создания приватного чата
-        console.log('Create private chat with user:', userId);
+        if (!userId) return;
+
+        setIsLoading(true);
+        try {
+            const newChat = await chatService.createPrivateChat({ userId });
+            if (onSelectChat) {
+                onSelectChat(newChat);
+                setCurrentContent("chat");
+            }
+            if (onChatSidebarOpenChange) {
+                onChatSidebarOpenChange(false);
+            }
+        } catch (error: any) {
+            console.error("Error creating private chat:", error);
+            alert(
+                error.response?.data?.error || "Failed to create private chat"
+            );
+        } finally {
+            setIsLoading(false);
+        }
     };
 
-    const handleCreateGroupChat = async (name: string, participantIds: number[]) => {
-        // Заглушка для создания группового чата
-        console.log('Create group chat:', name, participantIds);
+    const handleCreateGroupChat = async (
+        name: string,
+        participantIds: number[]
+    ) => {
+        if (!name || !participantIds.length) return;
+
+        setIsLoading(true);
+        try {
+            const newChat = await chatService.createGroupChat({
+                name,
+                participantIds,
+            });
+            if (onSelectChat) {
+                onSelectChat(newChat);
+                setCurrentContent("chat");
+            }
+            if (onChatSidebarOpenChange) {
+                onChatSidebarOpenChange(false);
+            }
+        } catch (error: any) {
+            console.error("Error creating group chat:", error);
+            alert(error.response?.data?.error || "Failed to create group chat");
+        } finally {
+            setIsLoading(false);
+        }
     };
-    return (
+    return isLoading ? (
+        <nav className="flex items-center justify-between border-b px-4 h-[57px] relative">
+            <div className="absolute inset-0 bg-background/50 flex items-center justify-center z-50 backdrop-blur-sm">
+                <div className="animate-spin w-8 h-8 border-4 border-primary border-t-transparent rounded-full"></div>
+            </div>
+        </nav>
+    ) : (
         <nav className="flex items-center justify-between border-b px-4 h-[57px]">
             <div className="flex items-center gap-4">
                 <SidebarTrigger />
@@ -69,7 +120,10 @@ export const Navbar: React.FC<NavbarProps> = ({
             </div>
             <div className="flex items-center gap-2">
                 {isMobile && (
-                    <Sheet open={chatSidebarOpen} onOpenChange={onChatSidebarOpenChange}>
+                    <Sheet
+                        open={chatSidebarOpen}
+                        onOpenChange={onChatSidebarOpenChange}
+                    >
                         <SheetTrigger asChild>
                             <Button variant="ghost" size="icon">
                                 <MessageSquare className="h-5 w-5" />
@@ -92,7 +146,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                         </SheetContent>
                     </Sheet>
                 )}
-               
             </div>
         </nav>
     );

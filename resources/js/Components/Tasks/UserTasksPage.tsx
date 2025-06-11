@@ -21,6 +21,7 @@ import { TaskApi } from "@/services/task";
 
 export function UserTasksPage() {
     const { user } = useAuthStore();
+    const isMobile = useIsMobile();
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -113,7 +114,7 @@ export function UserTasksPage() {
         const assignment = task.assignments.find(
             (a) => a.userId === user?.id.toString()
         );
-        
+
         // Если есть назначение и у него есть ответ
         if (assignment?.response) {
             if (assignment.response.status === "approved") {
@@ -133,61 +134,65 @@ export function UserTasksPage() {
     // Компонент карточки задания
     const TaskCard = ({ task }: { task: Task }) => {
         const isMobile = useIsMobile();
-        
+
         return (
             <Card key={task.id} className="overflow-hidden">
-            <CardHeader className={`pb-2 ${isMobile ? 'px-4' : ''}`}>
-                <div className="flex items-start justify-between">
-                    <h3 className="line-clamp-2 text-lg font-medium">
-                        {task.title}
-                    </h3>
-                    <Badge
-                        className={`flex items-center ${getTaskStatusColor(
-                            getUserTaskStatus(task)
-                        )}`}
-                    >
-                        {getTaskStatusText(getUserTaskStatus(task))}
-                    </Badge>
-                </div>
-            </CardHeader>
-            <CardContent className={`pb-2 ${isMobile ? 'px-4' : ''}`}>
-                <p className="line-clamp-2 text-sm text-muted-foreground">
-                    {task.description}
-                </p>
-                <div className="mt-4 flex items-center gap-2">
-                    <CalendarIcon className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">
-                        Срок: {formatDate(task.dueDate)}
-                    </span>
-                </div>
-                {task.files.length > 0 && (
-                    <div className="mt-2 flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
+                <CardHeader className={`pb-2 ${isMobile ? "px-4" : ""}`}>
+                    <div className="flex items-start justify-between">
+                        <h3 className="line-clamp-2 text-lg font-medium">
+                            {task.title}
+                        </h3>
+                        <Badge
+                            className={`flex items-center ${getTaskStatusColor(
+                                getUserTaskStatus(task)
+                            )}`}
+                        >
+                            {getTaskStatusText(getUserTaskStatus(task))}
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className={`pb-2 ${isMobile ? "px-4" : ""}`}>
+                    <p className="line-clamp-2 text-sm text-muted-foreground">
+                        {task.description}
+                    </p>
+                    <div className="mt-4 flex items-center gap-2">
+                        <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                         <span className="text-sm text-muted-foreground">
-                            Файлы: {task.files.length}
+                            Срок: {formatDate(task.dueDate)}
                         </span>
                     </div>
-                )}
-            </CardContent>
-            <CardFooter className={`flex items-center justify-end gap-2 pt-2 ${isMobile ? 'px-4' : ''}`}>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                        setSelectedTask(task);
-                        setIsDetailsDialogOpen(true);
-                    }}
-                >
-                    {isMobile ? (
-                        <div className="flex items-center">
-                            Далее
-                            <ChevronRight className="ml-1 h-4 w-4" />
+                    {task.files.length > 0 && (
+                        <div className="mt-2 flex items-center gap-2">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm text-muted-foreground">
+                                Файлы: {task.files.length}
+                            </span>
                         </div>
-                    ) : (
-                        "Просмотреть"
                     )}
-                </Button>
-            </CardFooter>
+                </CardContent>
+                <CardFooter
+                    className={`flex items-center justify-end gap-2 pt-2 ${
+                        isMobile ? "px-4" : ""
+                    }`}
+                >
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                            setSelectedTask(task);
+                            setIsDetailsDialogOpen(true);
+                        }}
+                    >
+                        {isMobile ? (
+                            <div className="flex items-center">
+                                Далее
+                                <ChevronRight className="ml-1 h-4 w-4" />
+                            </div>
+                        ) : (
+                            "Просмотреть"
+                        )}
+                    </Button>
+                </CardFooter>
             </Card>
         );
     };
@@ -236,11 +241,19 @@ export function UserTasksPage() {
             </div>
 
             <Tabs defaultValue="all" className="w-full">
-                <TabsList className="overflow-x-auto w-full flex no-scrollbar">
-                    <TabsTrigger value="all" className="flex-shrink-0">Все задания</TabsTrigger>
-                    <TabsTrigger value="active" className="flex-shrink-0">Активные</TabsTrigger>
-                    <TabsTrigger value="completed" className="flex-shrink-0">Завершенные</TabsTrigger>
-                    <TabsTrigger value="revision" className="flex-shrink-0">На доработке</TabsTrigger>
+                <TabsList className="w-full grid grid-cols-4 gap-1">
+                    <TabsTrigger value="all">
+                        {isMobile ? "Все" : "Все задания"}
+                    </TabsTrigger>
+                    <TabsTrigger value="active">
+                        {isMobile ? "Актив." : "Активные"}
+                    </TabsTrigger>
+                    <TabsTrigger value="completed">
+                        {isMobile ? "Заверш." : "Завершенные"}
+                    </TabsTrigger>
+                    <TabsTrigger value="revision">
+                        {isMobile ? "Доработка" : "На доработке"}
+                    </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="all" className="mt-6">
@@ -270,10 +283,13 @@ export function UserTasksPage() {
                         {tasks
                             .filter((task) => {
                                 const status = getUserTaskStatus(task);
-                                return status === "not_started" ||
-                                       status === "in_progress" ||
-                                       status === "submitted" ||
-                                       (status !== "completed" && status !== "revision");
+                                return (
+                                    status === "not_started" ||
+                                    status === "in_progress" ||
+                                    status === "submitted" ||
+                                    (status !== "completed" &&
+                                        status !== "revision")
+                                );
                             })
                             .map((task) => (
                                 <TaskCard key={task.id} task={task} />
@@ -286,9 +302,13 @@ export function UserTasksPage() {
                         {tasks
                             .filter((task) => {
                                 const status = getUserTaskStatus(task);
-                                return status === "completed" ||
-                                       task.status === "completed" ||
-                                       (task.assignments.find(a => a.userId === user?.id?.toString())?.response?.status === "approved");
+                                return (
+                                    status === "completed" ||
+                                    task.status === "completed" ||
+                                    task.assignments.find(
+                                        (a) => a.userId === user?.id?.toString()
+                                    )?.response?.status === "approved"
+                                );
                             })
                             .map((task) => (
                                 <TaskCard key={task.id} task={task} />
@@ -301,8 +321,12 @@ export function UserTasksPage() {
                         {tasks
                             .filter((task) => {
                                 const status = getUserTaskStatus(task);
-                                return status === "revision" ||
-                                       task.assignments.find(a => a.userId === user?.id?.toString())?.response?.status === "revision";
+                                return (
+                                    status === "revision" ||
+                                    task.assignments.find(
+                                        (a) => a.userId === user?.id?.toString()
+                                    )?.response?.status === "revision"
+                                );
                             })
                             .map((task) => (
                                 <TaskCard key={task.id} task={task} />

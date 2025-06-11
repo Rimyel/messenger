@@ -36,7 +36,7 @@ class UserSeeder extends Seeder
             ],
             // Компания 2 - Цифровые Системы
             [
-                'name' => 'Екатерина Смирнова',
+                  'name' => 'Екатерина Смирнова',
                 'email' => 'owner2@example.com',
                 'password' => Hash::make('password'),
                 'created_at' => now(),

@@ -334,43 +334,10 @@ export default function AdminTasksPage() {
                                                     />
                                                 </div>
                                             </CardContent>
-                                            <CardFooter className="flex items-center justify-between pt-2 px-4">
-                                                <div className="flex gap-2 items-center">
-                                                    <div className="flex -space-x-2">
-                                                        {task.assignments
-                                                            .slice(0, 3)
-                                                            .map(
-                                                                (
-                                                                    assignment
-                                                                ) => (
-                                                                    <img
-                                                                        key={
-                                                                            assignment.userId
-                                                                        }
-                                                                        src={
-                                                                            assignment.userAvatar
-                                                                        }
-                                                                        alt={
-                                                                            assignment.userName
-                                                                        }
-                                                                        className="h-6 w-6 rounded-full border-2 border-background"
-                                                                    />
-                                                                )
-                                                            )}
-                                                        {task.assignments
-                                                            .length > 3 && (
-                                                            <div className="flex h-6 w-6 items-center justify-center rounded-full border-2 border-background bg-muted text-xs">
-                                                                +
-                                                                {task
-                                                                    .assignments
-                                                                    .length - 3}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                    {isMobile && (
-                                                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                                                    )}
-                                                </div>
+                                            <CardFooter className="flex items-center justify-end pt-2 px-4">
+                                                {isMobile && (
+                                                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                                                )}
                                             </CardFooter>
                                         </Card>
                                     )

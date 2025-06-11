@@ -28,9 +28,11 @@ const ChatComponent: FC<Props> = ({
     selectedChat: externalSelectedChat,
     onSelectChat: externalOnSelectChat,
     sidebarOpen: externalSidebarOpen,
-    onSidebarOpenChange: externalOnSidebarOpenChange
+    onSidebarOpenChange: externalOnSidebarOpenChange,
 }) => {
-    const [localSelectedChat, setLocalSelectedChat] = useState<Chat | undefined>();
+    const [localSelectedChat, setLocalSelectedChat] = useState<
+        Chat | undefined
+    >();
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [chats, setChats] = useState<Chat[]>(initialChats ?? []);
     const [isLoading, setIsLoading] = useState(false);
@@ -60,8 +62,6 @@ const ChatComponent: FC<Props> = ({
             return;
         }
     }, []);
-
-
 
     useEffect(() => {
         if (user) {
@@ -317,7 +317,7 @@ const ChatComponent: FC<Props> = ({
         id: user?.id || 0,
         name: user?.name || "",
         avatar: user?.avatar || "",
-        role: 'member', 
+        role: "member",
     };
 
     const chatSidebar = (
@@ -348,9 +348,11 @@ const ChatComponent: FC<Props> = ({
                         isSearchMode={isSearchMode}
                         searchQuery={searchQuery}
                         onUpdateChat={(updatedChat) => {
-                            setChats(prevChats =>
-                                prevChats.map(chat =>
-                                    chat.id === updatedChat.id ? updatedChat : chat
+                            setChats((prevChats) =>
+                                prevChats.map((chat) =>
+                                    chat.id === updatedChat.id
+                                        ? updatedChat
+                                        : chat
                                 )
                             );
                             setSelectedChat(updatedChat);

@@ -209,13 +209,13 @@ export function UserManagementTable({
                                             <img
                                                 src={`https://www.gravatar.com/avatar/${user.email}?d=mp`}
                                                 alt={user.name || ""}
-                                                className="h-10 w-10 rounded-full"
+                                                className="h-10 w-10 flex-shrink-0 rounded-full"
                                             />
-                                            <div>
-                                                <div className="font-medium">
+                                            <div className="min-w-0">
+                                                <div className="font-medium truncate">
                                                     {user.name}
                                                 </div>
-                                                <div className="text-sm text-muted-foreground">
+                                                <div className="text-sm text-muted-foreground truncate">
                                                     {user.email}
                                                 </div>
                                             </div>
@@ -242,7 +242,7 @@ export function UserManagementTable({
                                                     changeUserRole(user.id, value);
                                                 }}
                                             >
-                                                <SelectTrigger className="w-[180px]">
+                                                <SelectTrigger className="w-full max-w-[180px]">
                                                     <SelectValue>
                                                         <RoleBadge
                                                             role={user.role}

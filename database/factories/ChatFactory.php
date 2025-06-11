@@ -14,8 +14,7 @@ class ChatFactory extends Factory
     {
         return [
             'name' => $this->faker->words(3, true),
-            'description' => $this->faker->sentence(),
-            'type' => $this->faker->randomElement(['group', 'direct']),
+            'type' => $this->faker->randomElement(['group', 'private']),
             'company_id' => Company::factory(),
             'created_at' => $this->faker->dateTimeBetween('-1 year'),
             'updated_at' => $this->faker->dateTimeBetween('-1 month'),
@@ -26,9 +25,8 @@ class ChatFactory extends Factory
     {
         return $this->state(function () {
             return [
-                'type' => 'direct',
+                'type' => 'private',
                 'name' => null,
-                'description' => null,
             ];
         });
     }

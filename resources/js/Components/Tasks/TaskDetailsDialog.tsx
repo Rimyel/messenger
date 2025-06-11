@@ -278,16 +278,9 @@ export function TaskDetailsDialog({
                                                     : 'grid grid-cols-[1fr_auto_auto] items-center gap-4 p-4'
                                                 }
                                             `}>
-                                                <div className="flex items-center gap-3">
-                                                    <img
-                                                        src={assignment.userAvatar || "/placeholder.svg"}
-                                                        alt={assignment.userName}
-                                                        className="h-10 w-10 rounded-full"
-                                                    />
-                                                    <div>
-                                                        <div className="font-medium">
-                                                            {assignment.userName}
-                                                        </div>
+                                                <div className="flex items-center">
+                                                    <div className="font-medium">
+                                                        {assignment.userName}
                                                     </div>
                                                 </div>
                                                 <Badge

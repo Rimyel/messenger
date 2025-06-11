@@ -13,6 +13,7 @@ use Illuminate\Http\JsonResponse;
 
 class ChatController extends Controller
 {
+      // Инъекция сервисов для работы со списками чатов и сообщениями
     protected $chatListService;
     protected $chatMessageService;
 
@@ -35,6 +36,7 @@ class ChatController extends Controller
         }
     }
 
+    // Получение сообщений конкретного чата с поддержкой пагинации и поиска
     public function messages($chatId, Request $request): JsonResponse
     {
         try {

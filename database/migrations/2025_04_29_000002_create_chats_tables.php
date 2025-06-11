@@ -4,8 +4,7 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('chats', function (Blueprint $table) {
@@ -22,7 +21,7 @@ return new class extends Migration
             // Роль пользователя в чате: owner - создатель, admin - администратор, member - участник
             $table->enum('role', ['owner', 'admin', 'member'])->default('member');
             $table->timestamps();
-            
+
             $table->primary(['chat_id', 'user_id']);
         });
 

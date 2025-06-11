@@ -3,12 +3,15 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Chat extends Model
 {
+    use HasFactory;
+
     protected $fillable = [
         'company_id',
         'type',
@@ -21,12 +24,12 @@ class Chat extends Model
     public function scopeForUser($query, User $user)
     {
         $userCompanyIds = $user->companies()->pluck('companies.id');
-        return $query->where(function($query) use ($userCompanyIds) {
+        return $query->where(function ($query) use ($userCompanyIds) {
             $query->where('type', 'private')
-                  ->orWhere(function($q) use ($userCompanyIds) {
-                      $q->where('type', 'group')
+                ->orWhere(function ($q) use ($userCompanyIds) {
+                    $q->where('type', 'group')
                         ->whereIn('chats.company_id', $userCompanyIds);
-                  });
+                });
         });
     }
 
@@ -93,7 +96,7 @@ class Chat extends Model
         if (!$this->company->users()->where('user_id', $user->id)->exists()) {
             return false;
         }
-        
+
         return $this->participants()->where('users.id', $user->id)->exists();
     }
 
