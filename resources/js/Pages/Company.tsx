@@ -30,10 +30,10 @@ const LoadingSpinner = () => (
     </div>
 );
 
-const Dashboard: React.FC = () => {
+const CompanyPage: React.FC = () => {
     const { token, setToken, clearAuth, user } = useAuthStore();
     const [currentCompany, setCurrentCompany] = useState<Company | null>(null);
-    const [currentContent, setCurrentContent] = useState<string>("dashboard");
+    const [currentContent, setCurrentContent] = useState<string>("company");
     const [isCreatingCompany, setIsCreatingCompany] = useState(false);
     const [isLoading, setIsLoading] = useState(true);
     const [selectedChat, setSelectedChat] = useState<Chat | undefined>();
@@ -118,7 +118,6 @@ const Dashboard: React.FC = () => {
 
             useAuthStore.getState().clearAuth();
 
-
         } catch (error) {
             console.error("Ошибка при выходе:", error);
             toast.error("Произошла ошибка при выходе из системы");
@@ -184,4 +183,4 @@ const Dashboard: React.FC = () => {
     );
 };
 
-export default Dashboard;
+export default CompanyPage;

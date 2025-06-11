@@ -43,9 +43,6 @@ const ProfileContent: FC<Props> = ({ status, handleLogout }) => {
                     <UpdatePasswordForm className="max-w-xl" />
                 </div>
 
-                <div className="bg-white/50 backdrop-blur-lg p-6 shadow-lg rounded-lg border border-gray-200/50">
-                    <DeleteUserForm className="max-w-xl" />
-                </div>
 
                 <div className="bg-white/50 backdrop-blur-lg p-6 shadow-lg rounded-lg border border-gray-200/50">
                     <div className="max-w-xl">

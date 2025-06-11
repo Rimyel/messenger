@@ -317,7 +317,7 @@ const ChatComponent: FC<Props> = ({
         id: user?.id || 0,
         name: user?.name || "",
         avatar: user?.avatar || "",
-        role: 'member', // Роль будет обновляться при получении данных чата
+        role: 'member', 
     };
 
     const chatSidebar = (
@@ -414,7 +414,7 @@ const ChatComponent: FC<Props> = ({
                                                 ...prev,
                                                 ...result.messages,
                                             ];
-                                            // Sort by ID in reverse order (highest to lowest)
+
                                             return combinedMessages.sort(
                                                 (a, b) =>
                                                     Number(b.id) - Number(a.id)

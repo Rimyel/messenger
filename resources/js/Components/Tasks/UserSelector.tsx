@@ -102,11 +102,6 @@ export const UserSelector = forwardRef<HTMLDivElement, UserSelectorProps>(
                                             )}
                                         >
                                             <div className="flex items-center gap-2">
-                                                <img
-                                                    src={`https://www.gravatar.com/avatar/${user.email}?d=mp`}
-                                                    alt={user.name}
-                                                    className="h-6 w-6 rounded-full"
-                                                />
                                                 <div className="flex flex-col">
                                                     <span>{user.name}</span>
                                                     <span className="text-xs text-muted-foreground">
@@ -133,11 +128,6 @@ export const UserSelector = forwardRef<HTMLDivElement, UserSelectorProps>(
                                 variant="secondary"
                                 className="flex items-center gap-1"
                             >
-                                <img
-                                    src={`https://www.gravatar.com/avatar/${user.email}?d=mp`}
-                                    alt={user.name}
-                                    className="mr-1 h-4 w-4 rounded-full"
-                                />
                                 {user.name}
                                 <Button
                                     variant="ghost"

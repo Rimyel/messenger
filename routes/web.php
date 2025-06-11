@@ -33,7 +33,7 @@ Route::get('/storage/chat-files/{filename}', [MediaController::class, 'serveFile
 
 Route::get('/video/{filename}', [MediaController::class, 'streamVideo'])->name('video.stream');
 Route::middleware(['auth', 'verified'])->group(function () {
-    Route::get('/dashboard', [MainController::class, 'index'])->name('dashboard');
+    Route::get('/company', [MainController::class, 'index'])->name('company');
 
     // Tasks report route
   

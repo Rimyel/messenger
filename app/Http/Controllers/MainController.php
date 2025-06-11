@@ -47,7 +47,7 @@ class MainController extends Controller
             });
 
             $apiToken = $request->session()->get('api_token');
-        return Inertia::render('Dashboard', [
+        return Inertia::render('Company', [
             'userId' => $userId,
             'apiToken' => $apiToken,
             'status' => session('status'),

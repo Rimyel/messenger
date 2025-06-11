@@ -63,7 +63,6 @@ export function TaskDetailsDialog({
         ) || null;
     };
 
-    // Обновляем состояния при изменении задания или его данных
     useEffect(() => {
         const userAssignment = getUserAssignment();
         if (userAssignment) {

@@ -142,31 +142,6 @@ export default function Login({
                         )}
                     </div>
 
-                    <div className="flex items-center justify-between">
-                        <label className="flex items-center">
-                            <input
-                                type="checkbox"
-                                name="remember"
-                                checked={data.remember}
-                                onChange={(e) =>
-                                    setData("remember", e.target.checked)
-                                }
-                                className="rounded border-white/20 bg-white/10 text-blue-500 focus:ring-blue-500"
-                            />
-                            <span className="ml-2 text-sm text-white">
-                                Запомнить меня
-                            </span>
-                        </label>
-
-                        {canResetPassword && (
-                            <Link
-                                href={route("password.request")}
-                                className="text-sm text-blue-400 hover:text-blue-300 transition-colors"
-                            >
-                                Забыли пароль?
-                            </Link>
-                        )}
-                    </div>
 
                     <div className="flex items-center justify-end gap-4">
                         <Link

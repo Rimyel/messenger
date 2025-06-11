@@ -70,7 +70,7 @@ export const ChatSidebar: React.FC<ChatSidebarProps> = ({
             fetchCompanyUsers();
         }
     }, [isSelectUserDialogOpen, isGroupChatDialogOpen]);
-    // в принципе можно и с 1 участником если это не вызовет проблем в реализации
+ 
     const handleCreateGroupChat = async () => {
         if (!groupName || selectedParticipants.length === 0) return;
 

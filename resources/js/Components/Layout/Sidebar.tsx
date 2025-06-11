@@ -74,16 +74,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
-                            onClick={() => setCurrentContent("dashboard")}
-                        >
-                            <Home className="h-4 w-4" />
-                            <span className="group-data-[collapsible=icon]:hidden">
-                                Главная (Dashboard)
-                            </span>
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
                             onClick={() => {
                                 setCurrentContent("company");
                                 setIsCreatingCompany(false);

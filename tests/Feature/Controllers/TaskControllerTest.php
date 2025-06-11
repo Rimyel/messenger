@@ -137,11 +137,11 @@ class TaskControllerTest extends TestCase
             'user_ids' => $assignees->pluck('id')->toArray()
         ];
 
-        // Act
+        
         $response = $this->actingAs($admin)
             ->postJson('/api/tasks', $taskData, $this->withApiHeaders());
 
-        // Assert
+    
         $response->assertStatus(201);
 
         $taskId = $response->json('id');
@@ -350,68 +350,53 @@ class TaskControllerTest extends TestCase
 
     public function test_admin_can_review_response(): void
     {
-        // Arrange
         $companyData = $this->createCompanyWithUsers();
         $admin = $companyData['admin'];
-        
         $task = Task::factory()->create([
             'company_id' => $companyData['company']->id,
             'created_by' => $admin->id
         ]);
-
         $assignment = TaskAssignment::create([
             'task_id' => $task->id,
             'user_id' => $companyData['member']->id,
             'status' => 'submitted'
         ]);
-
         $taskResponse = TaskResponse::create([
             'assignment_id' => $assignment->id,
             'text' => 'Test Response',
             'status' => 'submitted'
         ]);
-
-        // Act - Отправка на доработку
         $response = $this->actingAs($admin)
             ->patchJson("/api/tasks/responses/{$taskResponse->id}/review", [
                 'status' => 'revision',
                 'revision_comment' => 'Need improvements'
             ], $this->withApiHeaders());
 
-        // Assert
         $response->assertStatus(200);
-        
         $this->assertDatabaseHas('task_responses', [
             'id' => $taskResponse->id,
             'status' => 'revision',
             'revision_comment' => 'Need improvements'
         ]);
-
         $this->assertDatabaseHas('task_assignments', [
             'id' => $assignment->id,
             'status' => 'revision'
         ]);
-
-        // Act - Принятие ответа
         $response = $this->actingAs($admin)
             ->putJson("/api/task-responses/{$taskResponse->id}/review", [
                 'status' => 'approved'
             ], $this->withApiHeaders());
 
-        // Assert
         $response->assertStatus(200);
-        
         $this->assertDatabaseHas('task_responses', [
             'id' => $taskResponse->id,
             'status' => 'approved',
             'revision_comment' => null
         ]);
-
         $this->assertDatabaseHas('task_assignments', [
             'id' => $assignment->id,
             'status' => 'completed'
         ]);
-
         $this->assertDatabaseHas('tasks', [
             'id' => $task->id,
             'status' => 'completed'

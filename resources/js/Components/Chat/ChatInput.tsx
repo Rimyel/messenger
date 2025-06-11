@@ -166,15 +166,7 @@ export const ChatInput: React.FC<ChatInputProps> = ({ onSendMessage, disabled })
                     disabled={disabled || isSending}
                 />
     
-                <Button
-                    size="icon"
-                    variant="outline"
-                    className="h-8 w-8"
-                    disabled={disabled}
-                >
-                    <Smile className="h-4 w-4" />
-                    <span className="sr-only">Эмодзи</span>
-                </Button>
+
     
                 <Button
                     onClick={handleSend}
