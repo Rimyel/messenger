@@ -112,7 +112,7 @@ export function UserTasksPage() {
         }
 
         const assignment = task.assignments.find(
-            (a) => a.userId === user?.id.toString()
+            (a) => Number(a.userId) === Number(user?.id)
         );
 
         // Если есть назначение и у него есть ответ
@@ -123,8 +123,9 @@ export function UserTasksPage() {
             if (assignment.response.status === "revision") {
                 return "revision";
             }
+            // Если ответ отправлен, возвращаем не "submitted", а "pending"
             if (assignment.response.status === "submitted") {
-                return "submitted";
+                return "in_progress";
             }
         }
 

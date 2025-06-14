@@ -25,6 +25,8 @@ export function AdminTaskResponse({
     onReviewResponse,
     isSubmitting
 }: AdminTaskResponseProps) {
+    // Проверяем, завершено ли задание
+    const isTaskCompleted = assignment.status === "completed";
     const isMobile = useIsMobile();
     if (!assignment.response) {
         return (
@@ -99,11 +101,17 @@ export function AdminTaskResponse({
                     </>
                 ) : (
                     <div className="flex flex-col sm:flex-row sm:justify-end gap-2">
-                        <Button
-                            variant="outline"
-                            onClick={() => onSetRevisionMode(true)}
-                            disabled={isSubmitting}
-                            className="w-full sm:w-auto"
+                        {isTaskCompleted ? (
+                            <div className="text-sm text-muted-foreground">
+                                Задание завершено.
+                            </div>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    onClick={() => onSetRevisionMode(true)}
+                                    disabled={isSubmitting}
+                                    className="w-full sm:w-auto"
                         >
                             {isMobile ? (
                                 <div className="flex items-center">
@@ -113,19 +121,21 @@ export function AdminTaskResponse({
                             ) : (
                                 "На доработку"
                             )}
-                        </Button>
-                        <Button
-                            onClick={() => onReviewResponse("completed")}
-                            disabled={isSubmitting}
-                            className="w-full sm:w-auto"
-                        >
-                            {isSubmitting ? "Обработка..." : (
-                                <div className="flex items-center">
-                                    <CheckCircle className="mr-2 h-4 w-4" />
-                                    {isMobile ? "Принять" : "Принять ответ"}
-                                </div>
-                            )}
-                        </Button>
+                                </Button>
+                                <Button
+                                    onClick={() => onReviewResponse("completed")}
+                                    disabled={isSubmitting}
+                                    className="w-full sm:w-auto"
+                                >
+                                    {isSubmitting ? "Обработка..." : (
+                                        <div className="flex items-center">
+                                            <CheckCircle className="mr-2 h-4 w-4" />
+                                            {isMobile ? "Принять" : "Принять ответ"}
+                                        </div>
+                                    )}
+                                </Button>
+                            </>
+                        )}
                     </div>
                 )}
             </div>

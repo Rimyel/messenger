@@ -10,7 +10,7 @@ return new class extends Migration
     {
         // Таблица задач с обычным автоинкрементным ID
         Schema::create('tasks', function (Blueprint $table) {
-            $table->id(); // bigIncrements 'id'
+            $table->id(); 
             $table->foreignId('company_id')->constrained()->cascadeOnDelete();
             $table->string('title');
             $table->text('description');
@@ -29,7 +29,7 @@ return new class extends Migration
 
         // Таблица назначений задач
         Schema::create('task_assignments', function (Blueprint $table) {
-            $table->id(); // bigIncrements 'id'
+            $table->id(); 
             $table->foreignId('task_id')->constrained('tasks')->cascadeOnDelete();
             $table->foreignId('user_id')->constrained()->cascadeOnDelete();
             $table->enum('status', [
@@ -44,7 +44,7 @@ return new class extends Migration
 
         // Таблица ответов на задачи
         Schema::create('task_responses', function (Blueprint $table) {
-            $table->id(); // bigIncrements 'id'
+            $table->id(); 
             $table->foreignId('assignment_id')->constrained('task_assignments')->cascadeOnDelete();
             $table->text('text');
             $table->enum('status', [

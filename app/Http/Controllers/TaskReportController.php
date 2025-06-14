@@ -24,10 +24,20 @@ class TaskReportController extends Controller
         }
 
         // Получаем все задачи компании с необходимыми связями
-        $tasks = Task::with(['creator', 'assignments.user', 'assignments.response'])
+        // Получаем даты из запроса, если они есть
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $query = Task::with(['creator', 'assignments.user', 'assignments.response'])
             ->where('company_id', $company->id)
-            ->latest()
-            ->get();
+            ->where('created_by', $user->id);
+
+        // Применяем фильтр по датам, если они указаны
+        if ($startDate && $endDate) {
+            $query->whereBetween('start_date', [$startDate, $endDate]);
+        }
+
+        $tasks = $query->latest()->get();
 
         // Создаем новый Excel документ
         $spreadsheet = new Spreadsheet();
@@ -125,10 +135,20 @@ class TaskReportController extends Controller
         }
 
         // Получаем все задачи компании с необходимыми связями
-        $tasks = Task::with(['creator', 'assignments.user', 'assignments.response'])
+        // Получаем даты из запроса, если они есть
+        $startDate = $request->input('start_date');
+        $endDate = $request->input('end_date');
+
+        $query = Task::with(['creator', 'assignments.user', 'assignments.response'])
             ->where('company_id', $company->id)
-            ->latest()
-            ->get();
+            ->where('created_by', $user->id);
+
+        // Применяем фильтр по датам, если они указаны
+        if ($startDate && $endDate) {
+            $query->whereBetween('start_date', [$startDate, $endDate]);
+        }
+
+        $tasks = $query->latest()->get();
 
         // Формируем HTML для PDF
         $html = '<html><head>';

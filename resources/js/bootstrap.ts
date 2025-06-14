@@ -33,9 +33,6 @@ try {
         broadcaster: "pusher",
         key: "fbec33f8ff40825149ad",
         cluster: "eu",
-        wsHost: undefined,
-        wsPort: undefined,
-        wssPort: undefined,
         forceTLS: true,
         encrypted: true,
         enabledTransports: ["ws", "wss"],
@@ -46,6 +43,7 @@ try {
                 Accept: "application/json",
             },
         },
+        authEndpoint: '/broadcasting/auth'
     });
 
     // Debug successful initialization

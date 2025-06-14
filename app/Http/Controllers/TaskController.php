@@ -23,7 +23,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $company = $user->companies()->first();
-        
+
         if (!$company) {
             return response()->json(['message' => 'User does not belong to any company'], 403);
         }
@@ -46,7 +46,7 @@ class TaskController extends Controller
     {
         $user = $request->user();
         $company = $user->companies()->first();
-        
+
         if (!$company) {
             return response()->json(['message' => 'User does not belong to any company'], 403);
         }
@@ -116,7 +116,7 @@ class TaskController extends Controller
         // Сохраняем файлы
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $uploadedFile) {
-                $path = $uploadedFile->store('tasks');
+                $path = $uploadedFile->storeAs('tasks', $uploadedFile->getClientOriginalName(), 'public');
 
                 $file = File::create([
                     'id' => Str::uuid(),
@@ -194,7 +194,7 @@ class TaskController extends Controller
         // Сохраняем файлы ответа
         if ($request->hasFile('files')) {
             foreach ($request->file('files') as $uploadedFile) {
-                $path = $uploadedFile->store('task-responses');
+                $path = $uploadedFile->storeAs('task-responses', $uploadedFile->getClientOriginalName(), 'public');
 
                 $file = File::create([
                     'id' => Str::uuid(),
@@ -210,6 +210,12 @@ class TaskController extends Controller
         }
 
         $assignment->update(['status' => 'submitted']);
+
+        // Обновляем статус задания на in_progress при получении ответа
+        $task = $assignment->task;
+        if ($task->status === 'pending') {
+            $task->update(['status' => 'in_progress']);
+        }
 
         return response()->json($response->load('files'));
     }
@@ -269,6 +275,12 @@ class TaskController extends Controller
         // Обновляем статус назначения
         $response->assignment->update(['status' => 'submitted']);
 
+        // Обновляем статус задания на in_progress при обновлении ответа
+        $task = $response->assignment->task;
+        if ($task->status === 'pending') {
+            $task->update(['status' => 'in_progress']);
+        }
+
         return response()->json($response->load('files'));
     }
 
@@ -282,6 +294,12 @@ class TaskController extends Controller
 
         if (!$company || !$user->canManageCompany($company)) {
             return response()->json(['message' => 'Unauthorized'], 403);
+        }
+
+        // Проверяем, не завершено ли уже задание
+        $task = $response->assignment->task;
+        if ($task->status === 'completed') {
+            return response()->json(['message' => 'Невозможно изменить статус ответа для завершенного задания'], 403);
         }
 
         $validated = $request->validate([

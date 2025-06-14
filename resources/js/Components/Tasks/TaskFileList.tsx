@@ -50,6 +50,14 @@ export function TaskFileList({
                             <Button
                                 variant="ghost"
                                 size="sm"
+                                onClick={() => {
+                                    const link = document.createElement('a');
+                                    link.href = `/storage/task-file/${file.id}`;
+                                    link.download = file.name;
+                                    document.body.appendChild(link);
+                                    link.click();
+                                    document.body.removeChild(link);
+                                }}
                             >
                                 <Download className={`h-4 w-4 ${!isMobile && 'mr-2'}`} />
                                 {!isMobile && 'Скачать'}

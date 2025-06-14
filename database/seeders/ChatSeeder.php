@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use App\Models\Chat;
 use App\Models\User;
 use App\Models\Company;
+use Illuminate\Support\Carbon;
 
 class ChatSeeder extends Seeder
 {
@@ -37,11 +38,14 @@ class ChatSeeder extends Seeder
                 
                 foreach ($selectedTemplates as $templateIndex) {
                 $chatName = $this->groupChatTemplates[$templateIndex];
+                // Используем фиксированную дату в прошлом
+                $baseDate = Carbon::create(2024, 1, 1);
+                
                 $groupChat = Chat::create([
                     'name' => $chatName,
                     'type' => 'group',
                     'company_id' => $company->id,
-                    'created_at' => now()->subDays(rand(1, 30))
+                    'created_at' => $baseDate->copy()->addDays($templateIndex) // Последовательные даты
                 ]);
                 
                 // Добавляем случайное подмножество пользователей (минимум 3)
@@ -84,10 +88,13 @@ class ChatSeeder extends Seeder
                     foreach ($chatPartnerIndices as $index) {
                         $partner = $remainingUsers[$index];
                         
+                        // Используем фиксированную дату для личных чатов
+                        $baseDate = Carbon::create(2024, 2, 1);
+                        
                         $personalChat = Chat::create([
                             'type' => 'private',
                             'company_id' => $company->id,
-                            'created_at' => now()->subDays(rand(1, 30))
+                            'created_at' => $baseDate->copy()->addDays($i) // Последовательные даты
                         ]);
                         
                         // В личном чате оба пользователя - владельцы

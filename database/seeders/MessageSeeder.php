@@ -5,8 +5,7 @@ namespace Database\Seeders;
 use Illuminate\Database\Seeder;
 use App\Models\Message;
 use App\Models\Chat;
-use App\Models\File;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Carbon;
 
 class MessageSeeder extends Seeder
 {
@@ -56,36 +55,6 @@ class MessageSeeder extends Seeder
         ]
     ];
 
-    private $fileTypes = [
-        [
-            'path' => 'sample-10s.mp4',
-            'mime_type' => 'video/mp4',
-            'descriptions' => [
-                'Видеоотчет о проделанной работе',
-                'Демонстрация нового функционала',
-                'Запись тестирования системы'
-            ]
-        ],
-        [
-            'path' => 'sample-15s.mp3',
-            'mime_type' => 'audio/mpeg',
-            'descriptions' => [
-                'Аудиозапись совещания',
-                'Голосовые заметки по проекту',
-                'Аудиокомментарии к задаче'
-            ]
-        ],
-        [
-            'path' => 'sample-city-park-400x300.jpg',
-            'mime_type' => 'image/jpeg',
-            'descriptions' => [
-                'Скриншот с результатами',
-                'Диаграмма архитектуры',
-                'Пример интерфейса'
-            ]
-        ]
-    ];
-
     public function run(): void
     {
         $chats = Chat::with('participants')->get();
@@ -104,25 +73,26 @@ class MessageSeeder extends Seeder
                 $this->groupMessages[array_rand($this->groupMessages)] :
                 $this->personalMessages[array_rand($this->personalMessages)];
             
-            $baseTime = now()->subDays(rand(1, 30));
+            // Используем дату создания чата, но не позже чем 2024-03-01
+            $chatCreatedAt = Carbon::parse($chat->created_at);
+            $latestAllowedDate = Carbon::create(2024, 3, 1);
+            $baseTime = $chatCreatedAt->gt($latestAllowedDate) ? $latestAllowedDate : $chatCreatedAt;
             $chatMessages = [];
             
             for ($i = 0; $i < $messageCount; $i++) {
                 // Выбираем отправителя из реальных участников чата
                 $sender = $participants->random();
-                $sentAt = $baseTime->addMinutes(rand(1, 60));
+                // Добавляем сообщения последовательно с интервалом в 5 минут
+                $sentAt = $baseTime->copy()->addMinutes($i * 5);
                 
-                // Временно устанавливаем все сообщения как отправленные
                 $status = 'sent';
                 $deliveredAt = null;
                 $readAt = null;
                 
-                $isFile = rand(0, 4) === 0; // 20% шанс на файл
-                
                 $messageData = [
                     'chat_id' => $chat->id,
                     'sender_id' => $sender->id,
-                    'content' => $isFile ? $this->fileTypes[array_rand($this->fileTypes)]['descriptions'][array_rand($this->fileTypes[0]['descriptions'])] : $messages[rand(0, count($messages) - 1)],
+                    'content' => $messages[rand(0, count($messages) - 1)],
                     'sent_at' => $sentAt,
                     'status' => $status,
                     'delivered_at' => $deliveredAt,
@@ -131,38 +101,22 @@ class MessageSeeder extends Seeder
                 
                 $message = Message::create($messageData);
                 $chatMessages[] = $message;
-                
-                if ($isFile) {
-                    $fileType = $this->fileTypes[array_rand($this->fileTypes)];
-                    $file = File::create([
-                        'name' => 'file_' . now()->format('d_m_Y_H_i_s'),
-                        'path' => 'тестовые данные/' . $fileType['path'],
-                        'type' => strtok($fileType['mime_type'], '/'),
-                        'mime_type' => $fileType['mime_type']
-                    ]);
-
-                    // Создаем связь в промежуточной таблице
-                    DB::table('messages_media')->insert([
-                        'message_id' => $message->id,
-                        'files_id' => $file->id,
-                        'created_at' => now(),
-                        'updated_at' => now()
-                    ]);
-                }
             }
             
             // После создания всех сообщений в чате, обновляем статусы
-            // Получаем последнее сообщение
-            $lastMessage = end($chatMessages);
-            
-            // Обновляем все сообщения кроме последнего как прочитанные
-            foreach ($chatMessages as $message) {
-                if ($message->id !== $lastMessage->id) {
-                    $message->update([
-                        'status' => 'read',
-                        'delivered_at' => $message->sent_at->copy()->addSeconds(rand(1, 30)),
-                        'read_at' => $message->sent_at->copy()->addMinutes(rand(1, 30))
-                    ]);
+            if (!empty($chatMessages)) {
+                $lastMessage = end($chatMessages);
+                
+                // Обновляем все сообщения кроме последнего как прочитанные
+                foreach ($chatMessages as $message) {
+                    if ($message->id !== $lastMessage->id) {
+                        $sentAt = Carbon::parse($message->sent_at);
+                        $message->update([
+                            'status' => 'read',
+                            'delivered_at' => $sentAt->copy()->addSeconds(10),
+                            'read_at' => $sentAt->copy()->addSeconds(30)
+                        ]);
+                    }
                 }
             }
         }

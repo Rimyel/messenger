@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { ExportDateRangeDialog } from "@/Components/Tasks/ExportDateRangeDialog";
 import {
     CalendarIcon,
     Download,
@@ -39,15 +40,17 @@ export default function AdminTasksPage() {
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    const [isExportDialogOpen, setIsExportDialogOpen] = useState(false);
+    const [exportType, setExportType] = useState<"excel" | "pdf">("excel");
 
     // Функция форматирования даты
     const formatTaskDate = (date: string | null): string => {
-        if (!date) return '-';
+        if (!date) return "-";
         try {
-            return format(new Date(date), 'dd.MM.yyyy', { locale: ru });
+            return format(new Date(date), "dd.MM.yyyy", { locale: ru });
         } catch (error) {
-            console.error('Error formatting date:', error);
-            return '-';
+            console.error("Error formatting date:", error);
+            return "-";
         }
     };
 
@@ -180,14 +183,9 @@ export default function AdminTasksPage() {
                 <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                         variant="outline"
-                        onClick={async () => {
-                            try {
-                                await TaskApi.exportToExcel();
-                                toast.success("Отчет Excel успешно скачан");
-                            } catch (error) {
-                                console.error("Failed to export tasks:", error);
-                                toast.error("Не удалось скачать отчет Excel");
-                            }
+                        onClick={() => {
+                            setExportType("excel");
+                            setIsExportDialogOpen(true);
                         }}
                     >
                         <Download className="mr-2 h-4 w-4" />
@@ -195,14 +193,9 @@ export default function AdminTasksPage() {
                     </Button>
                     <Button
                         variant="outline"
-                        onClick={async () => {
-                            try {
-                                await TaskApi.exportToPDF();
-                                toast.success("Отчет PDF успешно скачан");
-                            } catch (error) {
-                                console.error("Failed to export tasks:", error);
-                                toast.error("Не удалось скачать отчет PDF");
-                            }
+                        onClick={() => {
+                            setExportType("pdf");
+                            setIsExportDialogOpen(true);
                         }}
                     >
                         <Download className="mr-2 h-4 w-4" />
@@ -292,7 +285,9 @@ export default function AdminTasksPage() {
                                                     <CalendarIcon className="h-4 w-4 text-muted-foreground" />
                                                     <span className="text-sm text-muted-foreground">
                                                         Срок:{" "}
-                                                        {formatTaskDate(task.dueDate)}
+                                                        {formatTaskDate(
+                                                            task.dueDate
+                                                        )}
                                                     </span>
                                                 </div>
                                                 <div className="mt-2 flex items-center gap-2">
@@ -378,6 +373,34 @@ export default function AdminTasksPage() {
                     onUpdateTask={handleUpdateTask}
                 />
             )}
+
+            {/* Диалог выбора периода для экспорта */}
+            <ExportDateRangeDialog
+                open={isExportDialogOpen}
+                onOpenChange={setIsExportDialogOpen}
+                type={exportType}
+                onExport={async (startDate: Date, endDate: Date, type: 'excel' | 'pdf') => {
+                    try {
+                        const dateRange = {
+                            start_date: startDate.toISOString().split("T")[0],
+                            end_date: endDate.toISOString().split("T")[0],
+                        };
+
+                        if (type === "excel") {
+                            await TaskApi.exportToExcel(dateRange);
+                            toast.success("Отчет Excel успешно скачан");
+                        } else {
+                            await TaskApi.exportToPDF(dateRange);
+                            toast.success("Отчет PDF успешно скачан");
+                        }
+                    } catch (error) {
+                        console.error("Failed to export tasks:", error);
+                        toast.error(
+                            `Не удалось скачать отчет ${type.toUpperCase()}`
+                        );
+                    }
+                }}
+            />
         </div>
     );
 }

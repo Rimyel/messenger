@@ -5,11 +5,12 @@ import { motion } from "framer-motion";
 interface Props {
   canLogin: boolean;
   canRegister: boolean;
-  laravelVersion: string;
-  phpVersion: string;
+  auth: {
+    user: any;
+  } | null;
 }
 
-export default function Welcome({ canLogin, canRegister }: Props) {
+export default function Welcome({ canLogin, canRegister, auth }: Props) {
   return (
     <div className="relative isolate min-h-screen">
       {/* Background image */}
@@ -42,12 +43,12 @@ export default function Welcome({ canLogin, canRegister }: Props) {
           >
             {canLogin ? (
               <div className="flex items-center gap-x-2">
-                <Link href={route('login')}>
+                <Link href={auth?.user ? route('company') : route('login')}>
                   <Button variant="ghost" className="text-white hover:text-gray-300 hover:bg-white/10">
-                    Войти
+                    {auth?.user ? 'Перейти в систему' : 'Войти'}
                   </Button>
                 </Link>
-                {canRegister && (
+                {canRegister && !auth?.user && (
                   <Link href={route('register')}>
                     <Button variant="secondary" className="text-gray-900">
                       Регистрация
@@ -84,9 +85,9 @@ export default function Welcome({ canLogin, canRegister }: Props) {
               Объединяет задачи, коммуникации и управление командой в одном удобном интерфейсе. Оптимизируйте рабочие процессы и повысьте эффективность вашего бизнеса.
             </p>
             <div className="mt-10 flex items-center justify-center gap-x-6">
-              <Link href={route('register')}>
+              <Link href={auth?.user ? route('company') : route('register')}>
                 <Button size="lg" className="bg-blue-600 hover:bg-blue-500">
-                  Начать работу
+                  {auth?.user ? 'Перейти в систему' : 'Начать работу'}
                 </Button>
               </Link>
               <Link href="#features" className="text-sm font-semibold leading-6 text-white group transition duration-300">

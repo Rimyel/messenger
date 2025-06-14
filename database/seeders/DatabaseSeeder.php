@@ -15,8 +15,6 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,    // Сначала создаем компании
             UserSeeder::class,       // Затем пользователей
             TaskSeeder::class,       // Создаем задачи для пользователей
-            ChatSeeder::class,       // Создаем чаты
-            MessageSeeder::class,    // Наполняем чаты сообщениями
         ]);
     }
 }

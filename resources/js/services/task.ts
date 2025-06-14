@@ -1,6 +1,11 @@
 import api from "@/services/api"
 import type { Task, TaskAssignment, TaskResponse } from "@/types/task"
 
+interface DateRangeExport {
+  start_date: string;
+  end_date: string;
+}
+
 export const TaskApi = {
   /**
    * Получить список всех задач (для администраторов)
@@ -83,9 +88,10 @@ export const TaskApi = {
   /**
    * Экспортировать задачи в Excel
    */
-  exportToExcel: async () => {
+  exportToExcel: async (dateRange?: DateRangeExport) => {
     const response = await api.get("/tasks/export", {
-      responseType: 'blob'
+      responseType: 'blob',
+      params: dateRange
     })
     
     // Создаем ссылку для скачивания файла
@@ -102,9 +108,10 @@ export const TaskApi = {
   /**
    * Экспортировать задачи в PDF
    */
-  exportToPDF: async () => {
+  exportToPDF: async (dateRange?: DateRangeExport) => {
     const response = await api.get("/tasks/export-pdf", {
-      responseType: 'blob'
+      responseType: 'blob',
+      params: dateRange
     })
     
     // Создаем ссылку для скачивания файла

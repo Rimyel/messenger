@@ -23,13 +23,17 @@ Route::get('/', function () {
     return Inertia::render('Welcome', [
         'canLogin' => Route::has('login'),
         'canRegister' => Route::has('register'),
-        'laravelVersion' => Application::VERSION,
-        'phpVersion' => PHP_VERSION,
+        'auth' => [
+            'user' => auth()->user(),
+        ],
     ]);
 });
-
-
 Route::get('/storage/chat-files/{filename}', [MediaController::class, 'serveFile'])->name('file.serve');
+Route::get('/storage/company-logos/{filename}', [MediaController::class, 'serveCompanyLogo'])->name('company.logo');
+Route::get('/storage/task-file/{file}', [MediaController::class, 'serveTaskFile'])
+    ->middleware(['auth'])
+    ->name('task.file.download');
+
 
 Route::get('/video/{filename}', [MediaController::class, 'streamVideo'])->name('video.stream');
 Route::middleware(['auth', 'verified'])->group(function () {
