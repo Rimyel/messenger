@@ -35,7 +35,19 @@ class TaskController extends Controller
                 $q->where('user_id', $user->id);
             });
 
-        $tasks = $query->latest()->paginate(10);
+        // Добавляем сортировку
+        $sortBy = $request->query('sort_by', 'created_at');
+        $sortOrder = $request->query('sort_order', 'desc');
+
+        switch ($sortBy) {
+            case 'due_date':
+                $query->orderBy('due_date', $sortOrder);
+                break;
+            default:
+                $query->orderBy('created_at', $sortOrder);
+        }
+
+        $tasks = $query->paginate(10);
         return TaskResource::collection($tasks);
     }
 
@@ -61,7 +73,19 @@ class TaskController extends Controller
             ->where('company_id', $company->id)
             ->where('created_by', $user->id);
 
-        $tasks = $query->latest()->paginate(10);
+        // Добавляем сортировку
+        $sortBy = $request->query('sort_by', 'created_at');
+        $sortOrder = $request->query('sort_order', 'desc');
+
+        switch ($sortBy) {
+            case 'due_date':
+                $query->orderBy('due_date', $sortOrder);
+                break;
+            default:
+                $query->orderBy('created_at', $sortOrder);
+        }
+
+        $tasks = $query->paginate(10);
 
         return TaskResource::collection($tasks);
     }
@@ -87,7 +111,7 @@ class TaskController extends Controller
             'title' => 'required|string|max:255',
             'description' => 'required|string',
             'start_date' => 'required|date',
-            'due_date' => 'required|date|after:start_date',
+            'due_date' => 'required|date|after_or_equal:start_date',
             'user_ids' => 'required|array',
             'user_ids.*' => 'exists:users,id',
             'files' => 'array',

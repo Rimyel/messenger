@@ -32,6 +32,11 @@ class TaskReportController extends Controller
             ->where('company_id', $company->id)
             ->where('created_by', $user->id);
 
+        // Применяем фильтр по статусу, если он указан
+        if ($request->has('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
         // Применяем фильтр по датам, если они указаны
         if ($startDate && $endDate) {
             $query->whereBetween('start_date', [$startDate, $endDate]);
@@ -143,6 +148,11 @@ class TaskReportController extends Controller
             ->where('company_id', $company->id)
             ->where('created_by', $user->id);
 
+        // Применяем фильтр по статусу, если он указан
+        if ($request->has('status')) {
+            $query->where('status', $request->input('status'));
+        }
+
         // Применяем фильтр по датам, если они указаны
         if ($startDate && $endDate) {
             $query->whereBetween('start_date', [$startDate, $endDate]);
@@ -191,7 +201,9 @@ class TaskReportController extends Controller
 
         // Заголовок отчета
         $html .= '<div class="header">';
-        $html .= '<h2>Отчет по задачам</h2>';
+        $html .= '<h2>Отчет по задачам' .
+            ($request->has('status') ? ' (статус: ' . $this->translateStatus($request->input('status')) . ')' : '') .
+            '</h2>';
         $html .= '<p>Компания: ' . $company->name . '</p>';
         $html .= '<p>Дата формирования: ' . Carbon::now()->format('d.m.Y') . '</p>';
         $html .= '</div>';

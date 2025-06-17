@@ -15,7 +15,16 @@ class TaskAssignmentResource extends JsonResource
             'userName' => $this->user->name,
             'userAvatar' => $this->user->profile_photo_url,
             'status' => $this->status,
-            'response' => $this->whenLoaded('response'),
+            'response' => $this->whenLoaded('response', function() {
+                return [
+                    'id' => $this->response->id,
+                    'text' => $this->response->text,
+                    'status' => $this->response->status,
+                    'revisionComment' => $this->response->revision_comment,
+                    'submittedAt' => $this->response->created_at,
+                    'files' => $this->response->files
+                ];
+            }),
         ];
     }
 }

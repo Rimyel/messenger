@@ -25,6 +25,8 @@ export function UserTasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
+    const [sortBy, setSortBy] = useState<'created_at' | 'due_date'>('created_at');
+    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
@@ -33,7 +35,7 @@ export function UserTasksPage() {
         try {
             setIsLoading(true);
             setError(null);
-            const response = await TaskApi.listUserTasks();
+            const response = await TaskApi.listUserTasks({ sort_by: sortBy, sort_order: sortOrder });
             setTasks(response.data || []);
         } catch (err) {
             setError("Не удалось загрузить задания");
@@ -242,18 +244,53 @@ export function UserTasksPage() {
             </div>
 
             <Tabs defaultValue="all" className="w-full">
+                <div className="mb-4 px-4 sm:px-0">
+                    <div className="flex flex-col sm:flex-row gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">Сортировка:</span>
+                            <select
+                                className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                                value={sortBy}
+                                onChange={(e) => {
+                                    setSortBy(e.target.value as typeof sortBy);
+                                    loadTasks();
+                                }}
+                            >
+                                <option value="created_at">По дате создания</option>
+                                <option value="due_date">По дате окончания</option>
+                            </select>
+                            <select
+                                className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                                value={sortOrder}
+                                onChange={(e) => {
+                                    setSortOrder(e.target.value as typeof sortOrder);
+                                    loadTasks();
+                                }}
+                            >
+                                <option value="desc">По убыванию</option>
+                                <option value="asc">По возрастанию</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
                 <TabsList className="w-full grid grid-cols-4 gap-1">
                     <TabsTrigger value="all">
-                        {isMobile ? "Все" : "Все задания"}
+                        {isMobile ? `Все (${tasks.length})` : `Все задания (${tasks.length})`}
                     </TabsTrigger>
                     <TabsTrigger value="active">
-                        {isMobile ? "Актив." : "Активные"}
+                        {isMobile ? `Актив. (${tasks.filter(task => {
+                            const status = getUserTaskStatus(task);
+                            return ["not_started", "in_progress", "pending"].includes(status);
+                        }).length})` : `Активные (${tasks.filter(task => {
+                            const status = getUserTaskStatus(task);
+                            return ["not_started", "in_progress", "pending"].includes(status);
+                        }).length})`}
                     </TabsTrigger>
                     <TabsTrigger value="completed">
-                        {isMobile ? "Заверш." : "Завершенные"}
+                        {isMobile ? `Заверш. (${tasks.filter(task => getUserTaskStatus(task) === "completed").length})` : `Завершенные (${tasks.filter(task => getUserTaskStatus(task) === "completed").length})`}
                     </TabsTrigger>
                     <TabsTrigger value="revision">
-                        {isMobile ? "Доработка" : "На доработке"}
+                        {isMobile ? `Доработка (${tasks.filter(task => getUserTaskStatus(task) === "revision").length})` : `На доработке (${tasks.filter(task => getUserTaskStatus(task) === "revision").length})`}
                     </TabsTrigger>
                 </TabsList>
 

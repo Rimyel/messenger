@@ -12,6 +12,8 @@ import { Textarea } from "@/Components/ui/textarea";
 import { Button } from "@/Components/ui/button";
 import { ImagePlus, Loader2 } from "lucide-react";
 import { CompanyApi } from "@/services/api";
+import { AuthService } from "@/services/auth";
+import { useAuthStore } from "@/stores/useAuthStore";
 import { toast } from "sonner";
 
 interface CreateCompanyFormProps {
@@ -63,11 +65,20 @@ const CreateCompanyForm: React.FC<CreateCompanyFormProps> = ({ onSuccess }) => {
             setImage(null);
             setImagePreview("");
 
-            // Уведомляем родителя об успешном создании
-            onSuccess?.();
+            try {
+                // Обновляем данные о пользователе
+                const user = await AuthService.getCurrentUser();
+                useAuthStore.getState().setUser(user);
+                
+                // Уведомляем родителя об успешном создании
+                onSuccess?.();
 
-            // Перезагружаем страницу для обновления состояния
-            window.location.reload();
+                // Перезагружаем страницу для обновления состояния
+                window.location.reload();
+            } catch (error) {
+                console.error("Error updating user data:", error);
+                toast.error("Произошла ошибка при обновлении данных пользователя");
+            }
         } catch (error: any) {
             if (error.response?.status === 422) {
                 toast.error(error.response.data.message || "Проверьте правильность заполнения полей");

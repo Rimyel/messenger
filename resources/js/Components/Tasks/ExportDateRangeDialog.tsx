@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { TaskStatus } from "@/services/task";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { format } from "date-fns";
 import { ru } from "date-fns/locale";
@@ -20,7 +21,7 @@ import {
 interface ExportDateRangeDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onExport: (startDate: Date, endDate: Date, type: 'excel' | 'pdf') => Promise<void>;
+    onExport: (startDate: Date | null, endDate: Date | null, status: TaskStatus | null, type: 'excel' | 'pdf') => Promise<void>;
     type: 'excel' | 'pdf';
 }
 
@@ -30,14 +31,25 @@ export function ExportDateRangeDialog({
     onExport,
     type
 }: ExportDateRangeDialogProps) {
-    const [startDate, setStartDate] = useState<Date>();
-    const [endDate, setEndDate] = useState<Date>();
+    const [startDate, setStartDate] = useState<Date | null>(null);
+    const [endDate, setEndDate] = useState<Date | null>(null);
+    const [status, setStatus] = useState<TaskStatus | null>(null);
+
+    const statusOptions = [
+        { value: '', label: 'Все статусы' },
+        { value: 'pending' as const, label: 'Ожидает выполнения' },
+        { value: 'in_progress' as const, label: 'В процессе' },
+        { value: 'completed' as const, label: 'Завершено' },
+        { value: 'revision' as const, label: 'На доработке' },
+        { value: 'overdue' as const, label: 'Просрочено' }
+    ];
 
     const handleExport = async () => {
-        if (startDate && endDate) {
-            await onExport(startDate, endDate, type);
-            onOpenChange(false);
-        }
+        // Преобразуем undefined в null если даты не выбраны
+        const start = startDate || null;
+        const end = endDate || null;
+        await onExport(start, end, status, type);
+        onOpenChange(false);
     };
 
     return (
@@ -47,9 +59,15 @@ export function ExportDateRangeDialog({
                     <DialogTitle>
                         Экспорт отчета в {type.toUpperCase()}
                     </DialogTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                        Выберите период и/или статус для фильтрации. Если период не выбран, отчет будет создан за все время.
+                    </p>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
                     <div className="grid items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Период (необязательно)</span>
+                        </div>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -67,14 +85,17 @@ export function ExportDateRangeDialog({
                             <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                     mode="single"
-                                    selected={startDate}
-                                    onSelect={setStartDate}
+                                    selected={startDate || undefined}
+                                    onSelect={(date) => setStartDate(date || null)}
                                     initialFocus
                                 />
                             </PopoverContent>
                         </Popover>
                     </div>
                     <div className="grid items-center gap-4">
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium">Статус (необязательно)</span>
+                        </div>
                         <Popover>
                             <PopoverTrigger asChild>
                                 <Button
@@ -92,19 +113,35 @@ export function ExportDateRangeDialog({
                             <PopoverContent className="w-auto p-0" align="start">
                                 <Calendar
                                     mode="single"
-                                    selected={endDate}
-                                    onSelect={setEndDate}
+                                    selected={endDate || undefined}
+                                    onSelect={(date) => setEndDate(date || null)}
                                     initialFocus
                                 />
                             </PopoverContent>
                         </Popover>
+                    </div>
+                    <div className="grid items-center gap-4">
+                        <select
+                            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+                            value={status || ''}
+                            onChange={(e) => {
+                                const value = e.target.value;
+                                setStatus(value ? value as typeof status : null);
+                            }}
+                        >
+                            {statusOptions.map(option => (
+                                <option key={option.value} value={option.value}>
+                                    {option.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 </div>
                 <DialogFooter>
                     <Button variant="secondary" onClick={() => onOpenChange(false)}>
                         Отмена
                     </Button>
-                    <Button onClick={handleExport} disabled={!startDate || !endDate}>
+                    <Button onClick={handleExport}>
                         Экспортировать
                     </Button>
                 </DialogFooter>

@@ -10,6 +10,7 @@ import {
     SidebarGroupContent,
     SidebarSeparator,
     SidebarTrigger,
+    useSidebar,
 } from "@/Components/ui/sidebar";
 import { Button } from "@/Components/ui/button";
 import {
@@ -37,6 +38,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     setCurrentContent,
     setIsCreatingCompany,
 }) => {
+    const { setOpenMobile } = useSidebar();
     const [userRole, setUserRole] = useState<string | null>(null);
     const isAdmin = userRole === 'owner' || userRole === 'admin';
 
@@ -77,6 +79,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                             onClick={() => {
                                 setCurrentContent("company");
                                 setIsCreatingCompany(false);
+                                setOpenMobile(false);
                             }}
                         >
                             <Building2 className="h-4 w-4" />
@@ -98,7 +101,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Button
           variant="ghost"
           className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
-          onClick={() => setCurrentContent("users")}
+          onClick={() => {
+            setCurrentContent("users");
+            setOpenMobile(false);
+          }}
         >
           <Users className="h-4 w-4" />
           <span className="group-data-[collapsible=icon]:hidden">
@@ -108,7 +114,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Button
           variant="ghost"
           className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
-          onClick={() => setCurrentContent("admin-tasks")}
+          onClick={() => {
+            setCurrentContent("admin-tasks");
+            setOpenMobile(false);
+          }}
         >
           <ClipboardList className="h-4 w-4" />
           <span className="group-data-[collapsible=icon]:hidden">
@@ -128,9 +137,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <Button
                                     variant="ghost"
                                     className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
-                                    onClick={() =>
-                                        setCurrentContent("user-tasks")
-                                    }
+                                    onClick={() => {
+                                        setCurrentContent("user-tasks");
+                                        setOpenMobile(false);
+                                    }}
                                 >
                                     <ClipboardList className="h-4 w-4" />
                                     <span className="group-data-[collapsible=icon]:hidden">
@@ -140,7 +150,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                                 <Button
                                     variant="ghost"
                                     className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
-                                    onClick={() => setCurrentContent("chat")}
+                                    onClick={() => {
+                                        setCurrentContent("chat");
+                                        setOpenMobile(false);
+                                    }}
                                 >
                                     <MessageSquare className="h-4 w-4" />
                                     <span className="group-data-[collapsible=icon]:hidden">
@@ -160,7 +173,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         <Button
                             variant="ghost"
                             className="w-full justify-start gap-2 group-data-[collapsible=icon]:justify-center"
-                            onClick={() => setCurrentContent("profile")}
+                            onClick={() => {
+                                setCurrentContent("profile");
+                                setOpenMobile(false);
+                            }}
                         >
                             <UserCircle className="h-4 w-4" />
                             <span className="group-data-[collapsible=icon]:hidden">

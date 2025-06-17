@@ -1,25 +1,33 @@
 import api from "@/services/api"
 import type { Task, TaskAssignment, TaskResponse } from "@/types/task"
 
-interface DateRangeExport {
-  start_date: string;
-  end_date: string;
+interface SortParams {
+  sort_by?: 'created_at' | 'due_date' | 'completed_at';
+  sort_order?: 'asc' | 'desc';
+}
+
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'revision' | 'overdue';
+
+export interface DateRangeExport {
+  start_date?: string;
+  end_date?: string;
+  status?: TaskStatus;
 }
 
 export const TaskApi = {
   /**
    * Получить список всех задач (для администраторов)
    */
-  list: async () => {
-    const { data } = await api.get("/tasks")
+  list: async (params?: SortParams) => {
+    const { data } = await api.get("/tasks", { params })
     return data
   },
 
   /**
    * Получить список заданий пользователя
    */
-  listUserTasks: async () => {
-    const { data } = await api.get("/tasks/my")
+  listUserTasks: async (params?: SortParams) => {
+    const { data } = await api.get("/tasks/my", { params })
     return data
   },
 

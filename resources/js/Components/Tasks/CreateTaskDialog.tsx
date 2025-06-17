@@ -60,6 +60,15 @@ const taskFormSchema = z.object({
     startDate: z.date(),
     dueDate: z.date(),
     userIds: z.array(z.number()).min(1, "Выберите хотя бы одного исполнителя"),
+}).refine((data) => {
+    const startDate = new Date(data.startDate);
+    const dueDate = new Date(data.dueDate);
+    startDate.setHours(0, 0, 0, 0);
+    dueDate.setHours(0, 0, 0, 0);
+    return dueDate >= startDate;
+}, {
+    message: "Дата окончания не может быть раньше даты начала",
+    path: ["dueDate"]
 });
 
 type TaskFormValues = z.infer<typeof taskFormSchema>;
@@ -140,6 +149,18 @@ export function CreateTaskDialog({
 
     const onSubmit = async (values: TaskFormValues) => {
         setIsSubmitting(true);
+        
+        const startDate = new Date(values.startDate);
+        const dueDate = new Date(values.dueDate);
+        startDate.setHours(0, 0, 0, 0);
+        dueDate.setHours(0, 0, 0, 0);
+
+        if (dueDate < startDate) {
+            toast.error("Дата окончания не может быть раньше даты начала");
+            setIsSubmitting(false);
+            return;
+        }
+
         try {
             const formData = new FormData();
             formData.append("title", values.title);
@@ -268,12 +289,23 @@ export function CreateTaskDialog({
                                                                 | undefined
                                                         ) => {
                                                             if (date) {
-                                                                field.onChange(
-                                                                    date
-                                                                );
-                                                                setStartDateOpen(
-                                                                    false
-                                                                );
+                                                                const dueDate = form.getValues("dueDate");
+                                                                const newStartDate = new Date(date);
+                                                                newStartDate.setHours(0, 0, 0, 0);
+                                                                const dueDateCopy = new Date(dueDate);
+                                                                dueDateCopy.setHours(0, 0, 0, 0);
+
+                                                                field.onChange(date);
+                                                                setStartDateOpen(false);
+
+                                                                if (dueDateCopy < newStartDate) {
+                                                                    form.setError("dueDate", {
+                                                                        type: "manual",
+                                                                        message: "Дата окончания не может быть раньше даты начала"
+                                                                    });
+                                                                } else {
+                                                                    form.clearErrors("dueDate");
+                                                                }
                                                             }
                                                         }}
                                                         initialFocus
@@ -331,12 +363,22 @@ export function CreateTaskDialog({
                                                                 | undefined
                                                         ) => {
                                                             if (date) {
-                                                                field.onChange(
-                                                                    date
-                                                                );
-                                                                setDueDateOpen(
-                                                                    false
-                                                                );
+                                                                const startDate = form.getValues("startDate");
+                                                                const newDueDate = new Date(date);
+                                                                startDate.setHours(0, 0, 0, 0);
+                                                                newDueDate.setHours(0, 0, 0, 0);
+
+                                                                field.onChange(date);
+                                                                setDueDateOpen(false);
+
+                                                                if (newDueDate < startDate) {
+                                                                    form.setError("dueDate", {
+                                                                        type: "manual",
+                                                                        message: "Дата окончания не может быть раньше даты начала"
+                                                                    });
+                                                                } else {
+                                                                    form.clearErrors("dueDate");
+                                                                }
                                                             }
                                                         }}
                                                         initialFocus
