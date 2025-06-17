@@ -59,7 +59,7 @@ class AuthenticatedSessionController extends Controller
             $request->session()->put('api_token', $token);
 
             Log::info('Токен успешно создан для пользователя ID: ' . $request->user()->id);
-            return redirect()->route('dashboard');
+            return redirect()->route('company');
         } catch (\Illuminate\Validation\ValidationException $e) {
             return back()->withErrors([
                 'email' => $e->getMessage(),

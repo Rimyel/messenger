@@ -41,6 +41,6 @@ class RegisteredUserController extends Controller
 
         Auth::login($user);
 
-        return redirect(route('dashboard'))->with('status', 'Регистрация успешно завершена');
+        return redirect(route('company'))->with('status', 'Регистрация успешно завершена');
     }
 }
