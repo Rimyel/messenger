@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react"
 import { Check, Clock, MoreHorizontal, X } from "lucide-react"
 import { joinRequestService } from "@/services/join-request"
+import { AuthService } from "@/services/auth"
 import { useAuthStore } from "@/stores/useAuthStore"
 import type { JoinRequest, JoinRequestEvent } from "@/types/join-request"
 import { toast } from "sonner"
@@ -91,15 +92,32 @@ export function JoinRequestsTable({ companyId }: Props) {
     })
   }
 
-  const approveRequest = async (requestId: number) => {
+const approveRequest = async (requestId: number) => {
+  try {
+    await joinRequestService.updateStatus(companyId, requestId, { status: 'approved' })
+    setRequests(prev =>
+      prev.map(request =>
+        request.id === requestId
+          ? { ...request, status: 'approved', rejection_reason: null }
+          : request
+      )
+    )
+    
+    // Обновляем данные пользователя после успешного принятия в компанию
     try {
-      await joinRequestService.updateStatus(companyId, requestId, { status: 'approved' })
-      toast.success('Запрос одобрен')
+      const updatedUser = await AuthService.getCurrentUser()
+      useAuthStore.getState().setUser(updatedUser)
     } catch (error) {
-      console.error('Ошибка при одобрении запроса:', error)
-      toast.error('Не удалось одобрить запрос')
+      console.error('Ошибка при обновлении данных пользователя:', error)
+      // Не показываем ошибку пользователю, так как запрос уже был одобрен
     }
+
+    toast.success('Запрос одобрен')
+  } catch (error) {
+    console.error('Ошибка при одобрении запроса:', error)
+    toast.error('Не удалось одобрить запрос')
   }
+}
 
   const rejectRequest = async (requestId: number) => {
     try {
@@ -120,6 +138,7 @@ export function JoinRequestsTable({ companyId }: Props) {
     setSelectedRequest(request)
     setIsDetailsDialogOpen(true)
   }
+  
 
   return (
     <>
@@ -189,7 +208,7 @@ export function JoinRequestsTable({ companyId }: Props) {
                           <DropdownMenuItem onClick={() => showRequestDetails(request)}>
                             Просмотреть детали
                           </DropdownMenuItem>
-                          <DropdownMenuItem>Просмотреть профиль</DropdownMenuItem>
+                         
                           <DropdownMenuSeparator />
                           {request.status === "pending" ? (
                             <>

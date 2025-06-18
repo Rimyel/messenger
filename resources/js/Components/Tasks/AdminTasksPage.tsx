@@ -245,14 +245,10 @@ export default function AdminTasksPage() {
                                     </option>
                                     <option value="due_date">
                                         {isMobile
-                                            ? "По дедлайну"
-                                            : "По дате дедлайна"}
+                                            ? "Срок сдачи"
+                                            : "По сроку сдачи"}
                                     </option>
-                                    <option value="completed_at">
-                                        {isMobile
-                                            ? "По выполнению"
-                                            : "По дате выполнения"}
-                                    </option>
+                                
                                 </select>
                                 <Button
                                     variant="outline"
