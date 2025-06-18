@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { ExportDateRangeDialog } from "@/Components/Tasks/ExportDateRangeDialog";
 
 import type { DateRangeExport } from "@/services/task";
+import type { TaskStatus } from "@/types/task";
 import {
     CalendarIcon,
     Download,
@@ -12,6 +13,8 @@ import {
     Search,
     Users,
     ChevronRight,
+    ArrowUpNarrowWide,
+    ArrowDownNarrowWide,
 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { format } from "date-fns";
@@ -39,8 +42,10 @@ export default function AdminTasksPage() {
     const [tasks, setTasks] = useState<Task[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
-    const [sortBy, setSortBy] = useState<'created_at' | 'due_date' | 'completed_at'>('created_at');
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+    const [sortBy, setSortBy] = useState<
+        "created_at" | "due_date" | "completed_at"
+    >("created_at");
+    const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
     const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
     const [selectedTask, setSelectedTask] = useState<Task | null>(null);
     const [isDetailsDialogOpen, setIsDetailsDialogOpen] = useState(false);
@@ -65,7 +70,10 @@ export default function AdminTasksPage() {
 
     const loadTasks = async () => {
         try {
-            const data = await TaskApi.list({ sort_by: sortBy, sort_order: sortOrder });
+            const data = await TaskApi.list({
+                sort_by: sortBy,
+                sort_order: sortOrder,
+            });
             setTasks(data.data);
         } catch (error) {
             console.error("Failed to load tasks:", error);
@@ -217,30 +225,52 @@ export default function AdminTasksPage() {
                     <div className="flex flex-col sm:flex-row justify-between gap-4 w-full">
                         <div className="flex flex-col sm:flex-row gap-4">
                             <div className="flex items-center gap-2">
-                                <span className="text-sm text-muted-foreground">Сортировка:</span>
+                                <span className="text-sm text-muted-foreground">
+                                    Сортировка:
+                                </span>
                                 <select
-                                    className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
+                                    className="w-full sm:w-auto rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background"
                                     value={sortBy}
                                     onChange={(e) => {
-                                        setSortBy(e.target.value as typeof sortBy);
+                                        setSortBy(
+                                            e.target.value as typeof sortBy
+                                        );
                                         loadTasks();
                                     }}
                                 >
-                                    <option value="created_at">По дате создания</option>
-                                    <option value="due_date">По дате дедлайна</option>
-                                    <option value="completed_at">По дате выполнения</option>
+                                    <option value="created_at">
+                                        {isMobile
+                                            ? "Когда создано"
+                                            : "По дате создания"}
+                                    </option>
+                                    <option value="due_date">
+                                        {isMobile
+                                            ? "По дедлайну"
+                                            : "По дате дедлайна"}
+                                    </option>
+                                    <option value="completed_at">
+                                        {isMobile
+                                            ? "По выполнению"
+                                            : "По дате выполнения"}
+                                    </option>
                                 </select>
-                                <select
-                                    className="w-full sm:w-auto rounded-md border border-input bg-background px-3 py-1 text-sm ring-offset-background"
-                                    value={sortOrder}
-                                    onChange={(e) => {
-                                        setSortOrder(e.target.value as typeof sortOrder);
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="px-2"
+                                    title={sortOrder === 'desc' ? 'По убыванию' : 'По возрастанию'}
+                                    onClick={() => {
+                                        const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';
+                                        setSortOrder(newOrder);
                                         loadTasks();
                                     }}
                                 >
-                                    <option value="desc">По убыванию</option>
-                                    <option value="asc">По возрастанию</option>
-                                </select>
+                                    {sortOrder === 'desc' ? (
+                                        <ArrowDownNarrowWide className="h-4 w-4" />
+                                    ) : (
+                                        <ArrowUpNarrowWide className="h-4 w-4" />
+                                    )}
+                                </Button>
                             </div>
                         </div>
                         <div className="relative w-full sm:w-64">
@@ -257,16 +287,46 @@ export default function AdminTasksPage() {
 
                     <TabsList className="w-full grid grid-cols-4 gap-1">
                         <TabsTrigger value="all">
-                            {isMobile ? `Все (${filteredTasks.length})` : `Все задания (${filteredTasks.length})`}
+                            {isMobile
+                                ? `Все (${filteredTasks.length})`
+                                : `Все задания (${filteredTasks.length})`}
                         </TabsTrigger>
                         <TabsTrigger value="active">
-                            {isMobile ? `Актив. (${filterTasksByTab(filteredTasks, 'active').length})` : `Активные (${filterTasksByTab(filteredTasks, 'active').length})`}
+                            {isMobile
+                                ? `Актив. (${
+                                      filterTasksByTab(filteredTasks, "active")
+                                          .length
+                                  })`
+                                : `Активные (${
+                                      filterTasksByTab(filteredTasks, "active")
+                                          .length
+                                  })`}
                         </TabsTrigger>
                         <TabsTrigger value="completed">
-                            {isMobile ? `Заверш. (${filterTasksByTab(filteredTasks, 'completed').length})` : `Завершенные (${filterTasksByTab(filteredTasks, 'completed').length})`}
+                            {isMobile
+                                ? `Заверш. (${
+                                      filterTasksByTab(
+                                          filteredTasks,
+                                          "completed"
+                                      ).length
+                                  })`
+                                : `Завершенные (${
+                                      filterTasksByTab(
+                                          filteredTasks,
+                                          "completed"
+                                      ).length
+                                  })`}
                         </TabsTrigger>
                         <TabsTrigger value="overdue">
-                            {isMobile ? `Просроч. (${filterTasksByTab(filteredTasks, 'overdue').length})` : `Просроченные (${filterTasksByTab(filteredTasks, 'overdue').length})`}
+                            {isMobile
+                                ? `Просроч. (${
+                                      filterTasksByTab(filteredTasks, "overdue")
+                                          .length
+                                  })`
+                                : `Просроченные (${
+                                      filterTasksByTab(filteredTasks, "overdue")
+                                          .length
+                                  })`}
                         </TabsTrigger>
                     </TabsList>
                 </div>
@@ -413,14 +473,23 @@ export default function AdminTasksPage() {
                 open={isExportDialogOpen}
                 onOpenChange={setIsExportDialogOpen}
                 type={exportType}
-                onExport={async (startDate: Date | null, endDate: Date | null, status: TaskStatus | null, type: 'excel' | 'pdf') => {
+                onExport={async (
+                    startDate: Date | null,
+                    endDate: Date | null,
+                    status: TaskStatus | null,
+                    type: "excel" | "pdf"
+                ) => {
                     try {
                         const dateRange: DateRangeExport = {};
-                        
+
                         // Если указаны обе даты, добавляем их в запрос
                         if (startDate && endDate) {
-                            dateRange.start_date = startDate.toISOString().split("T")[0];
-                            dateRange.end_date = endDate.toISOString().split("T")[0];
+                            dateRange.start_date = startDate
+                                .toISOString()
+                                .split("T")[0];
+                            dateRange.end_date = endDate
+                                .toISOString()
+                                .split("T")[0];
                         }
 
                         // Если указан статус, добавляем его в запрос

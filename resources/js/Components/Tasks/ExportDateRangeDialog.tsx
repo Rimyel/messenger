@@ -66,7 +66,7 @@ export function ExportDateRangeDialog({
                 <div className="grid gap-4 py-4">
                     <div className="grid items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Период (необязательно)</span>
+                            <span className="text-sm font-medium">Период от</span>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
@@ -94,7 +94,7 @@ export function ExportDateRangeDialog({
                     </div>
                     <div className="grid items-center gap-4">
                         <div className="flex items-center gap-2">
-                            <span className="text-sm font-medium">Статус (необязательно)</span>
+                            <span className="text-sm font-medium">Период до</span>
                         </div>
                         <Popover>
                             <PopoverTrigger asChild>
